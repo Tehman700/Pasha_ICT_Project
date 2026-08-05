@@ -1,3 +1,3 @@
 print("Hello World")
 
-prnttdsafsd
+print("Testing git connection")
