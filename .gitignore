@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / Expo / Next.js
+node_modules/
+.expo/
+.next/
+dist/
+build/
+*.log
+.turbo/
+
+# Env & secrets
+.env
+.env.local
+*.pem
+keys/*
+!keys/README.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/

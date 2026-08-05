@@ -1,0 +1,544 @@
+openapi: 3.0.3
+info:
+  title: School Pickup System API
+  version: 0.1.0
+  description: >
+    Backend API for the school pickup & queue management system.
+    This is the agreed contract between the backend (Person A) and
+    both frontends (Person B / admin web). Treat changes as
+    deliberate — update this file and tell the other person before
+    implementing against a different shape.
+
+servers:
+  - url: https://api.yourschool-subdomain.com/v1
+
+tags:
+  - name: auth
+  - name: schools
+  - name: classes
+  - name: students
+  - name: guardianships
+  - name: schedules
+  - name: pickup-requests
+  - name: trips
+  - name: queue
+  - name: qr
+  - name: handovers
+  - name: delegate-passes
+  - name: announcements
+  - name: analytics
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Role:
+      type: string
+      enum: [parent, teacher, guard, admin]
+
+    PickupStatus:
+      type: string
+      enum: [SCHEDULED, EN_ROUTE, NEARBY, AT_GATE, HANDED_OVER, CANCELLED, LAPSED]
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        role: { $ref: '#/components/schemas/Role' }
+        name: { type: string }
+        phone: { type: string }
+        locale: { type: string, enum: [en, ur] }
+        photo_url: { type: string, nullable: true }
+
+    Student:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        name: { type: string }
+        photo_url: { type: string, nullable: true }
+
+    Schedule:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        guardian_id: { type: string, format: uuid }
+        weekday: { type: integer, minimum: 0, maximum: 6 }
+        pickup_time: { type: string, example: "13:15" }
+
+    PickupRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        guardian_id: { type: string, format: uuid }
+        date: { type: string, format: date }
+        scheduled_time: { type: string, example: "13:15" }
+        status: { $ref: '#/components/schemas/PickupStatus' }
+        source: { type: string, enum: [default, exception] }
+        trip_id: { type: string, format: uuid, nullable: true }
+
+    Trip:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        guardian_id: { type: string, format: uuid }
+        date: { type: string, format: date }
+        started_at: { type: string, format: date-time }
+        last_lat: { type: number, nullable: true }
+        last_lng: { type: number, nullable: true }
+        eta_seconds: { type: integer, nullable: true }
+        entered_geofence_at: { type: string, format: date-time, nullable: true }
+        arrived_at: { type: string, format: date-time, nullable: true }
+
+    QueueEntry:
+      type: object
+      properties:
+        pickup_request_id: { type: string, format: uuid }
+        student_name: { type: string }
+        guardian_name: { type: string }
+        status: { $ref: '#/components/schemas/PickupStatus' }
+        eta_seconds: { type: integer, nullable: true }
+        position: { type: integer }
+
+    QrToken:
+      type: object
+      properties:
+        token: { type: string, description: "Signed JWT (ES256)" }
+        exp: { type: string, format: date-time }
+
+    Handover:
+      type: object
+      required: [pickup_request_id, method]
+      properties:
+        pickup_request_id: { type: string, format: uuid }
+        method: { type: string, enum: [qr, manual] }
+        qr_token: { type: string, nullable: true, description: "Required if method=qr" }
+        fallback_reason:
+          type: string
+          nullable: true
+          enum: [phone_dead, no_app, scan_failed, other]
+          description: "Required if method=manual"
+        device_id: { type: string }
+
+    DelegatePass:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        pickup_request_id: { type: string, format: uuid }
+        delegate_name: { type: string }
+        delegate_phone: { type: string }
+        photo_url: { type: string }
+        expires_at: { type: string, format: date-time }
+
+    Announcement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        title_en: { type: string }
+        title_ur: { type: string }
+        body_en: { type: string }
+        body_ur: { type: string }
+        sent_at: { type: string, format: date-time, nullable: true }
+        audience: { type: string, enum: [all, class, single] }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+
+  /users/me:
+    get:
+      tags: [auth]
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /schools:
+    get:
+      tags: [schools]
+      responses:
+        '200':
+          description: List schools (admin)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/User' }
+    post:
+      tags: [schools]
+      description: Admin only
+      responses:
+        '201': { description: Created }
+
+  /classes:
+    get:
+      tags: [classes]
+      parameters:
+        - name: school_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: List classes }
+    post:
+      tags: [classes]
+      description: Admin only
+      responses:
+        '201': { description: Created }
+
+  /students:
+    get:
+      tags: [students]
+      parameters:
+        - name: class_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List students
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Student' }
+    post:
+      tags: [students]
+      description: Admin only
+      responses:
+        '201': { description: Created }
+
+  /students/{student_id}/guardians:
+    get:
+      tags: [guardianships]
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: List guardians for a student }
+    post:
+      tags: [guardianships]
+      description: Admin only — link a guardian to a student
+      parameters:
+        - name: student_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201': { description: Linked }
+
+  /schedules:
+    get:
+      tags: [schedules]
+      parameters:
+        - name: student_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: List schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Schedule' }
+    post:
+      tags: [schedules]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Schedule' }
+      responses:
+        '201': { description: Created }
+
+  /pickup-requests/me:
+    get:
+      tags: [pickup-requests]
+      description: Parent's own requests for a given date (defaults to today)
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PickupRequest' }
+
+  /pickup-requests:
+    get:
+      tags: [pickup-requests]
+      description: Teacher/admin view, filtered by class and date
+      parameters:
+        - name: class_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PickupRequest' }
+
+  /pickup-requests/{id}/exception:
+    post:
+      tags: [pickup-requests]
+      description: Override today's scheduled time, or mark absent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scheduled_time: { type: string, nullable: true }
+                cancelled: { type: boolean }
+      responses:
+        '200': { description: Updated }
+
+  /trips/start:
+    post:
+      tags: [trips]
+      description: Parent taps "On my way" — starts one trip covering all of today's pickups for this guardian
+      responses:
+        '201':
+          description: Trip started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Trip' }
+
+  /trips/{id}/location:
+    post:
+      tags: [trips]
+      description: Streamed while the app is in foreground, roughly every 15s
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lng]
+              properties:
+                lat: { type: number }
+                lng: { type: number }
+      responses:
+        '200': { description: Recorded }
+
+  /queue:
+    get:
+      tags: [queue]
+      parameters:
+        - name: class_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Current queue snapshot for a class
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/QueueEntry' }
+
+  /ws/queue/{class_id}:
+    get:
+      tags: [queue]
+      description: >
+        WebSocket upgrade. Pushes QueueEntry[] on every state change for
+        this class. Not a normal REST response — documented here so the
+        contract is visible in one place.
+      parameters:
+        - name: class_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '101': { description: Switching protocols }
+
+  /qr-tokens/batch:
+    post:
+      tags: [qr]
+      description: Parent app pre-fetches a batch of signed tokens when a trip starts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trip_id: { type: string, format: uuid }
+                count: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Batch of tokens
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/QrToken' }
+
+  /schools/{id}/public-key:
+    get:
+      tags: [qr]
+      description: Guard app caches this once per day per school
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: PEM-encoded ES256 public key
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /handovers:
+    post:
+      tags: [handovers]
+      description: Guard confirms a handover — QR or manual
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Handover' }
+      responses:
+        '201': { description: Logged }
+
+  /handovers/sync:
+    post:
+      tags: [handovers]
+      description: Batch upload of handovers confirmed while offline
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/Handover' }
+      responses:
+        '200': { description: Synced }
+
+  /pickup-requests/{id}/delegate:
+    post:
+      tags: [delegate-passes]
+      description: Parent issues a one-time pass to someone else for today's pickup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [delegate_name, delegate_phone, photo_url]
+              properties:
+                delegate_name: { type: string }
+                delegate_phone: { type: string }
+                photo_url: { type: string }
+      responses:
+        '201':
+          description: Pass issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DelegatePass' }
+
+  /announcements:
+    get:
+      tags: [announcements]
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Announcement' }
+    post:
+      tags: [announcements]
+      description: Admin only
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Announcement' }
+      responses:
+        '201': { description: Sent }
+
+  /analytics/wait-times:
+    get:
+      tags: [analytics]
+      parameters:
+        - name: school_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Aggregate wait-time stats }
+
+  /analytics/on-time-rate:
+    get:
+      tags: [analytics]
+      parameters:
+        - name: school_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: On-time pickup percentage }
