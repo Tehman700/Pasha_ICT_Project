@@ -8,7 +8,19 @@ Read (from repo root): `docs/PROJECT_CONTEXT.md`, `docs/api/openapi.yaml`.
 
 ## Stack
 
-Next.js 14, App Router, TypeScript, Tailwind, shadcn/ui, TanStack Query, Recharts for analytics.
+Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind v4, TanStack Query, GSAP for animation, Recharts for analytics.
+
+Tailwind v4 is **CSS-first** — there is no `tailwind.config.ts`. Tokens live in
+`@theme` inside `app/globals.css`, mirroring `packages/shared/src/tokens/`.
+Change both in the same commit.
+
+shadcn/ui is not installed. The component library in `components/ui/` is written
+directly against `design.md` — shadcn's defaults (shadows, elevation tiers,
+neutral greys) contradict the hairline-only, warm-cream system.
+
+This app also hosts the **classroom display** at `/display/[classId]` — a
+kiosk-mode route for the wall-mounted tablet, not a React Native screen. See
+module M6.4 in `docs/MODULE_PLAN.md` for why.
 
 ## Scope (Tier 1)
 
@@ -33,3 +45,13 @@ Next.js 14, App Router, TypeScript, Tailwind, shadcn/ui, TanStack Query, Rechart
 cd apps/admin-web
 npm run dev
 ```
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

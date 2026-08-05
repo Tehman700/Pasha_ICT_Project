@@ -199,7 +199,7 @@ Two separate apps, **one shared package** for API client, types, i18n strings, a
 
 ### Admin Web
 ```
-Next.js 14 (App Router) + TypeScript
+Next.js 16 (App Router) + React 19 + TypeScript
 Tailwind + shadcn/ui
 TanStack Query
 Recharts (analytics)

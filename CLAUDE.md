@@ -26,7 +26,7 @@ If a task seems to require violating one of these, stop and flag it instead of q
 |---|---|
 | Backend | FastAPI, PostgreSQL, Redis, SQLAlchemy 2.0 + Alembic, APScheduler |
 | Mobile (both apps) | React Native + Expo, shared package for API client / types / i18n |
-| Admin web | Next.js 14 (App Router), TypeScript, Tailwind, shadcn/ui, TanStack Query |
+| Admin web | Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, TanStack Query, GSAP |
 | Infra | Single EC2 instance, native services, Caddy (TLS), GitHub Actions (deploy), EAS Build (APKs) |
 
 ## Repo structure

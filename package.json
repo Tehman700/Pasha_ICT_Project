@@ -1,0 +1,12 @@
+{
+  "name": "school-pickup-system",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Smart School Pickup & Queue Management System — monorepo root",
+  "scripts": {
+    "dev:admin": "pnpm --filter @pickup/admin-web dev",
+    "build:admin": "pnpm --filter @pickup/admin-web build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "packageManager": "pnpm@10.32.1"
+}

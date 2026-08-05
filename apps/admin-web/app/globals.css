@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Design tokens → Tailwind v4 theme.
+
+   MIRRORS `packages/shared/src/tokens/`. That package is the source of
+   truth — it also feeds the two React Native apps, which cannot read CSS.
+   If you change a value here, change it there in the same commit.
+
+   Reasoning for every token: `docs/DESIGN_SYSTEM.md`.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Brand. The only action colour. Used scarcely. ─────────────────── */
+  --color-primary: #f54e00;
+  --color-primary-active: #d04200;
+  --color-on-primary: #ffffff;
+
+  /* ── Surface. Warm cream floor — never pure white. ─────────────────── */
+  --color-canvas: #f7f7f4;
+  --color-canvas-soft: #fafaf7;
+  --color-surface-card: #ffffff;
+  --color-surface-strong: #e6e5e0;
+
+  /* ── Hairlines. The only depth mechanism — no shadows anywhere. ────── */
+  --color-hairline: #e6e5e0;
+  --color-hairline-soft: #efeee8;
+  --color-hairline-strong: #cfcdc4;
+
+  /* ── Text. Warm near-black, never pure black. ──────────────────────── */
+  --color-ink: #26251e;
+  --color-body: #5a5852;
+  --color-muted: #807d72;
+  --color-muted-soft: #a09c92;
+
+  /* ── Semantic ──────────────────────────────────────────────────────── */
+  --color-success: #1f8a65;
+  --color-error: #cf2d56;
+
+  /* ── Ink-inverted surface (guard verdict, classroom display) ───────── */
+  --color-inv-canvas: #26251e;
+  --color-inv-canvas-soft: #32302a;
+  --color-inv-text: #f7f7f4;
+  --color-inv-muted: #a09c92;
+  --color-inv-hairline: #43413a;
+  --color-inv-success: #4ec49a;
+  --color-inv-error: #ff7a94;
+
+  /* ── Type families. The --font-* vars come from next/font in layout.tsx. ─ */
+  --font-sans: var(--font-inter), system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-urdu: var(--font-nastaliq), "Jameel Noori Nastaleeq", serif;
+
+  /* ── Type scale ────────────────────────────────────────────────────── */
+  --text-display-mega: 72px;
+  --text-display-lg: 36px;
+  --text-display-md: 26px;
+  --text-display-sm: 22px;
+  --text-title-md: 18px;
+  --text-title-sm: 16px;
+  --text-body-md: 16px;
+  --text-body-sm: 14px;
+  --text-caption: 13px;
+  --text-caption-uppercase: 11px;
+  /* Classroom display only — read from across a room. */
+  --text-display-huge: 96px;
+  --text-display-giant: 120px;
+
+  /* ── Radius ────────────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* ── Breakpoints ───────────────────────────────────────────────────── */
+  --breakpoint-mobile: 640px;
+  --breakpoint-tablet: 1024px;
+  --breakpoint-desktop: 1280px;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-md);
+  line-height: 1.5;
+  color: var(--color-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display steps carry negative tracking and stay at weight 400.
+   design.md: "Display weight stays at 400. Magazine voice, never bold." */
+.type-display-mega { font-size: var(--text-display-mega); font-weight: 400; line-height: 1.1; letter-spacing: -2.16px; color: var(--color-ink); }
+.type-display-lg   { font-size: var(--text-display-lg);   font-weight: 400; line-height: 1.2; letter-spacing: -0.72px; color: var(--color-ink); }
+.type-display-md   { font-size: var(--text-display-md);   font-weight: 400; line-height: 1.25; letter-spacing: -0.325px; color: var(--color-ink); }
+.type-display-sm   { font-size: var(--text-display-sm);   font-weight: 400; line-height: 1.3; letter-spacing: -0.11px; color: var(--color-ink); }
+.type-title-md     { font-size: var(--text-title-md);     font-weight: 600; line-height: 1.4; color: var(--color-ink); }
+.type-title-sm     { font-size: var(--text-title-sm);     font-weight: 600; line-height: 1.4; color: var(--color-ink); }
+.type-body         { font-size: var(--text-body-md);      font-weight: 400; line-height: 1.5; }
+.type-body-sm      { font-size: var(--text-body-sm);      font-weight: 400; line-height: 1.5; }
+.type-caption      { font-size: var(--text-caption);      font-weight: 400; line-height: 1.4; }
+.type-label        { font-size: var(--text-caption-uppercase); font-weight: 600; line-height: 1.4; letter-spacing: 0.88px; text-transform: uppercase; }
+.type-mono         { font-family: var(--font-mono); font-size: var(--text-caption); line-height: 1.5; }
+
+/* ── Urdu / RTL ────────────────────────────────────────────────────────
+   Two rules that are legibility requirements, not preferences:
+     1. tracking → 0. Negative letter-spacing severs Nastaliq's connected
+        script and renders it close to unreadable.
+     2. line-height → ~1.9. Nastaliq descends steeply and diagonally; at
+        Latin line-heights consecutive lines collide.
+   ─────────────────────────────────────────────────────────────────────── */
+
+[dir="rtl"] {
+  font-family: var(--font-urdu);
+}
+
+[dir="rtl"] .type-display-mega,
+[dir="rtl"] .type-display-lg,
+[dir="rtl"] .type-display-md,
+[dir="rtl"] .type-display-sm,
+[dir="rtl"] .type-title-md,
+[dir="rtl"] .type-title-sm,
+[dir="rtl"] .type-body,
+[dir="rtl"] .type-body-sm,
+[dir="rtl"] .type-caption,
+[dir="rtl"] .type-label {
+  font-family: var(--font-urdu);
+  letter-spacing: 0 !important;
+  line-height: 1.9 !important;
+}
+
+[dir="rtl"] .type-display-mega { font-size: 64px; }
+[dir="rtl"] .type-display-lg   { font-size: 34px; }
+[dir="rtl"] .type-label        { text-transform: none; }
+
+/* ── Focus. design.md documents no hover state; focus is a11y-required. ── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Respect reduced-motion — GSAP timelines check this too. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
