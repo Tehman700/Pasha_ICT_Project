@@ -14,7 +14,8 @@
     "./i18n": "./src/i18n/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
   },
   "devDependencies": {
     "typescript": "^5"

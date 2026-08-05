@@ -23,9 +23,12 @@ import type {
   OnTimeStats,
   PickupAuthorization,
   PickupRequest,
+  QrTokenBatchItem,
   QueueEntry,
+  Schedule,
   School,
   Student,
+  Trip,
   User,
   Uuid,
   Vehicle,
@@ -65,6 +68,27 @@ export interface PickupApi {
 
   getWaitTimes(): Promise<WaitTimeStats>;
   getOnTimeRate(): Promise<OnTimeStats>;
+
+  // ── Mobile surfaces ──────────────────────────────────────────────────
+  /** The signed-in collector's own children (parent) — empty for a driver. */
+  getMyChildren(): Promise<Student[]>;
+  getMySchedules(): Promise<Schedule[]>;
+  getMyPickupRequests(date?: IsoDate): Promise<PickupRequest[]>;
+  /** Collectors this parent has authorized for their own children. */
+  getMyCollectors(): Promise<PickupAuthorization[]>;
+  /** A driver's cross-family list for today. Parents get their own children. */
+  getMyManifest(): Promise<PickupRequest[]>;
+  getMyTrip(): Promise<Trip | null>;
+  startTrip(): Promise<Trip>;
+  endTrip(tripId: Uuid): Promise<void>;
+  /** Pre-signed batch fetched at trip start so the gate works with no signal. */
+  getQrTokens(tripId: Uuid, count?: number): Promise<QrTokenBatchItem[]>;
+  /** This collector's own position in the live queue. */
+  getMyQueueEntry(): Promise<QueueEntry | null>;
+  /** Teacher's prep list — from bookings, NOT queue order. */
+  getPrepList(classId: Uuid): Promise<PickupRequest[]>;
+  markStaged(pickupRequestId: Uuid): Promise<void>;
+  submitHandover(body: Handover): Promise<void>;
 }
 
 /** Simulated network latency, so loading states are real rather than theoretical. */
@@ -174,6 +198,70 @@ export const mockApi: PickupApi = {
 
   async getOnTimeRate() {
     return delay(fx.onTime);
+  },
+
+  // ── Mobile surfaces ──────────────────────────────────────────────────
+
+  async getMyChildren() {
+    return delay(fx.myChildren);
+  },
+
+  async getMySchedules() {
+    return delay(fx.schedules);
+  },
+
+  async getMyPickupRequests(date) {
+    const mine = fx.pickupRequests.filter((r) =>
+      fx.myChildren.some((c) => c.id === r.student_id),
+    );
+    return delay(date ? mine.filter((r) => r.date === date) : mine);
+  },
+
+  async getMyCollectors() {
+    return delay(
+      fx.authorizations.filter(
+        (a) => a.granted_by_user_id === fx.currentParent.id,
+      ),
+    );
+  },
+
+  async getMyManifest() {
+    // Driver view: every child this collector fetches today, across families.
+    return delay(
+      fx.pickupRequests.filter((r) => r.collector_id === fx.currentDriver.id),
+    );
+  },
+
+  async getMyTrip() {
+    return delay(fx.myTrip);
+  },
+
+  async startTrip() {
+    return delay({ ...fx.myTrip, started_at: new Date().toISOString() });
+  },
+
+  async endTrip() {
+    return delay(undefined);
+  },
+
+  async getQrTokens(_tripId, count = 20) {
+    return delay(fx.qrTokens.slice(0, count));
+  },
+
+  async getMyQueueEntry() {
+    return delay(fx.queue.find((q) => q.trip_id === fx.myTrip.id) ?? null);
+  },
+
+  async getPrepList(classId) {
+    return delay(fx.pickupRequests.filter((r) => r.class_id === classId));
+  },
+
+  async markStaged() {
+    return delay(undefined);
+  },
+
+  async submitHandover() {
+    return delay(undefined);
   },
 };
 

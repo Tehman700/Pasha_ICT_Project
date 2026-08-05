@@ -1,5 +1,27 @@
 # Module Plan — Dependency-Ordered Build Sequence
 
+> ## Status — updated 6 Aug 2026
+>
+> **Done:** M0.2 (design system) · M1.4a (all 37 screens, mocked)
+>
+> All four surfaces exist and are clickable end to end against a typed mock
+> layer. Nothing talks to a server yet, by design — swapping in the real
+> backend is M1.4b and changes one call site, not 37 screens.
+>
+> | Surface | Screens | Runs with |
+> |---|---|---|
+> | `apps/admin-web` | 14 | `pnpm dev:admin` |
+> | classroom display (in admin-web) | 2 | `/display/[classId]`, kiosk browser |
+> | `apps/parent-app` | 12 | `pnpm dev:parent` + Expo Go |
+> | `apps/staff-app` | 9 | `pnpm dev:staff` + Expo Go |
+>
+> Verified by `pnpm verify`: 5 packages typecheck, 22 contract tests pass,
+> admin-web builds 16 routes, both mobile apps produce Android bundles.
+> See `docs/RUNNING_ON_PHONES.md` to view them on a device.
+>
+> **Everything below this line is still outstanding**, except where marked.
+> The next module on the critical path is **M0.3 — the API contract**.
+
 This is the **build order**: what gets built first, what unblocks what, and when
 each module is done. It is ordered by *dependency*, not by calendar day.
 
@@ -56,7 +78,7 @@ must be announced before anyone implements against them.
 - **Done when:** no file claims per-person ownership; both rules survive as
   coordination rules.
 
-### M0.2 — Design system adaptation
+### M0.2 — Design system adaptation  ✅ DONE
 Extend `design.md` from a marketing system into an **application** system, in
 its own vocabulary. Produce one token source consumed by every surface.
 
@@ -191,14 +213,15 @@ authorizations, 3 classroom devices, deliberate sibling groups, name audio clips
 - **Done when:** a fresh seed produces a dataset every Tier 1 screen can demo,
   and rerunning is idempotent.
 
-### M1.4 — App shells
+### M1.4a — App shells + all 37 screens (mocked)  ✅ DONE
 Scaffold `parent-app`, `staff-app` (Expo), `admin-web` (Next.js). Navigation,
 role routing, i18n (en + ur from the first screen), design tokens from M0.2
 wired in, GSAP on web, Reanimated 3 + Moti on RN.
 
 - **Depends on:** M0.2, M0.3, M1.2
-- **Done when:** all three log in against the real backend and route by role,
-  with a language toggle that flips to RTL.
+- **Done when:** all four surfaces route by role with a language toggle that flips to RTL.
+- **M1.4b (outstanding):** swap `mockApi` for the HTTP client behind the same
+  `PickupApi` interface. One call site, not 37 screens.
 
 ---
 

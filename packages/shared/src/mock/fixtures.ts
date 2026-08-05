@@ -22,9 +22,12 @@ import type {
   OnTimeStats,
   PickupAuthorization,
   PickupRequest,
+  QrTokenBatchItem,
   QueueEntry,
+  Schedule,
   School,
   Student,
+  Trip,
   User,
   Vehicle,
   WaitTimeStats,
@@ -207,3 +210,53 @@ export const onTime: OnTimeStats = {
   total_pickups: 246,
   manual_fallback_rate: 0.06,
 };
+
+/**
+ * The signed-in parent for the mobile skeleton: Tariq Raza, two children
+ * (Ali in Nursery, Zara in Prep A) — a sibling group — who normally travel
+ * with Ahmed Khan's van.
+ */
+export const currentParent = users.find((u) => u.id === "usr-p1")!;
+export const currentDriver = users.find((u) => u.id === "usr-d1")!;
+export const currentTeacher = users.find((u) => u.id === "usr-t1")!;
+export const currentGuard = users.find((u) => u.id === "usr-grd")!;
+
+export const myChildren: Student[] = students.filter((s) =>
+  ["std-01", "std-06"].includes(s.id),
+);
+
+export const schedules: Schedule[] = myChildren.flatMap((child) =>
+  [0, 1, 2, 3, 4].map((weekday) => ({
+    id: `sch-${child.id}-${weekday}`,
+    student_id: child.id,
+    // Van Monday–Thursday, father on Friday. The per-weekday collector column
+    // gives this with no extra structure.
+    collector_id: weekday === 4 ? "usr-p1" : "usr-d1",
+    weekday,
+    pickup_time: "13:15",
+  })),
+);
+
+export const myTrip: Trip = {
+  id: "trp-01",
+  collector_user_id: "usr-d1",
+  date: today,
+  started_at: at("12:58"),
+  last_lat: 33.6901,
+  last_lng: 73.0512,
+  eta_seconds: 95,
+  entered_geofence_at: at("13:06"),
+  arrived_at: null,
+};
+
+/**
+ * A batch of pre-signed QR tokens.
+ *
+ * Real tokens are ES256-signed JWTs fetched at trip start so the gate works
+ * with no signal. NOTE: 20 tokens × 60s ≈ 20 minutes of cover against a trip
+ * window of up to 90 — see module M7.1, the batch needs sizing to the window.
+ */
+export const qrTokens: QrTokenBatchItem[] = Array.from({ length: 20 }, (_, i) => ({
+  token: `eyJhbGciOiJFUzI1NiJ9.mock-token-${String(i).padStart(2, "0")}.signature`,
+  exp: new Date(Date.now() + (i + 1) * 60_000).toISOString(),
+}));

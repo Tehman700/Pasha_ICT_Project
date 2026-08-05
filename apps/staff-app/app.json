@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "School Pickup Staff",
+    "slug": "staff-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "pickupstaff",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f7f7f4"
+    },
+    "android": {
+      "package": "com.pickup.staff",
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f7f4",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "POST_NOTIFICATIONS"],
+      "blockedPermissions": [
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "web": { "favicon": "./assets/favicon.png", "bundler": "metro" },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "The guard app uses the camera only to scan pickup codes at the gate."
+        }
+      ]
+    ]
+  }
+}

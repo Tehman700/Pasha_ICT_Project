@@ -1,0 +1,21 @@
+{
+  "name": "@pickup/ui-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React Native component kit + providers shared by parent-app and staff-app",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pickup/shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "*",
+    "moti": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "*"
+  }
+}
