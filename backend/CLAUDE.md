@@ -1,6 +1,6 @@
 # CLAUDE.md — backend/
 
-FastAPI backend. Owned by Person A.
+FastAPI backend for Rukhsat.
 
 ## Before starting
 
@@ -41,11 +41,12 @@ backend/
 ## Rules specific to this package
 
 - Every router matches `docs/api/openapi.yaml` — same paths, same request/response shapes. If you need to diverge, update the contract file first and mention it, don't diverge silently.
-- **Migrations only from this codebase, only by Person A's sessions.** Two people generating Alembic migrations against the same tables from different sessions is how you get unmergeable migration history.
+- **One Alembic lineage.** Generate migrations from here only, and only when you know no one else is mid-migration. Two people autogenerating revisions against the same tables produces a history that cannot be merged.
+- **Any migration adding a Postgres ENUM must drop it in `downgrade()`.** Alembic will not do this for you; the initial migration has the pattern. Skip it and one rollback bricks the database until someone drops the types by hand.
 - Queue ordering logic (ETA-based, not booking-time-based) lives in `services/` — see `docs/PROJECT_CONTEXT.md` for why. Don't reintroduce booking-time ordering.
 - Geofence evaluation is server-side, computed from streamed lat/lng — see `docs/SECURITY.md`. Don't move this to the client.
-- QR token signing uses ES256 via `python-jose`; the private key never leaves the server. See `docs/SECURITY.md` for the exact token shape.
-- Local dev connects to the shared EC2 Postgres/Redis instance per `docs/COLLABORATION.md`, not a locally-installed database.
+- QR token signing uses ES256 via **pyjwt** (not python-jose — unmaintained since 2021, open CVEs, and it would be signing the security core of a child-safety system). The private key never leaves the server.
+- Local dev uses `docker compose -f docker-compose.dev.yml up -d` from the repo root: Postgres 16 on **5544**, Redis 7 on **6399**. Non-default ports on purpose — a native Postgres on 5432 silently wins over Docker’s proxy and the failure looks like a password error. Production remains fully native via systemd.
 
 ## Running locally
 

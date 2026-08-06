@@ -1,0 +1,53 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  LOCAL DEVELOPMENT ONLY — never used in production.
+#
+#  Production runs Postgres, Redis, FastAPI and Next.js natively via systemd
+#  on one EC2 instance, with no containers anywhere. See docs/DEPLOYMENT.md.
+#  That constraint is unchanged; this file exists only so both developers get
+#  an identical database on their own machines in one command.
+#
+#  Versions are pinned to match what Ubuntu 24.04 installs on the EC2 box, so
+#  local and production do not drift.
+#
+#    docker compose -f docker-compose.dev.yml up -d
+#
+#  PORTS: 5544 (Postgres) and 6399 (Redis), deliberately NOT the 5432/6379
+#  defaults — developer machines often already run a Postgres or Redis, and a
+#  native service on the default port silently wins over Docker's port proxy.
+#  The symptom is a container that looks healthy while every connection is
+#  refused with a password error against a database you never created.
+#    docker compose -f docker-compose.dev.yml down        # keeps data
+#    docker compose -f docker-compose.dev.yml down -v     # wipes data
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rukhsat-pg
+    environment:
+      POSTGRES_USER: rukhsat_app
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: rukhsat
+    ports:
+      - "5544:5432"
+    volumes:
+      - rukhsat_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rukhsat_app -d rukhsat"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: rukhsat-redis
+    ports:
+      - "6399:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  rukhsat_pgdata:

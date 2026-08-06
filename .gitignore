@@ -28,3 +28,6 @@ Thumbs.db
 # Editors
 .vscode/
 .idea/
+
+# Alembic bytecode
+alembic/versions/__pycache__/

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "School Pickup Staff",
-    "slug": "staff-app",
+    "name": "Rukhsat Staff",
+    "slug": "rukhsat-staff",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "pickupstaff",
+    "scheme": "rukhsatstaff",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
       "backgroundColor": "#f7f7f4"
     },
     "android": {
-      "package": "com.pickup.staff",
+      "package": "com.rukhsat.staff",
       "adaptiveIcon": {
         "backgroundColor": "#f7f7f4",
         "foregroundImage": "./assets/android-icon-foreground.png",

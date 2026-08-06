@@ -1,6 +1,8 @@
 # CLAUDE.md — packages/shared
 
-Shared by `apps/parent-app` and `apps/staff-app`. Owned by Person B.
+Shared by every surface — both mobile apps and `apps/admin-web`.
+
+React Native components live in `packages/ui-native` instead, so `react-native` never leaks into the web build.
 
 ## What lives here
 

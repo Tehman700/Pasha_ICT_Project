@@ -1,37 +1,104 @@
 # Collaboration
 
-## Ownership
+Two developers, both using Claude Code, one codebase.
 
-- **Person A** — backend, database schema/migrations, admin web, infrastructure
-- **Person B** — both mobile apps, the shared package, localization
+## How work is divided
 
-Claude Code sessions should stay inside these lines. If you're working as Person B, treat `docs/api/openapi.yaml` as fixed and don't modify backend models or migrations — flag a needed contract change instead of silently working around it.
+**It isn't, by directory.** Whoever is free takes the next module in
+[`MODULE_PLAN.md`](./MODULE_PLAN.md). Any session may edit any file. There is no
+"Person A owns backend" line any more — that split made Claude Code sessions
+refuse valid work and slowed both people down.
+
+Two rules survive, because each protects something real:
+
+### 1. One Alembic lineage
+
+Generate migrations from `backend/` only, and only when you know the other
+person is not mid-migration. Two people autogenerating revisions against the
+same tables produces a history that cannot be merged — the single failure here
+that costs a day to unpick.
+
+Say "taking a migration" before you run `alembic revision`, and "done" after.
+
+**Any migration that adds a Postgres ENUM must drop it in `downgrade()`.**
+Alembic does not do this for you. The initial migration has the pattern.
+
+### 2. Announce contract changes before implementing them
+
+[`api/openapi.yaml`](./api/openapi.yaml) is what lets both of you build in
+parallel without blocking. Changing it silently means the other person's code
+is built against a shape that no longer exists.
+
+Change the file, say so, then implement. Person B can build against the mock
+client in `packages/shared` before the real endpoint exists — that is exactly
+what it is for.
+
+Everything else is ordinary collaboration: small frequent commits, and if you
+touch something the other person is actively in, mention it.
+
+## Local development
+
+Both of you run the same database locally:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+cp .env.example .env          # defaults already match the compose file
+```
+
+Postgres 16 on **5544**, Redis 7 on **6399** — deliberately not the 5432/6379
+defaults. A native Postgres or Redis already running on your machine silently
+wins over Docker's port proxy, and the symptom is a container that looks
+healthy while every connection fails with a password error against a database
+you never created.
+
+> Docker is used **only** here. Production runs Postgres, Redis, FastAPI and
+> Next.js natively via systemd on one EC2 instance, with no containers. See
+> [`DEPLOYMENT.md`](./DEPLOYMENT.md). Image versions are pinned to match what
+> Ubuntu 24.04 installs, so local and production do not drift.
+
+Reseed whenever you want a clean slate — it is idempotent:
+
+```bash
+cd backend && ./.venv/Scripts/python.exe ../scripts/seed.py --reset
+```
+
+## Running everything
+
+```bash
+pnpm verify        # typechecks all packages, runs frontend + backend tests, builds admin-web
+pnpm dev:admin     # admin dashboard + classroom display  → localhost:3000
+pnpm dev:parent    # parent app  (Expo Go)
+pnpm dev:staff     # staff app   (Expo Go, port 8082)
+cd backend && ./.venv/Scripts/uvicorn.exe app.main:app --reload   # API → localhost:8000
+```
+
+See [`RUNNING_ON_PHONES.md`](./RUNNING_ON_PHONES.md) for viewing the apps on a
+real device.
 
 ## Repo & branching
 
 - `main` is always deployable
 - Branch per feature: `feat/qr-verification`, `feat/parent-schedule-ui`
-- Small, frequent PRs — even solo ones — rather than one big end-of-day merge. A conflict found the same day is nothing; one found on Day 6 is expensive.
-
-## Local database
-
-Both of you develop against **Person A's EC2 Postgres/Redis instance** rather than installing locally — this removes version-drift risk between two machines on a 1-week clock. Access via SSH tunnel or an IP-restricted port (Person A sets this up Day 0). Connection details go in your own `.env`, copied from `.env.example`.
-
-One shared dataset means you can step on each other's test data — `scripts/seed.py` is safe to rerun any time you need a clean slate.
+- Small, frequent PRs — even solo ones. A conflict found the same day is
+  nothing; one found on Day 6 is expensive.
 
 ## Secrets
 
-- `.env` is git-ignored. `.env.example` documents every variable with dummy values — commit that, never the real one.
-- Real secrets (FCM service account key, JWT signing key, DB password, QR signing keypair) shared once via a password manager or Signal — not Slack, not WhatsApp, not committed anywhere.
+- `.env` is git-ignored. `.env.example` documents every variable and its
+  local-development default — commit that, never the real one.
+- Real secrets (FCM service account, JWT signing key, production DB password,
+  QR signing keypair) go through a password manager or Signal. Not Slack, not
+  WhatsApp, never committed.
 - The same secrets are set as GitHub Actions repo secrets for deployment.
 
-## API contract
-
-`docs/api/openapi.yaml` is the agreed contract between backend and both frontends. Change it deliberately and tell the other person — it's what lets you build in parallel without blocking on each other's endpoints. Person B can build against a mock server matching the contract before Person A's real endpoint exists.
+The demo ES256 keypair is generated by `scripts/seed.py` and lives in the
+database, so nothing sensitive needs sharing for local work.
 
 ## CI/CD
 
 GitHub Actions on push to `main` (see `.github/workflows/`):
-- Backend: deploy via rsync/SSH → migrate → restart the systemd service
-- Admin web: build → deploy via rsync/SSH → restart
-- Mobile: EAS Build produces the APK automatically — this is also the direct-download link for testers, no manual APK wrangling
+
+- Backend: rsync/SSH → `alembic upgrade head` → restart the systemd service
+- Admin web: build → rsync/SSH → restart
+- Mobile: EAS Build produces the APK, which doubles as the direct-download link
+  for testers

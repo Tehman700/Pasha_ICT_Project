@@ -2,11 +2,27 @@ fastapi
 uvicorn[standard]
 sqlalchemy>=2.0
 alembic
-psycopg2-binary
+# psycopg3 — SQLAlchemy 2.0's preferred driver. The original psycopg2-binary
+# has no wheels for Python 3.13 and would need a compiler.
+psycopg[binary]
 redis
 pydantic>=2.0
 pydantic-settings
-python-jose[cryptography]
+
+# JWT. Deliberately NOT python-jose: its last release was 2021 and it carries
+# open CVEs. It would be signing the QR tokens — the security core of a
+# child-safety system. pyjwt is maintained and has the same ES256 support.
+pyjwt[crypto]
+
+# Password hashing. The original requirements had none at all, which would
+# have meant either plaintext passwords or a scramble to add this on Day 1.
+argon2-cffi
+
 apscheduler
 websockets
 python-multipart
+
+# Tests
+pytest
+pytest-asyncio
+httpx

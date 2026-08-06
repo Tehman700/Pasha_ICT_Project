@@ -10,7 +10,7 @@
 
 export const en = {
   common: {
-    appName: "School Pickup",
+    appName: "Rukhsat",
     search: "Search",
     save: "Save",
     cancel: "Cancel",
@@ -215,7 +215,7 @@ type DeepMirror<T> = {
 
 export const ur: DeepMirror<Strings> = {
   common: {
-    appName: "اسکول پک اپ",
+    appName: "رخصت",
     search: "تلاش کریں",
     save: "محفوظ کریں",
     cancel: "منسوخ کریں",

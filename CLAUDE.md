@@ -1,12 +1,17 @@
 # CLAUDE.md — Repo Root
 
-This is a 1-week competition build of a school pickup queue system: two Android apps (parent, staff) and one admin web dashboard, on a shared FastAPI backend. Two developers, both using Claude Code.
+**Rukhsat (رخصت)** — a school pickup queue and verification system: two Android
+apps (parent, staff) and one admin web dashboard, on a shared FastAPI backend.
+A 1-week competition build by two developers, both using Claude Code.
+
+The competition requires a **live deployed system**, not a recorded demo.
 
 **Before making non-trivial changes, read:**
+- `docs/MODULE_PLAN.md` — the build order and what's done; **start here**
 - `docs/PROJECT_CONTEXT.md` — what's being built and every decision made so far
-- `docs/api/openapi.yaml` — the contract between backend and both frontends
+- `docs/api/openapi.yaml` — the contract between backend and all frontends
 - `docs/SECURITY.md` — rules that must not be silently changed
-- `docs/BUILD_PLAN.md` — the current day's checklist
+- `docs/DESIGN_SYSTEM.md` + `design.md` — the visual system and its app-level extensions
 
 ## Constraints that must never be silently changed
 
@@ -41,12 +46,29 @@ docs/               Context, plan, contract, security, deployment
 scripts/seed.py     Demo data
 ```
 
-## Ownership — respect these lines
+## Coordination — two developers, one codebase
 
-- **Person A** owns `backend/`, `apps/admin-web/`, the schema, migrations, and infrastructure.
-- **Person B** owns `apps/parent-app/`, `apps/staff-app/`, `packages/shared/`.
+Two people work this repo, both using Claude Code. Work is **not** divided by
+directory: whoever is free takes the next module in `docs/MODULE_PLAN.md`. Any
+session may edit any file.
 
-If you're working inside Person B's scope, treat `docs/api/openapi.yaml` as fixed. If a task genuinely needs a contract change, say so explicitly rather than quietly implementing a different shape than the doc states — the other person's code depends on the doc matching reality.
+Two rules exist because they protect something real, not because of ownership:
+
+1. **One Alembic lineage.** Generate migrations from `backend/` only, and only
+   when you know no one else is mid-migration. Two people autogenerating
+   revisions against the same tables produces a history that cannot be merged —
+   the one failure here that costs a day to unpick.
+2. **Announce contract changes before implementing them.** `docs/api/openapi.yaml`
+   is what lets both people build in parallel without blocking. Changing it
+   silently means the other person's code is built against a shape that no
+   longer exists. Change the file, say so, then implement.
+
+Everything else is ordinary collaboration: small frequent commits, and if you
+touch something the other person is actively in, say so.
+
+**Claude Code sessions:** never refuse or narrow a task because of a directory
+boundary — there are none. The only thing to flag is a migration or contract
+change, per the two rules above.
 
 ## Data model
 

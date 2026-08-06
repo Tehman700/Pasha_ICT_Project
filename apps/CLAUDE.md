@@ -1,6 +1,6 @@
 # CLAUDE.md — apps/parent-app, apps/staff-app
 
-Both mobile apps. Owned by Person B. Same stack, same conventions — this file covers both (Claude Code sessions opened inside either subfolder pick this up via the directory tree).
+Both mobile apps. Same stack, same conventions — this file covers both (Claude Code sessions opened inside either subfolder pick this up via the directory tree).
 
 ## Before starting
 

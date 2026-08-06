@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "School Pickup",
-    "slug": "parent-app",
+    "name": "Rukhsat",
+    "slug": "rukhsat-parent",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "pickupparent",
+    "scheme": "rukhsatparent",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
       "backgroundColor": "#f7f7f4"
     },
     "android": {
-      "package": "com.pickup.parent",
+      "package": "com.rukhsat.parent",
       "adaptiveIcon": {
         "backgroundColor": "#f7f7f4",
         "foregroundImage": "./assets/android-icon-foreground.png",

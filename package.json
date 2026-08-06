@@ -1,15 +1,20 @@
 {
-  "name": "school-pickup-system",
+  "name": "rukhsat",
   "private": true,
   "version": "0.1.0",
-  "description": "Smart School Pickup & Queue Management System — monorepo root",
+  "description": "Rukhsat — school pickup queue and verification system",
   "scripts": {
     "dev:admin": "pnpm --filter @pickup/admin-web dev",
     "dev:parent": "pnpm --filter @pickup/parent-app start",
     "dev:staff": "pnpm --filter @pickup/staff-app start --port 8082",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:reset": "docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d",
     "build:admin": "pnpm --filter @pickup/admin-web build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @pickup/shared test",
+    "test:frontend": "pnpm --filter @pickup/shared test",
+    "test:backend": "node scripts/run-backend-tests.mjs",
+    "test": "pnpm test:frontend && pnpm test:backend",
     "verify": "pnpm typecheck && pnpm test && pnpm build:admin"
   },
   "packageManager": "pnpm@10.32.1",
