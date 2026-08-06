@@ -162,3 +162,5 @@ To confirm the mobile apps compile all the way to a phone bundle:
 cd apps/parent-app && npx expo export --platform android
 cd apps/staff-app  && npx expo export --platform android
 ```
+
+<!-- CI trigger check 230601 -->
