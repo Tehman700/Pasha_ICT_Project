@@ -286,7 +286,7 @@ export interface OnTimeStats {
 
 // ── Errors ─────────────────────────────────────────────────────────────
 
-export interface ApiError {
+export interface ApiErrorBody {
   status: number;
   code: string;
   message: string;
