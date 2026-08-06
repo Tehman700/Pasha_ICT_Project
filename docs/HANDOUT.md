@@ -1,0 +1,582 @@
+# Rukhsat — Revised System Design
+
+**Status:** Proposal, not yet agreed. Written by Hussnain, on branch `hussnain/dev`.
+**Audience:** Tehman.
+**Date:** 7 August 2026
+
+---
+
+## Read this first
+
+This document proposes changes to decisions that `CLAUDE.md` marks as
+**"constraints that must never be silently changed."** I'm following the
+instruction in that file — flagging rather than quietly working around them.
+
+Nothing here is committed to `main`. No code has been changed. Four files
+currently encode the old assumptions, and they still say what they said:
+
+- `CLAUDE.md` line 21 — no background location, anywhere
+- `CLAUDE.md` line 22 — rotating QR for everyone, never static
+- `apps/CLAUDE.md` — "a deliberate constraint, not an oversight to fix"
+- `apps/parent-app/app.json` — `blockedPermissions` strips the permission from the build
+
+**Why now:** M0.3 (the API contract) is next on the critical path. If arrival
+endpoints get built around a manual "On my way" tap, changing this later means
+reworking the contract, both apps, and the queue logic. This is the cheapest
+moment to decide.
+
+**What I need from you:** agreement or pushback on Part 1. Everything after it
+follows from those four decisions.
+
+---
+
+## Part 1 — The four things I think we got wrong
+
+### 1.1 Nobody will tap "On my way"
+
+The current design starts tracking on an explicit tap. That works for an
+engaged parent who wants to use an app.
+
+It does not work for our actual primary user: a **van driver on his fourth
+school of the afternoon**, phone in his pocket, both hands busy, twenty cars
+behind him. He will not tap. Not out of laziness — he has no reason to care
+about our app, and any afternoon he forgets, the system silently does nothing.
+
+A system that needs his active cooperation stops working by day three.
+
+**Proposal: background geofencing.** He opens the app once at registration.
+After that his phone reports arrival automatically, app closed, forever.
+
+### 1.2 Background location is approved for exactly our use case
+
+This is the part I got wrong initially too, and the research corrected it.
+
+Google's Play Console policy on background location names the approved benefit
+categories as **physical safety, perceived safety, and health/fitness** — and
+lists **"child safety geo-fencing features"** explicitly among approved use
+cases, alongside "family companion apps with location-based child safety."
+
+The rejection criterion is: *"without this core feature, the app is not broken
+or rendered unusable."* Rukhsat without automatic arrival detection **is**
+broken — the entire product is that the school knows the van is coming before
+it arrives. That's the strongest position you can declare from.
+
+`SECURITY.md` line 29 calls this "the single biggest Play Store review risk."
+I think that assessment was reasonable without having read the policy, and
+wrong now that we have.
+
+Three requirements, and the paperwork is the long pole:
+
+- **A declaration video** showing the in-app prompt and the feature. Record it early.
+- **Data Safety section matching the code exactly.** Declaring "no location
+  collection" while an SDK touches location gets apps pulled *after* approval.
+- **Staged permission requests.** Foreground first, in context. Background later,
+  separately — Android 11+ won't allow both in one dialog anyway, and asking at
+  install is a documented rejection trigger.
+
+**Start the declaration regardless of when we build.** It's the only item with
+an external clock.
+
+### 1.3 QR is the wrong default
+
+Two problems with rotating QR for everyone.
+
+**Friction.** Every collection requires the collector to have their phone out,
+unlocked, on the right screen, held steady in sunlight while a guard scans it.
+At a crowded gate, in a market where most people are not app-fluent.
+
+**It's solving a problem we've already solved.** When a registered phone crosses
+the geofence, we have cryptographic-grade proof that *that specific device*
+physically arrived at the school. A QR displayed by that same phone thirty
+seconds later proves nothing further.
+
+Worth knowing what the industry does: the dominant mechanism in shipping
+dismissal products is a **placard number** — a card in the windscreen, staff
+read a 3-digit number. Two stated reasons, both of which apply harder here:
+staff enter a number faster than scanning during high-volume dismissal, and
+**rain, glare, and poor lighting interfere with QR scanning**. Where QR does
+appear, it's the option for parents who don't want a placard — the fallback,
+not the primary path.
+
+**Proposal: arrival is the credential.** The guard's screen shows a live list
+of who has actually arrived, with photos, in arrival order. He taps a row.
+
+**Keep QR for exactly one case** — the one-off outsider, who has no registered
+phone, no geofence, and no prior record. He is the only person who needs to
+*carry* something.
+
+### 1.4 The teacher cannot go to the gate
+
+`SYSTEM_PLAN.md` already contains this insight:
+
+> *"The original plan had teachers scanning QRs. That was wrong — teachers
+> cannot stand at the gate."*
+
+It's correct and it's easy to lose while simplifying elsewhere. It's 1:15,
+six classes dismissing, and a teacher has 30 children — maybe 8 with the app,
+22 without. If she walks to the gate, 29 children are unsupervised at the most
+chaotic minute of the day.
+
+**The guard confirms handovers.** He is already at the gate; it is already his
+only job. `apps/CLAUDE.md` already specifies teacher and guard as two roles
+behind one login — the structure is right, we just have to not undermine it.
+
+---
+
+## Part 2 — The system at rest
+
+### 2.1 Surfaces
+
+| Surface | Users | Platform |
+|---|---|---|
+| Admin web | School office | Browser |
+| Collector app | Parents, drivers | Android |
+| Staff app | Teachers, guards — two roles, one app | Android |
+
+Role comes from `/users/me` on every login. **Never** from a device flag or a
+login-screen toggle, or a guard's phone can be flipped to teacher mode and read
+class rosters.
+
+### 2.2 Who can collect a child
+
+Four ways, one rule.
+
+| Type | How they get access | Scope |
+|---|---|---|
+| Parent | Self-registers, matched on CNIC | Own children |
+| Driver | Self-registers, then **a parent links him** | Only children whose parents linked him |
+| Regular relative | Added by a parent | That parent's children |
+| One-off outsider | Temporary pass issued by a parent | One child, one day |
+
+> **A collector can never claim a child. Only a parent grants access to their
+> own child** — or the admin does, by phone, with it visible to the parent.
+
+This is the core security property. It's also the only design that matches
+reality: the parent is the only party who knows which driver they hired.
+
+### 2.3 Drivers belong to no school
+
+**This is a change from the current model and it matters.**
+
+A van is a **private commercial contract between a parent and a driver.** The
+school is not party to it, doesn't vet it, and should not carry the liability of
+having "approved" anyone.
+
+```
+Driver self-registers
+  name, phone, CNIC + card photo, live selfie (camera only, no gallery),
+  vehicle number, van photo with plate visible
+       ↓
+  App-side validation only — selfie vs CNIC photo face match.
+  No admin queue. No school involvement.
+       ↓
+  status = UNASSIGNED
+  In the DB. Linked to nothing. Visible to nobody.
+       ↓
+  A parent links him to her child
+       ↓
+  status = ASSIGNED
+  Now appears in that school's admin view — for that child only.
+```
+
+Consequences:
+
+- **The admin sees a driver only through the children he's linked to.** He works
+  three schools; each sees his row only for their own students.
+- **Liability sits with the parent.** When a school lawyer asks who approved this
+  man, the answer is *"the parent did, on 3 September, here's the log"* — not
+  *"the school did."*
+- **Camera-only selfie for drivers.** A gallery upload can be any image off the
+  internet. He is the highest-privilege actor in the system — fourteen children,
+  eight families. This is where we don't compromise.
+- **Face match is advisory, not blocking.** If it fails, flag it and show the
+  parent both photos when she links him. She knows what he looks like; she
+  decides.
+
+### 2.4 Vans are entities, drivers are assignments
+
+Drivers get sick and get replaced. If the model is "driver," a substitute driver
+is a total system failure — fourteen authorizations break at once.
+
+Model it as **"Van 3, with an assigned driver today."** The admin (or the van
+company) reassigns `assigned_driver_id` and every parent authorization survives,
+because it was granted to the van.
+
+Day-one cost: nothing. Retrofit cost: rewriting the authorization layer.
+
+### 2.5 Partial adoption is the normal case
+
+A school with 300 students may have 40 families on the app. **This is designed
+for, not degraded to.**
+
+Those 40 get automation. The other 260 work exactly as they do today — the
+guard's mic, paper, the office phone. Teachers see a partial list, never an
+incomplete one.
+
+**Any feature that only works at 100% adoption is wrong for this market.**
+
+### 2.6 Registration
+
+**Parent**
+
+```
+Language (English / Urdu)
+→ "I am a parent" → relation
+→ CNIC number + live selfie + ID card photo
+→ Server matches CNIC against students.guardian_cnic
+→ "We found: Ahmed (2B), Fatima (4A)" → confirm
+→ "Do they travel by van?" → link driver → confirm
+```
+
+**CNIC is the matching key, and it must be mandatory in student records.**
+
+Name matching fails both ways. "Muhammad Aslam Khan" / "M. Aslam" / "Aslam Khan"
+is one man, three strings — a false negative, annoying. Two "Muhammad Ali"
+guardians in a 300-student school is a **false positive**, which hands one man
+another man's children. The second failure is why this isn't a close call.
+
+**No match → the parent phones the school.** The admin links her manually while
+she's on the line. No review queue, no waiting.
+
+Two things this still needs:
+- An **audit entry** — `manual_link`, admin's name, timestamp. It's what answers
+  "who connected this account to this child" when something goes wrong.
+- The parent sees it in her app: *"The school linked your account to Ahmed."*
+  If she didn't make that call, she finds out immediately.
+
+**Driver** — see 2.3.
+
+**Teacher**
+
+```
+Name, phone, class + section → done
+→ Her class list appears
+→ Tap a student: authorized collectors, photos, phones, expected times
+```
+
+### 2.7 What must not exist
+
+> **There is no student search endpoint for drivers. Not restricted, not
+> paginated — none.**
+
+The search *is* the leak. Even a zero-result query confirms whether a child
+attends the school. An endpoint that doesn't exist cannot be called with a
+broken role check.
+
+A driver's only view of student data is `GET /me/manifest` — children whose
+parents linked him, today. This endpoint is already in `MODULE_PLAN.md` and is
+exactly right.
+
+---
+
+## Part 3 — The system in action
+
+### 3.1 Geofence rings
+
+| Ring | Distance | Fires |
+|---|---|---|
+| Announce | 2 km | Teacher screens update, ETA begins |
+| Warning | 1 km | Teacher notification |
+| Gate | 500 m | **Speaker announcement** |
+| Arrival | 150 m | Appears on guard's list, tracking stops |
+
+**2 km, not the 1 km currently in the schema.** Android batches geofence events;
+delays of a minute are normal. A wide ring absorbs that and still leaves useful
+warning time.
+
+**Use dwell (~30s inside), not raw entry.** GPS jitter at a boundary otherwise
+produces in-out-in-out and four announcements.
+
+**Confirm the approach before announcing.** A 2 km circle includes bypass roads.
+Watch for 1–2 minutes and verify distance is actually closing. A false
+announcement costs teacher trust, and trust doesn't come back.
+
+### 3.2 Normal van pickup
+
+```
+Morning    Driver opens app once (first run only). Geofences register.
+           Pockets phone. Touches it again only to tap children in.
+
+1:04 PM    Van 3 crosses 2 km ring. Android wakes the app in the background.
+           Server begins ETA. Nobody tapped anything.
+
+1:04–1:06  Server confirms he's genuinely closing distance. No announcement yet.
+
+1:06 PM    1 km → teacher notification: "Van 3, ~4 minutes."
+           Her screen sorts by ETA.
+
+1:08 PM    500 m → SPEAKER, Urdu then English:
+           "Van number three arriving. Ahmed, Fatima, Bilal —
+            please come to the gate."
+
+           Six teachers hear it. None of them needed the app.
+           They send the children. Nobody leaves a classroom.
+
+1:09 PM    Van arrives. Driver taps each child as they board.
+
+1:09 PM    Parents notified: "Ahmed boarded Van 3, 1:09 PM."
+```
+
+**The driver's tap is not verification — the parent notification is.** He's
+asserting *"I have Ahmed."* Authorization was settled when Ahmed's mother
+linked him. If Ahmed wasn't meant to be on the van, his mother knows in seconds.
+That is stronger real-world protection than a guard glancing at fourteen faces.
+
+**Reconciliation, free:** the teacher's screen shows which of her children are
+marked collected. A child marked collected while standing next to her is the
+mismatch check. No new UI.
+
+### 3.3 Parent pickup
+
+Same rings, same announcement. At the gate the **guard** confirms.
+
+His app opens straight to the scanner, camera live, arrival list below:
+
+```
+AT GATE NOW
+  Fatima Bibi — mother of Ahmed (2B)      [photo]
+  Muhammad Aslam — Van 3 — 11 children    [photo]
+```
+
+He taps the row. Done. The geofence already proved the registered phone
+arrived — that's the credential.
+
+### 3.4 Override — "I'm coming today"
+
+آج میں آ رہا/رہی ہوں
+
+```
+Mother taps it before the cutoff (set relative to driver's expected arrival)
+→ Driver notified + Ahmed removed from today's manifest
+→ Mother sees "Aslam has been notified"
+→ Her geofence drives the announcement
+→ Guard sees her photo at the gate
+→ Expires at midnight
+```
+
+Two rules:
+
+- **Never persists silently.** Today only. A parent who taps once and forgets
+  must not find the van stopped coming for a week.
+- **Changes who is *expected*, never who is *allowed*.** If her car breaks down
+  and she can't undo it, any authorized collector can still take the child. The
+  child is never stranded.
+
+The "Aslam has been notified" confirmation matters — without it she isn't sure
+it worked, and she phones the school, which is what we're trying to eliminate.
+
+### 3.5 One-off outsider — the only QR in the system
+
+**"Someone else is coming today"** — آج کوئی اور آ رہا ہے
+
+```
+Parent: name + phone + PHOTO
+→ QR generated → sent on WhatsApp
+→ Teacher notified: "Ahmed — collected by Kamran today" + photo
+→ Kamran arrives, guard scans
+→ ✅ valid → SPEAKER FIRES AUTOMATICALLY. Guard presses nothing.
+→ Guard's screen holds both photos while Ahmed walks to the gate
+→ Parent notified on handover
+```
+
+**The photo is required, and this is the one place I'd push back hardest if we
+drop it.**
+
+A QR sent over WhatsApp is a forwardable image. If a valid scan auto-releases
+the child, whoever holds that picture gets the child — screenshot, forward,
+wrong number, phone left unlocked in a shop. `SYSTEM_PLAN.md` names this exactly:
+a code that can be screenshotted *"defeats the entire premise."*
+
+With the photo, we keep the entire frictionless flow — **speaker still fires on
+scan, guard still presses nothing** — and the only difference is that while the
+child walks across the yard, the guard is looking at a picture of the man in
+front of him. One field. No taps. And the child stops walking out on a forwarded
+screenshot.
+
+If a parent has no photo, let it through with the guard's screen showing
+*"No photo — verify name and phone."* Degraded, not blind.
+
+**Pass rules:** single-use, expires midnight, burns on use.
+
+### 3.6 Collection paths
+
+| Path | Credential | Confirmed by |
+|---|---|---|
+| Parent (app) | Geofence arrival | Guard taps arrival list |
+| Driver (app) | Geofence arrival | **Driver taps** + parent notified |
+| Regular relative | Geofence arrival | Guard taps arrival list |
+| One-off outsider | **QR pass + photo** | Scan auto-fires speaker; guard's eyes are the check |
+| No phone at all | Household placard | Guard taps arrival list |
+| Nothing works | Name search → photo list | Guard matches face, logs reason |
+
+**The last row is mandatory and unchanged from `SECURITY.md`.** Dead phone,
+cracked camera, a grandmother who has never used an app. The guard searches the
+child's name, sees only *that child's* authorized collectors with photos,
+matches the face, confirms, logs a reason.
+
+Software must never be the reason a handover can't happen.
+
+### 3.7 What parents see afterward
+
+- **To school:** live map. Public road, public destination.
+- **Boarding:** *"Ahmed boarded Van 3, 1:09 PM."*
+- **Home leg: status only — no map.**
+  > *"Ahmed is on the van — 3 stops before yours, ~12 minutes."*
+
+The van carries fourteen children from eight families. A live route map exposes
+every other child's home address and daily schedule to a stranger. Status text
+gives the same reassurance with none of the exposure — and is easier to build.
+
+---
+
+## Part 4 — Infrastructure
+
+### 4.1 The speaker
+
+An old Android phone or cheap tablet, plugged into the school's **existing PA
+amplifier** via a 3.5mm cable. Pre-recorded Urdu phrases stitched at playback —
+a real voice, correct pronunciation of Pakistani names, better than TTS.
+
+**₨3,000–8,000, or free if the school has a spare phone.**
+
+We are not installing a PA system. Every school gate in Pakistan already has one.
+
+Worth noting: FetchKids markets *reducing* PA use as a selling point. In the US
+the PA is the problem, because every classroom has a screen. Here the PA is
+**infrastructure that already exists and that every teacher already responds
+to** — zero adoption cost. Same information, different last mile. This is the
+correct localization, not a downgrade, and it's worth saying that in the pitch.
+
+Rules: Urdu first, English second. **Batch names** — one announcement, several
+children, never one per parent or it becomes noise and everyone tunes it out.
+Mute for assembly and prayer. **The guard's mic always still works.**
+
+### 4.2 RFID (optional, later)
+
+| Component | PKR |
+|---|---|
+| RC522 reader (13.56 MHz) | 300–800 |
+| ESP32 | 800–1,500 |
+| DFPlayer Mini + SD | ~400 |
+| Cards | 20–50 each |
+| **Per gate** | **~₨2,000–3,000** |
+
+Use 13.56 MHz (MIFARE), not 125 kHz — writable, basic crypto, NFC phones can
+read them.
+
+Same hardware also solves van boarding: a reader on the van, children tap as
+they board, per-child records instead of one bulk confirm. 300 cards ≈
+₨6,000–15,000. This is the pattern Indian school-bus products already use.
+
+Cache today's valid card list on the ESP32 so it works when Wi-Fi drops.
+
+### 4.3 Cost
+
+| Item | Cost |
+|---|---|
+| Geofencing, GPS, ETA, TTS, FCM | **$0** |
+| Map — OpenStreetMap | **$0**, no card required |
+| AWS | $0 for 6 months on credits |
+| Speaker device | ₨3,000–8,000 |
+| Play Console | $25 once, or $0 if APK-only |
+
+**Geofencing costs nothing.** It's an Android OS capability via Play Services —
+no API key, no quota, no billing. It sounds like it should cost money because it
+sounds sophisticated; it's just the OS watching a circle.
+
+**ETA stays haversine ÷ rolling average speed.** Never the Routes API — it bills
+per call and we'd hit it every 15 seconds per active trip. `SYSTEM_PLAN.md`
+already ruled this out correctly.
+
+**Recommend dropping Google Maps for OpenStreetMap.** `react-native-maps`
+supports OSM tiles; Leaflet or MapLibre on web. No key, no billing, no card.
+OSM coverage in Pakistani cities is good enough for "a van moving toward a
+school."
+
+This removes the **international credit card** from the critical path — which
+was the riskiest non-technical item on the Day 0 list, and harder to obtain here
+than anything technical in this project.
+
+---
+
+## Part 5 — Rules that must not be silently changed
+
+Replaces the equivalent list in `CLAUDE.md` if this proposal is accepted.
+
+1. **The teacher never leaves her classroom during dismissal.** The guard
+   confirms handovers at the gate. Everything else is negotiable; this one fails
+   at the worst minute of the day.
+2. **A collector never claims a child.** Only a parent grants access. No student
+   search endpoint for drivers.
+3. **Manual fallback is always available.** Software is never the reason a
+   handover can't happen.
+4. **The authorization list is absolute.** However someone identifies
+   themselves, the guard chooses only from *that child's* approved collectors.
+   For outsiders the pass is the authorization and the photo binds it to a
+   person.
+5. **Automate the announcement; never automate the release.** The speaker fires
+   on scan. A human still matches a face before a child leaves.
+6. **The schedule is the backstop.** Geofences fire late or not at all — OEM
+   battery killers on Xiaomi, Oppo, Vivo, Infinix are endemic here. The driver
+   sets his own expected arrival time at registration; if nothing fires by then,
+   announce on schedule. **When the clever thing fails, fall back to what the
+   school does today.**
+7. **Urdu is required, not optional** — every string ships in both languages in
+   the same commit. Unchanged.
+8. **Neither app declares a child audience** in Play Console. Users are adults.
+   Unchanged, and still correct.
+
+---
+
+## Part 6 — Diff against the current docs
+
+| Current | Proposed | Why |
+|---|---|---|
+| Manual "On my way" tap | Background geofence | Nobody in this market taps; Google approves this use case |
+| Rotating QR for everyone | QR only for one-off outsiders | Geofence arrival is a stronger credential |
+| `blockedPermissions: ACCESS_BACKGROUND_LOCATION` | Requested, with Play declaration | Explicitly approved for child-safety geofencing |
+| Teacher push notifications | Speaker announcement | Zero adoption cost; teachers already respond to the PA |
+| Guardians only | Parent / driver / relative / outsider | Vans are the majority case here, not an edge case |
+| Driver approved by school | Driver assigned by parent | Private contract; school shouldn't hold that liability |
+| Guardian ↔ child directly | Van as entity, driver as assignment | Drivers get replaced; authorizations must survive it |
+| Teacher marks staged | Guard confirms handover | She cannot leave 30 children |
+| `geofence_radius_m` default 1000 | 2000 announce + 150 gate | Android event batching needs headroom |
+| Google Maps assumed | OpenStreetMap, or no map | Removes the international-card dependency |
+| Booking order | Live ETA order — **unchanged** | Still right. No penalty logic needed. |
+
+**Files that need editing if this is accepted:**
+
+- `CLAUDE.md` — constraints list (lines 21–22)
+- `apps/CLAUDE.md` — the location section
+- `apps/parent-app/app.json` — `blockedPermissions`
+- `apps/staff-app/app.json` — same
+- `docs/SECURITY.md` — QR section, location section
+- `docs/DATA_MODEL.md` — collectors, vans, temp passes, radii
+- `docs/api/openapi.yaml` — **before M0.3 freezes it**
+- `docs/MODULE_PLAN.md` — status of affected modules
+
+---
+
+## Part 7 — What I'd do next
+
+**In order:**
+
+1. **You review Part 1.** Four decisions. Everything else follows from them.
+2. **Start the Play Console background-location declaration immediately**, even
+   before we agree on the rest. It's the only item with an external clock —
+   days to weeks — and it costs nothing to start.
+3. **Settle the API contract (M0.3) after, not before.** That's the file that
+   locks these decisions into both apps.
+4. **Schema changes early.** Collectors, vans-as-entities, temp passes, the two
+   radii. Cheap now, expensive after the queue logic exists. Note the one
+   Alembic rule from `CLAUDE.md` — one lineage, don't autogenerate concurrently.
+
+**What I'd test first, because it can't be simulated:** geofencing needs a real
+Android dev build on a physical phone, and someone physically driving across a
+boundary. It cannot be tested in Expo Go or an emulator. That's a real time cost
+and it shouldn't land on Day 6.
+
+**If you disagree with any of this, the schedule fallback (rule 6) is the part
+I'd keep regardless.** Even with a perfect geofence implementation, the driver's
+own expected arrival time makes the system work on the days the clever thing
+fails — which is what makes it deployable rather than demonstrable.
