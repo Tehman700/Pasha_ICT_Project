@@ -1,12 +1,10 @@
 /**
- * Runs the backend pytest suite from `pnpm verify`.
+ * Runs the backend pytest suite from `pnpm test:backend`.
  *
- * Exists because the venv's Python lives at a different path on Windows
- * (.venv/Scripts/python.exe) than on macOS/Linux (.venv/bin/python), and the
- * two developers may not be on the same OS.
- *
- * Skips with a clear message rather than failing if the venv isn't set up —
- * a frontend-only contributor should still be able to run `pnpm verify`.
+ * Exists so one command verifies the whole repo regardless of which half you
+ * are working on. Resolves the venv's Python per-platform, and fails with a
+ * useful message rather than a cryptic ENOENT when the venv or the database
+ * is missing.
  */
 
 import { spawnSync } from "node:child_process";
@@ -14,37 +12,45 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const backend = path.join(root, "backend");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const backend = path.join(repoRoot, "backend");
 
-const candidates = [
-  path.join(backend, ".venv", "Scripts", "python.exe"),
-  path.join(backend, ".venv", "bin", "python"),
-];
+const python =
+  process.platform === "win32"
+    ? path.join(backend, ".venv", "Scripts", "python.exe")
+    : path.join(backend, ".venv", "bin", "python");
 
-const python = candidates.find(existsSync);
-
-if (!python) {
-  console.log(
-    "\n  backend tests SKIPPED — no virtualenv found.\n" +
-      "  Set one up with:\n" +
-      "    cd backend && python -m venv .venv\n" +
-      "    ./.venv/Scripts/python.exe -m pip install -r requirements.txt   # Windows\n" +
-      "    ./.venv/bin/python -m pip install -r requirements.txt           # macOS/Linux\n",
+if (!existsSync(python)) {
+  console.error(
+    [
+      "Backend virtualenv not found at:",
+      `  ${python}`,
+      "",
+      "Create it with:",
+      "  cd backend",
+      "  python -m venv .venv",
+      process.platform === "win32"
+        ? "  ./.venv/Scripts/python.exe -m pip install -r requirements.txt"
+        : "  ./.venv/bin/python -m pip install -r requirements.txt",
+    ].join("\n"),
   );
-  process.exit(0);
+  process.exit(1);
 }
 
-const result = spawnSync(python, ["-m", "pytest"], {
+const result = spawnSync(python, ["-m", "pytest", "-q", ...process.argv.slice(2)], {
   cwd: backend,
   stdio: "inherit",
 });
 
+if (result.error) {
+  console.error(`Failed to run pytest: ${result.error.message}`);
+  process.exit(1);
+}
+
 if (result.status !== 0) {
   console.error(
-    "\n  Backend tests failed. If the errors are connection timeouts, the\n" +
-      "  database is probably not running:\n" +
-      "    docker compose -f docker-compose.dev.yml up -d\n",
+    "\nBackend tests failed. If every test errored on connection, the database " +
+      "is probably not running — start it with `pnpm db:up`.",
   );
 }
 

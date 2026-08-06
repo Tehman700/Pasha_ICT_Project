@@ -1,91 +1,134 @@
 """
-Test fixtures.
+Pytest fixtures.
 
-Runs against the real local Postgres — not SQLite. The schema uses Postgres
-ENUMs, JSONB and UUID columns, so a SQLite test suite would pass while the
-production database rejected the same statements.
+Tests run against the real local Postgres, not SQLite. The schema uses
+Postgres-specific types (JSONB, native ENUMs, UUID) and the whole point of
+pinning the local version to production's is that a migration which passes
+here passes there.
+
+Each test runs inside a transaction that is rolled back afterwards, so tests
+never see each other's writes and the seeded demo data survives.
 """
 
-import subprocess
+import os
 import sys
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
 
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
-from app.db import SessionLocal  # noqa: E402
+from app.config import settings  # noqa: E402
+from app.db import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import School, User  # noqa: E402
+from app.models import Role, School, User  # noqa: E402
+from app.security import hash_password  # noqa: E402
 
-SEED = BACKEND.parent / "scripts" / "seed.py"
-DEMO_PASSWORD = "rukhsat123"
+TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", settings.database_url)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def seeded_database() -> None:
-    """Reseed once per session so every test sees the same known dataset."""
-    result = subprocess.run(
-        [sys.executable, str(SEED), "--reset"],
-        capture_output=True,
-        text=True,
-        cwd=str(BACKEND),
-    )
-    if result.returncode != 0:
-        pytest.fail(f"seed failed:\n{result.stdout}\n{result.stderr}")
+@pytest.fixture(scope="session")
+def engine():
+    eng = create_engine(TEST_DB_URL, pool_pre_ping=True)
+    try:
+        with eng.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001
+        pytest.exit(
+            f"Cannot reach the test database at {TEST_DB_URL.split('@')[-1]}.\n"
+            f"Start it with `pnpm db:up`.\n({type(exc).__name__}: {exc})",
+            returncode=1,
+        )
+    Base.metadata.create_all(eng)
+    return eng
 
 
 @pytest.fixture
-def db():
-    with SessionLocal() as session:
+def db(engine):
+    """A session wrapped in a transaction that is always rolled back."""
+    connection = engine.connect()
+    trans = connection.begin()
+    TestingSession = sessionmaker(bind=connection, autoflush=False, expire_on_commit=False)
+    session = TestingSession()
+    try:
         yield session
+    finally:
+        session.close()
+        trans.rollback()
+        connection.close()
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client(db: Session):
+    """TestClient sharing the test's rolled-back session."""
+
+    def _override():
+        yield db
+
+    app.dependency_overrides[get_db] = _override
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def school(db) -> School:
-    return db.execute(select(School)).scalars().one()
+def school(db: Session) -> School:
+    import uuid
+    from datetime import time
 
-
-def _login(client: TestClient, phone: str) -> str:
-    resp = client.post(
-        "/v1/auth/login", json={"phone": phone, "password": DEMO_PASSWORD}
+    s = School(
+        id=uuid.uuid4(),
+        name="Test School",
+        lat=33.6844,
+        lng=73.0479,
+        geofence_radius_m=1000,
+        dismissal_time=time(13, 15),
+        timezone="Asia/Karachi",
     )
-    assert resp.status_code == 200, resp.text
-    return resp.json()["access_token"]
+    db.add(s)
+    db.flush()
+    return s
 
 
 @pytest.fixture
-def admin_token(client) -> str:
-    return _login(client, "+923001112233")
+def make_user(db: Session, school: School):
+    """Factory for users with a known password."""
+    import uuid
+
+    counter = {"n": 0}
+
+    def _make(role: Role = Role.parent, password: str = "testpass123", **kwargs) -> User:
+        counter["n"] += 1
+        u = User(
+            id=uuid.uuid4(),
+            school_id=school.id,
+            role=role,
+            name=kwargs.get("name", f"Test {role.value} {counter['n']}"),
+            phone=kwargs.get("phone", f"+9230000{counter['n']:05d}"),
+            password_hash=hash_password(password),
+            locale=kwargs.get("locale", "en"),
+        )
+        db.add(u)
+        db.flush()
+        return u
+
+    return _make
 
 
 @pytest.fixture
-def teacher_token(client) -> str:
-    return _login(client, "+923004445566")
+def auth_headers(client, make_user):
+    """Factory returning Authorization headers for a freshly created user."""
 
+    def _headers(role: Role = Role.parent, password: str = "testpass123"):
+        user = make_user(role=role, password=password)
+        resp = client.post(
+            "/v1/auth/login", json={"phone": user.phone, "password": password}
+        )
+        assert resp.status_code == 200, resp.text
+        return {"Authorization": f"Bearer {resp.json()['access_token']}"}, user
 
-@pytest.fixture
-def guard_token(client) -> str:
-    return _login(client, "+923007778899")
-
-
-@pytest.fixture
-def parent_token(client) -> str:
-    return _login(client, "+923331000001")
-
-
-@pytest.fixture
-def driver_token(client) -> str:
-    return _login(client, "+923215000011")
-
-
-def auth(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
+    return _headers
