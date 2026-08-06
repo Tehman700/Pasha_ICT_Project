@@ -1,0 +1,81 @@
+name: CI
+
+# Runs on every push and PR. Deploy only fires on main, and only after this
+# passes — a broken build should never reach the box that judges will look at.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    name: Typecheck + frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test:frontend
+      - run: pnpm build:admin
+
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    # Versions pinned to what production runs. Testing against anything else
+    # is how a migration passes in CI and fails on deploy.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: rukhsat_app
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: rukhsat
+        ports: ["5544:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rukhsat_app -d rukhsat"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ["6399:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install --quiet --upgrade pip
+          ./.venv/bin/pip install --quiet -r requirements.txt
+      - name: Migration round-trip
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://rukhsat_app:devpassword@localhost:5544/rukhsat
+        run: |
+          # Upgrade, downgrade, upgrade. A migration that cannot be reversed
+          # is not finished — and the enum-drop bug this catches only shows up
+          # on the second upgrade.
+          ./.venv/bin/alembic upgrade head
+          ./.venv/bin/alembic downgrade base
+          ./.venv/bin/alembic upgrade head
+      - name: Tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://rukhsat_app:devpassword@localhost:5544/rukhsat
+          REDIS_URL: redis://localhost:6399/0
+        run: ./.venv/bin/python -m pytest -q
