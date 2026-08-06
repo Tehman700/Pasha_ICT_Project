@@ -15,9 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # No `version:` here on purpose. pnpm/action-setup@v4 errors with
+      # "Multiple versions of pnpm specified" when a version is given AND
+      # package.json declares packageManager — it refuses rather than
+      # picking one. The root package.json pins pnpm@10.32.1, so that wins.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -83,4 +85,9 @@ jobs:
         env:
           DATABASE_URL: postgresql+psycopg://rukhsat_app:devpassword@localhost:5544/rukhsat
           REDIS_URL: redis://localhost:6399/0
-        run: ./.venv/bin/python -m pytest -q
+          # There is no .env in CI, so without this the app falls back to its
+          # short dev default and pyjwt warns on every token it signs. Not the
+          # real secret — just long enough to be representative.
+          JWT_SECRET: ci-only-secret-value-at-least-32-bytes-long-for-hs256
+          ENVIRONMENT: ci
+        run: ./.venv/bin/python -m pytest -q --tb=long
