@@ -15,15 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # No `version:` here on purpose. pnpm/action-setup@v4 errors with
-      # "Multiple versions of pnpm specified" when a version is given AND
-      # package.json declares packageManager — it refuses rather than
-      # picking one. The root package.json pins pnpm@10.32.1, so that wins.
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+      # Installing pnpm directly rather than via pnpm/action-setup@v4, which
+      # failed here for reasons its logs would not surface to us. This is one
+      # npm command with no third-party action in the path, and it pins the
+      # exact version package.json declares.
+      - name: Install pnpm
+        run: npm install -g pnpm@10.32.1
+      - run: pnpm --version
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test:frontend
