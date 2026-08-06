@@ -1,16 +1,25 @@
 openapi: 3.0.3
 info:
-  title: School Pickup System API
-  version: 0.1.0
+  title: Rukhsat API
+  version: 1.0.0
   description: >
-    Backend API for the school pickup & queue management system.
-    This is the agreed contract between the backend (Person A) and
-    both frontends (Person B / admin web). Treat changes as
-    deliberate — update this file and tell the other person before
-    implementing against a different shape.
+    Contract between the backend and all three frontends (parent app, staff
+    app, admin web + classroom display).
+
+
+    This file is the referee. `packages/shared/src/types/api.ts` and
+    `backend/app/schemas.py` describe the same shapes; when they disagree with
+    this file, they are the bug.
+
+
+    Change deliberately and tell the other developer before implementing —
+    this is what lets both people build in parallel without blocking.
 
 servers:
-  - url: https://api.yourschool-subdomain.com/v1
+  - url: https://api.tideover.site/v1
+    description: Production
+  - url: http://localhost:8000/v1
+    description: Local development
 
 tags:
   - name: auth
@@ -18,15 +27,25 @@ tags:
   - name: classes
   - name: students
   - name: guardianships
+  - name: collectors
+    description: Drivers, relatives, and per-child pickup authorizations.
   - name: schedules
   - name: pickup-requests
   - name: trips
+  - name: me
+    description: Endpoints scoped to the signed-in collector.
   - name: queue
   - name: qr
   - name: handovers
-  - name: delegate-passes
+  - name: devices
+    description: Classroom displays and the voice-announcement stream.
   - name: announcements
+  - name: audit
   - name: analytics
+  - name: ops
+
+security:
+  - bearerAuth: []
 
 components:
   securitySchemes:
@@ -35,14 +54,95 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    DateParam:
+      name: date
+      in: query
+      description: Defaults to today in the school's timezone.
+      schema: { type: string, format: date }
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid, or expired token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but not permitted
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: No such resource
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Request body failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
   schemas:
+    Error:
+      type: object
+      required: [status, code, message]
+      properties:
+        status: { type: integer, example: 403 }
+        code: { type: string, example: not_authorized_for_student }
+        message: { type: string }
+        details: { type: object, additionalProperties: true, nullable: true }
+
     Role:
       type: string
-      enum: [parent, teacher, guard, admin]
+      description: >
+        `driver` collects children from many families and is never a guardian
+        of any of them.
+      enum: [parent, teacher, guard, admin, driver]
+
+    Locale:
+      type: string
+      enum: [en, ur]
 
     PickupStatus:
       type: string
       enum: [SCHEDULED, EN_ROUTE, NEARBY, AT_GATE, HANDED_OVER, CANCELLED, LAPSED]
+
+    AuthorizationKind:
+      type: string
+      description: >
+        A one-time pass is `one_time` with an expiry — the same model, not a
+        separate table.
+      enum: [standing, one_time]
+
+    HandoverMethod:
+      type: string
+      enum: [qr, manual]
+
+    FallbackReason:
+      type: string
+      enum: [phone_dead, no_app, scan_failed, other]
+
+    # ── Core ──────────────────────────────────────────────────────────
+
+    School:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+        geofence_radius_m: { type: integer }
+        dismissal_time: { type: string, example: "13:15" }
+        timezone: { type: string, example: Asia/Karachi }
 
     User:
       type: object
@@ -51,9 +151,18 @@ components:
         school_id: { type: string, format: uuid }
         role: { $ref: '#/components/schemas/Role' }
         name: { type: string }
+        name_ur: { type: string, nullable: true }
         phone: { type: string }
-        locale: { type: string, enum: [en, ur] }
+        locale: { $ref: '#/components/schemas/Locale' }
         photo_url: { type: string, nullable: true }
+
+    Class:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        name: { type: string }
+        teacher_id: { type: string, format: uuid, nullable: true }
 
     Student:
       type: object
@@ -62,15 +171,70 @@ components:
         school_id: { type: string, format: uuid }
         class_id: { type: string, format: uuid }
         name: { type: string }
+        name_ur: { type: string, nullable: true }
         photo_url: { type: string, nullable: true }
 
-    Schedule:
+    Guardianship:
       type: object
       properties:
         id: { type: string, format: uuid }
         student_id: { type: string, format: uuid }
-        guardian_id: { type: string, format: uuid }
-        weekday: { type: integer, minimum: 0, maximum: 6 }
+        user_id: { type: string, format: uuid }
+        relation: { type: string }
+        is_primary: { type: boolean }
+        can_delegate:
+          type: boolean
+          description: Only a guardian with this may authorize another collector.
+
+    # ── Collectors ────────────────────────────────────────────────────
+
+    PickupAuthorization:
+      type: object
+      description: >
+        Who may collect whom. Revocation is per-family: one parent removing a
+        driver has no effect on any other family's authorization of the same
+        driver.
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        collector_user_id: { type: string, format: uuid }
+        granted_by_user_id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/AuthorizationKind' }
+        valid_from: { type: string, format: date }
+        valid_until: { type: string, format: date, nullable: true }
+        revoked_at: { type: string, format: date-time, nullable: true }
+
+    CreateAuthorization:
+      type: object
+      required: [collector_user_id]
+      properties:
+        collector_user_id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/AuthorizationKind' }
+        valid_from: { type: string, format: date, nullable: true }
+        valid_until: { type: string, format: date, nullable: true }
+
+    Vehicle:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        driver_user_id: { type: string, format: uuid }
+        registration_no: { type: string }
+        capacity: { type: integer }
+        photo_url: { type: string, nullable: true }
+
+    # ── Scheduling ────────────────────────────────────────────────────
+
+    Schedule:
+      type: object
+      description: >
+        Recurring weekly default. `collector_id` is per weekday, which is what
+        expresses "van Monday-Thursday, father Friday".
+      properties:
+        id: { type: string, format: uuid }
+        student_id: { type: string, format: uuid }
+        collector_id: { type: string, format: uuid }
+        weekday: { type: integer, minimum: 0, maximum: 6, description: 0 = Monday }
         pickup_time: { type: string, example: "13:15" }
 
     PickupRequest:
@@ -78,18 +242,23 @@ components:
       properties:
         id: { type: string, format: uuid }
         student_id: { type: string, format: uuid }
-        guardian_id: { type: string, format: uuid }
+        collector_id: { type: string, format: uuid }
+        trip_id: { type: string, format: uuid, nullable: true }
         date: { type: string, format: date }
         scheduled_time: { type: string, example: "13:15" }
         status: { $ref: '#/components/schemas/PickupStatus' }
         source: { type: string, enum: [default, exception] }
-        trip_id: { type: string, format: uuid, nullable: true }
 
     Trip:
       type: object
+      description: >
+        One trip covers every child this collector fetches today. For a parent
+        that is their own children; for a driver it spans many families and
+        often several classes. The trip completes only when every linked
+        request is HANDED_OVER.
       properties:
         id: { type: string, format: uuid }
-        guardian_id: { type: string, format: uuid }
+        collector_user_id: { type: string, format: uuid }
         date: { type: string, format: date }
         started_at: { type: string, format: date-time }
         last_lat: { type: number, nullable: true }
@@ -100,43 +269,85 @@ components:
 
     QueueEntry:
       type: object
+      description: Ordered by live ETA, never by booking time.
       properties:
         pickup_request_id: { type: string, format: uuid }
+        trip_id: { type: string, format: uuid, nullable: true }
+        student_id: { type: string, format: uuid }
         student_name: { type: string }
-        guardian_name: { type: string }
+        class_id: { type: string, format: uuid }
+        class_name: { type: string }
+        collector_name: { type: string }
+        collector_role: { $ref: '#/components/schemas/Role' }
         status: { $ref: '#/components/schemas/PickupStatus' }
         eta_seconds: { type: integer, nullable: true }
         position: { type: integer }
+        sibling_group:
+          type: array
+          description: >
+            Every child on this trip. A van is one queue entry carrying many
+            children, in the same lane as everyone else.
+          items:
+            type: object
+            properties:
+              student_id: { type: string, format: uuid }
+              student_name: { type: string }
+              class_name: { type: string }
+
+    # ── Verification ──────────────────────────────────────────────────
 
     QrToken:
       type: object
       properties:
-        token: { type: string, description: "Signed JWT (ES256)" }
+        token: { type: string, description: ES256-signed JWT }
         exp: { type: string, format: date-time }
 
     Handover:
       type: object
-      required: [pickup_request_id, method]
+      required: [pickup_request_id, method, device_id]
       properties:
         pickup_request_id: { type: string, format: uuid }
-        method: { type: string, enum: [qr, manual] }
-        qr_token: { type: string, nullable: true, description: "Required if method=qr" }
-        fallback_reason:
-          type: string
-          nullable: true
-          enum: [phone_dead, no_app, scan_failed, other]
-          description: "Required if method=manual"
+        method: { $ref: '#/components/schemas/HandoverMethod' }
         device_id: { type: string }
+        qr_token: { type: string, nullable: true, description: Required when method=qr }
+        fallback_reason:
+          allOf: [{ $ref: '#/components/schemas/FallbackReason' }]
+          nullable: true
+          description: Required when method=manual
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set when syncing a handover confirmed while offline.
 
-    DelegatePass:
+    # ── Voice announcements ───────────────────────────────────────────
+
+    ClassroomDevice:
       type: object
       properties:
         id: { type: string, format: uuid }
-        pickup_request_id: { type: string, format: uuid }
-        delegate_name: { type: string }
-        delegate_phone: { type: string }
-        photo_url: { type: string }
-        expires_at: { type: string, format: date-time }
+        school_id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        device_identifier: { type: string }
+        paired_at: { type: string, format: date-time, nullable: true }
+        last_seen_at: { type: string, format: date-time, nullable: true }
+        online:
+          type: boolean
+          description: >
+            Derived from last_seen_at. Announcements have no offline path, so a
+            display that drops off simply goes silent — this is the only signal.
+
+    NameAudio:
+      type: object
+      description: >
+        One clip per person, used in both languages — a name sounds the same
+        either way. Only the template phrases are recorded twice.
+      properties:
+        id: { type: string, format: uuid }
+        subject_type: { type: string, enum: [student, user] }
+        subject_id: { type: string, format: uuid }
+        audio_url: { type: string }
+        duration_ms: { type: integer }
 
     Announcement:
       type: object
@@ -149,11 +360,72 @@ components:
         body_ur: { type: string }
         sent_at: { type: string, format: date-time, nullable: true }
         audience: { type: string, enum: [all, class, single] }
+        class_id: { type: string, format: uuid, nullable: true }
 
-security:
-  - bearerAuth: []
+    AuditLogEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        school_id: { type: string, format: uuid }
+        actor_user_id: { type: string, format: uuid, nullable: true }
+        actor_name: { type: string }
+        action: { type: string }
+        entity_type: { type: string }
+        entity_id: { type: string, format: uuid, nullable: true }
+        payload: { type: object, additionalProperties: true }
+        flagged: { type: boolean, description: Manual handovers surface flagged for review. }
+        created_at: { type: string, format: date-time }
+
+    WaitTimeStats:
+      type: object
+      properties:
+        average_wait_seconds: { type: integer }
+        median_wait_seconds: { type: integer }
+        by_day:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              average_wait_seconds: { type: integer }
+        peak_minutes:
+          type: array
+          items:
+            type: object
+            properties:
+              minute: { type: string, example: "13:15" }
+              count: { type: integer }
+
+    OnTimeStats:
+      type: object
+      properties:
+        on_time_rate: { type: number, format: float }
+        total_pickups: { type: integer }
+        manual_fallback_rate: { type: number, format: float }
 
 paths:
+  # ── ops ─────────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [ops]
+      security: []
+      servers:
+        - url: https://api.tideover.site
+      summary: Liveness plus dependency status
+      responses:
+        '200':
+          description: Reports degraded rather than failing, so a deploy check can tell "app down" from "Redis down".
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok, degraded] }
+                  database: { type: string }
+                  redis: { type: string }
+                  environment: { type: string }
+
+  # ── auth ────────────────────────────────────────────────────────────
   /auth/login:
     post:
       tags: [auth]
@@ -177,7 +449,18 @@ paths:
                 type: object
                 properties:
                   access_token: { type: string }
+                  token_type: { type: string, example: bearer }
+                  expires_in: { type: integer, description: Seconds. }
                   user: { $ref: '#/components/schemas/User' }
+        '401':
+          description: >
+            Returned identically for an unknown phone number and a wrong
+            password, so this endpoint cannot be used to discover which numbers
+            have accounts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /users/me:
     get:
@@ -188,46 +471,156 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [auth]
+      summary: Register the FCM token or change locale
+      description: >
+        Without this, `users.fcm_token` can never be populated and no push
+        notification can be delivered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fcm_token: { type: string, nullable: true }
+                locale: { $ref: '#/components/schemas/Locale' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
+  # ── schools ─────────────────────────────────────────────────────────
   /schools:
     get:
       tags: [schools]
       responses:
         '200':
-          description: List schools (admin)
+          description: List schools
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/User' }
+                items: { $ref: '#/components/schemas/School' }
     post:
       tags: [schools]
       description: Admin only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/School' }
       responses:
-        '201': { description: Created }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/School' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
+  /schools/{id}/public-key:
+    get:
+      tags: [qr]
+      security: []
+      summary: ES256 public key, cached daily by the guard app
+      description: Public by design — it verifies signatures, it cannot create them.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: PEM-encoded public key
+          content:
+            text/plain:
+              schema: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /schools/{id}/drivers:
+    get:
+      tags: [collectors]
+      summary: School-approved drivers a parent may choose from
+      description: >
+        Drivers are vetted and registered by the school exactly once. This is
+        what keeps one driver as one account — if each parent created their own
+        record, one van would appear many times in the queue.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Approved drivers with their vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    driver: { $ref: '#/components/schemas/User' }
+                    vehicle: { $ref: '#/components/schemas/Vehicle' }
+
+  # ── classes & students ──────────────────────────────────────────────
   /classes:
     get:
       tags: [classes]
       parameters:
-        - name: school_id
-          in: query
-          schema: { type: string, format: uuid }
+        - { name: school_id, in: query, schema: { type: string, format: uuid } }
       responses:
-        '200': { description: List classes }
+        '200':
+          description: List classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Class' }
     post:
       tags: [classes]
       description: Admin only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, name]
+              properties:
+                school_id: { type: string, format: uuid }
+                name: { type: string }
+                teacher_id: { type: string, format: uuid, nullable: true }
       responses:
-        '201': { description: Created }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Class' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /classes/{id}/audio-manifest:
+    get:
+      tags: [devices]
+      summary: Clips the classroom display caches for today
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Name clips for this class's students and their collectors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/NameAudio' }
 
   /students:
     get:
       tags: [students]
       parameters:
-        - name: class_id
-          in: query
-          schema: { type: string, format: uuid }
+        - { name: class_id, in: query, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
       responses:
         '200':
           description: List students
@@ -239,37 +632,269 @@ paths:
     post:
       tags: [students]
       description: Admin only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, class_id, name]
+              properties:
+                school_id: { type: string, format: uuid }
+                class_id: { type: string, format: uuid }
+                name: { type: string }
+                name_ur: { type: string, nullable: true }
+                photo_url: { type: string, nullable: true }
       responses:
-        '201': { description: Created }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Student' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
-  /students/{student_id}/guardians:
+  /students/search:
+    get:
+      tags: [students]
+      summary: Guard manual-fallback lookup
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        '200':
+          description: Matching students in the caller's school
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Student' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /students/{id}/guardians:
     get:
       tags: [guardianships]
       parameters:
-        - name: student_id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
-        '200': { description: List guardians for a student }
+        '200':
+          description: Guardians of this student
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Guardianship'
+                    - type: object
+                      properties:
+                        user: { $ref: '#/components/schemas/User' }
     post:
       tags: [guardianships]
-      description: Admin only — link a guardian to a student
+      description: Admin only
       parameters:
-        - name: student_id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: string, format: uuid }
+                relation: { type: string, default: parent }
+                is_primary: { type: boolean, default: false }
+                can_delegate: { type: boolean, default: true }
       responses:
-        '201': { description: Linked }
+        '201':
+          description: Linked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Guardianship' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
+  /students/{id}/authorizations:
+    get:
+      tags: [collectors]
+      summary: Who may collect this student
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Authorizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PickupAuthorization' }
+    post:
+      tags: [collectors]
+      summary: Grant a collector access to this child
+      description: >
+        Caller must hold `can_delegate` on this student. The grant covers only
+        this child — never a whole family, never another family's children.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAuthorization' }
+      responses:
+        '201':
+          description: Granted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PickupAuthorization' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /students/{id}/name-audio:
+    post:
+      tags: [devices]
+      summary: Upload this student's recorded name clip
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Stored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NameAudio' }
+
+  /authorizations/{id}:
+    delete:
+      tags: [collectors]
+      summary: Revoke an authorization
+      description: >
+        Sets `revoked_at`; the row is never deleted, because the audit log must
+        still be able to explain a past handover. Affects only the granting
+        family.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Revoked }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── users & vehicles ────────────────────────────────────────────────
+  /users:
+    get:
+      tags: [auth]
+      description: Admin only
+      parameters:
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/Role' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses:
+        '200':
+          description: List users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/User' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [auth]
+      description: Admin only. Creates parents, staff, and vetted drivers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, role, name, phone, password]
+              properties:
+                school_id: { type: string, format: uuid }
+                role: { $ref: '#/components/schemas/Role' }
+                name: { type: string }
+                name_ur: { type: string, nullable: true }
+                phone: { type: string }
+                password: { type: string, minLength: 8 }
+                locale: { $ref: '#/components/schemas/Locale' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /users/{id}/name-audio:
+    post:
+      tags: [devices]
+      summary: Upload this collector's recorded name clip
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Stored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NameAudio' }
+
+  /vehicles:
+    get:
+      tags: [collectors]
+      responses:
+        '200':
+          description: School vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Vehicle' }
+    post:
+      tags: [collectors]
+      description: Admin only — registers a vetted driver's van.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, driver_user_id, registration_no]
+              properties:
+                school_id: { type: string, format: uuid }
+                driver_user_id: { type: string, format: uuid }
+                registration_no: { type: string }
+                capacity: { type: integer, default: 12 }
+                photo_url: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vehicle' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── schedules & requests ────────────────────────────────────────────
   /schedules:
     get:
       tags: [schedules]
       parameters:
-        - name: student_id
-          in: query
-          schema: { type: string, format: uuid }
+        - { name: student_id, in: query, schema: { type: string, format: uuid } }
       responses:
         '200':
           description: List schedules
@@ -284,38 +909,29 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/Schedule' }
+            schema:
+              type: object
+              required: [student_id, collector_id, weekday, pickup_time]
+              properties:
+                student_id: { type: string, format: uuid }
+                collector_id: { type: string, format: uuid }
+                weekday: { type: integer, minimum: 0, maximum: 6 }
+                pickup_time: { type: string, example: "13:15" }
       responses:
-        '201': { description: Created }
-
-  /pickup-requests/me:
-    get:
-      tags: [pickup-requests]
-      description: Parent's own requests for a given date (defaults to today)
-      parameters:
-        - name: date
-          in: query
-          schema: { type: string, format: date }
-      responses:
-        '200':
-          description: List
+        '201':
+          description: Created
           content:
             application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/PickupRequest' }
+              schema: { $ref: '#/components/schemas/Schedule' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /pickup-requests:
     get:
       tags: [pickup-requests]
-      description: Teacher/admin view, filtered by class and date
+      description: Teacher and admin view, filtered by class and date.
       parameters:
-        - name: class_id
-          in: query
-          schema: { type: string, format: uuid }
-        - name: date
-          in: query
-          schema: { type: string, format: date }
+        - { name: class_id, in: query, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/DateParam' }
       responses:
         '200':
           description: List
@@ -328,66 +944,194 @@ paths:
   /pickup-requests/{id}/exception:
     post:
       tags: [pickup-requests]
-      description: Override today's scheduled time, or mark absent
+      summary: Override today only
+      description: The weekly schedule is unchanged.
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
                 scheduled_time: { type: string, nullable: true }
-                cancelled: { type: boolean }
+                collector_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Must already be authorized for this student.
+                cancelled: { type: boolean, description: Absent today. }
       responses:
-        '200': { description: Updated }
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PickupRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
+  /pickup-requests/{id}/stage:
+    post:
+      tags: [pickup-requests]
+      summary: Teacher marks a child brought to the gate
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Status moved to AT_GATE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PickupRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── trips ───────────────────────────────────────────────────────────
   /trips/start:
     post:
       tags: [trips]
-      description: Parent taps "On my way" — starts one trip covering all of today's pickups for this guardian
+      summary: '"On my way" — starts one trip covering every child this collector fetches today'
       responses:
         '201':
           description: Trip started
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Trip' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /trips/{id}/location:
     post:
       tags: [trips]
-      description: Streamed while the app is in foreground, roughly every 15s
+      description: >
+        Streamed roughly every 15s while the app is in the foreground. Raw
+        history is purged after 24h; only entered_geofence_at and arrived_at
+        are retained.
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [lat, lng]
               properties:
-                lat: { type: number }
-                lng: { type: number }
+                lat: { type: number, minimum: -90, maximum: 90 }
+                lng: { type: number, minimum: -180, maximum: 180 }
       responses:
-        '200': { description: Recorded }
+        '200':
+          description: Recorded, with the recomputed ETA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eta_seconds: { type: integer, nullable: true }
+                  status: { $ref: '#/components/schemas/PickupStatus' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
+  /trips/{id}/end:
+    post:
+      tags: [trips]
+      description: Also fires automatically 90 minutes after start.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Ended }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── me ──────────────────────────────────────────────────────────────
+  /me/children:
+    get:
+      tags: [me]
+      description: The signed-in parent's own children. Empty for a driver.
+      responses:
+        '200':
+          description: Children
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Student' }
+
+  /me/schedules:
+    get:
+      tags: [me]
+      responses:
+        '200':
+          description: Weekly schedules for this collector's children
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Schedule' }
+
+  /me/collectors:
+    get:
+      tags: [me]
+      summary: People this parent has authorized
+      responses:
+        '200':
+          description: Authorizations granted by the caller
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PickupAuthorization' }
+
+  /me/manifest:
+    get:
+      tags: [me]
+      summary: Today's pickups for the signed-in collector
+      description: >
+        For a parent this is their own children. For a driver it spans many
+        families and often several classes.
+      parameters:
+        - { $ref: '#/components/parameters/DateParam' }
+      responses:
+        '200':
+          description: Requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PickupRequest' }
+
+  /me/trip:
+    get:
+      tags: [me]
+      responses:
+        '200':
+          description: Active trip, or null
+          content:
+            application/json:
+              schema:
+                allOf: [{ $ref: '#/components/schemas/Trip' }]
+                nullable: true
+
+  /me/queue-entry:
+    get:
+      tags: [me]
+      summary: This collector's own place in the queue
+      responses:
+        '200':
+          description: Entry, or null when not en route
+          content:
+            application/json:
+              schema:
+                allOf: [{ $ref: '#/components/schemas/QueueEntry' }]
+                nullable: true
+
+  # ── queue ───────────────────────────────────────────────────────────
   /queue:
     get:
       tags: [queue]
+      description: >
+        Ordered by live ETA among EN_ROUTE and NEARBY collectors. Booking time
+        drives the teacher's prep list, never the queue order.
       parameters:
-        - name: class_id
-          in: query
-          required: true
-          schema: { type: string, format: uuid }
+        - { name: class_id, in: query, schema: { type: string, format: uuid } }
       responses:
         '200':
-          description: Current queue snapshot for a class
+          description: Current snapshot
           content:
             application/json:
               schema:
@@ -397,105 +1141,190 @@ paths:
   /ws/queue/{class_id}:
     get:
       tags: [queue]
+      summary: WebSocket — queue updates for one class
       description: >
-        WebSocket upgrade. Pushes QueueEntry[] on every state change for
-        this class. Not a normal REST response — documented here so the
-        contract is visible in one place.
+        Not a REST response. Pushes `QueueEntry[]` on every state change.
+        Documented here so the whole contract is visible in one place.
       parameters:
-        - name: class_id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - { name: class_id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '101': { description: Switching protocols }
 
+  /ws/classroom/{class_id}:
+    get:
+      tags: [devices]
+      summary: WebSocket — voice announcements for one classroom display
+      description: >
+        Fires when a trip's ETA drops below ANNOUNCE_ETA_SECONDS (~120s), NOT
+        on the 1km geofence ring. Every child of one trip in this class is
+        batched into a single announcement — without that, thirty arrivals over
+        a 90-minute dismissal means an announcement every ~30 seconds.
+      parameters:
+        - { name: class_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '101': { description: Switching protocols }
+
+  # ── qr ──────────────────────────────────────────────────────────────
   /qr-tokens/batch:
     post:
       tags: [qr]
-      description: Parent app pre-fetches a batch of signed tokens when a trip starts
+      summary: Pre-fetch signed tokens for offline use at the gate
+      description: >
+        Fetched when a trip starts so the collector's code keeps working with
+        no signal. Size the batch to the trip window — 20 tokens at 60s each
+        covers only ~20 minutes against a window of up to 90.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [trip_id]
               properties:
                 trip_id: { type: string, format: uuid }
-                count: { type: integer, default: 20 }
+                count: { type: integer, default: 20, minimum: 1, maximum: 120 }
       responses:
         '200':
-          description: Batch of tokens
+          description: Batch
           content:
             application/json:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/QrToken' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
-  /schools/{id}/public-key:
+  # ── handovers ───────────────────────────────────────────────────────
+  /handovers:
     get:
-      tags: [qr]
-      description: Guard app caches this once per day per school
+      tags: [handovers]
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: '#/components/parameters/DateParam' }
+        - { $ref: '#/components/parameters/Limit' }
       responses:
         '200':
-          description: PEM-encoded ES256 public key
+          description: Handovers
           content:
-            text/plain:
-              schema: { type: string }
-
-  /handovers:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Handover' }
     post:
       tags: [handovers]
-      description: Guard confirms a handover — QR or manual
+      summary: Guard confirms a handover — QR or manual
+      description: >
+        Authorization is enforced for BOTH methods. Manual does not mean
+        unchecked: it requires a reason, records the guard and device, and
+        surfaces flagged for review.
       requestBody:
+        required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/Handover' }
       responses:
-        '201': { description: Logged }
+        '201':
+          description: Logged
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Handover' }
+        '403':
+          description: Collector is not authorized for this student today
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Already handed over, or this QR token was already used
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /handovers/sync:
     post:
       tags: [handovers]
-      description: Batch upload of handovers confirmed while offline
+      summary: Batch upload of handovers confirmed while offline
+      description: Idempotent by QR `jti`, so a repeated sync cannot double-record.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: array
               items: { $ref: '#/components/schemas/Handover' }
       responses:
-        '200': { description: Synced }
+        '200':
+          description: Per-item result
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pickup_request_id: { type: string, format: uuid }
+                    accepted: { type: boolean }
+                    reason: { type: string, nullable: true }
 
-  /pickup-requests/{id}/delegate:
+  # ── devices ─────────────────────────────────────────────────────────
+  /devices:
+    get:
+      tags: [devices]
+      responses:
+        '200':
+          description: Classroom displays and their health
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ClassroomDevice' }
+
+  /devices/classroom/pair:
     post:
-      tags: [delegate-passes]
-      description: Parent issues a one-time pass to someone else for today's pickup
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+      tags: [devices]
+      security: []
+      summary: Bind a tablet to one class using a code from the dashboard
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [delegate_name, delegate_phone, photo_url]
+              required: [pairing_code, device_identifier]
               properties:
-                delegate_name: { type: string }
-                delegate_phone: { type: string }
-                photo_url: { type: string }
+                pairing_code: { type: string }
+                device_identifier: { type: string }
       responses:
-        '201':
-          description: Pass issued
+        '200':
+          description: Paired
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/DelegatePass' }
+              schema: { $ref: '#/components/schemas/ClassroomDevice' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
+  /devices/{id}/heartbeat:
+    post:
+      tags: [devices]
+      security: []
+      summary: Keeps the display marked online
+      description: >
+        A display that stops sending this goes silent with no other symptom,
+        which is why the dashboard surfaces it.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Recorded }
+
+  /name-audio:
+    get:
+      tags: [devices]
+      responses:
+        '200':
+          description: All recorded name clips for the school
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/NameAudio' }
+
+  # ── announcements & audit ───────────────────────────────────────────
   /announcements:
     get:
       tags: [announcements]
@@ -509,36 +1338,69 @@ paths:
                 items: { $ref: '#/components/schemas/Announcement' }
     post:
       tags: [announcements]
-      description: Admin only
+      description: >
+        Admin only. Both languages are required — there is no translate-later
+        path, because that shows an Urdu-reading parent an empty message.
       requestBody:
+        required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/Announcement' }
+            schema:
+              type: object
+              required: [title_en, title_ur, body_en, body_ur, audience]
+              properties:
+                title_en: { type: string }
+                title_ur: { type: string }
+                body_en: { type: string }
+                body_ur: { type: string }
+                audience: { type: string, enum: [all, class, single] }
+                class_id: { type: string, format: uuid, nullable: true }
       responses:
-        '201': { description: Sent }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Announcement' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
+  /audit-log:
+    get:
+      tags: [audit]
+      description: Admin only
+      parameters:
+        - { name: flagged_only, in: query, schema: { type: boolean, default: false } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses:
+        '200':
+          description: Entries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuditLogEntry' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── analytics ───────────────────────────────────────────────────────
   /analytics/wait-times:
     get:
       tags: [analytics]
       parameters:
-        - name: school_id
-          in: query
-          schema: { type: string, format: uuid }
-        - name: from
-          in: query
-          schema: { type: string, format: date }
-        - name: to
-          in: query
-          schema: { type: string, format: date }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
       responses:
-        '200': { description: Aggregate wait-time stats }
+        '200':
+          description: Aggregate wait-time stats
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WaitTimeStats' }
 
   /analytics/on-time-rate:
     get:
       tags: [analytics]
-      parameters:
-        - name: school_id
-          in: query
-          schema: { type: string, format: uuid }
       responses:
-        '200': { description: On-time pickup percentage }
+        '200':
+          description: On-time and manual-fallback rates
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OnTimeStats' }
