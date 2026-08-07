@@ -10,9 +10,10 @@ live grant for a specific child.
 from __future__ import annotations
 
 import uuid
-from datetime import date as Date
+from datetime import date as Date, time as Time
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -23,6 +24,8 @@ from app.models import (
     Guardianship,
     PickupAuthorization,
     PickupRequest,
+    PickupStatus,
+    RequestSource,
     Schedule,
     Student,
     Trip,
@@ -38,6 +41,7 @@ from app.schemas import (
 )
 from app.services.authorization import (
     authorized_collectors,
+    may_collect,
     may_delegate,
     may_view_student,
 )
@@ -245,3 +249,166 @@ def my_trip(user: User = Depends(get_current_user), db: Session = Depends(get_db
         )
     ).scalar_one_or_none()
     return TripOut.model_validate(trip) if trip else None
+
+
+@router.get("/me/queue-entry", tags=["me"])
+def my_queue_entry(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """
+    This collector's own place in the queue.
+
+    Derived from the class-wide queue rather than computed separately, so a
+    parent can never see a different position than the teacher does.
+    """
+    from app.routers.operations import get_queue
+
+    trip = db.execute(
+        select(Trip).where(
+            Trip.collector_user_id == user.id, Trip.date == Date.today()
+        )
+    ).scalar_one_or_none()
+    if trip is None:
+        return None
+
+    for entry in get_queue(class_id=None, user=user, db=db):
+        if entry["trip_id"] == str(trip.id):
+            return entry
+    return None
+
+
+class ExceptionRequest(BaseModel):
+    scheduled_time: str | None = None
+    collector_id: uuid.UUID | None = None
+    cancelled: bool = False
+
+
+@router.post("/pickup-requests/{request_id}/exception", tags=["pickup-requests"])
+def set_exception(
+    request_id: uuid.UUID,
+    body: ExceptionRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Change today only. The weekly schedule is untouched.
+
+    Two rules, both about not stranding a child:
+
+    It NEVER persists silently. A parent who taps once and forgets must not
+    find the van stopped coming for a week.
+
+    It changes who is EXPECTED, never who is ALLOWED. If her car breaks down
+    and she cannot undo it, any authorized collector can still take the child.
+    """
+    req = db.get(PickupRequest, request_id)
+    if req is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such pickup request")
+    if not may_delegate(db, granter_id=user.id, student_id=req.student_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "You may not change this child's pickup"
+        )
+    if req.status == PickupStatus.HANDED_OVER:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Already handed over")
+
+    if body.cancelled:
+        req.status = PickupStatus.CANCELLED
+    if body.scheduled_time:
+        try:
+            h, m = (int(x) for x in body.scheduled_time.split(":")[:2])
+            req.scheduled_time = Time(h, m)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "scheduled_time must be HH:MM"
+            ) from None
+
+    if body.collector_id is not None:
+        # Only someone already authorized for this child. An exception must not
+        # become a back door for granting access.
+        verdict = may_collect(
+            db, collector_id=body.collector_id, student_id=req.student_id
+        )
+        if not verdict.allowed:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "That person is not authorized to collect this child",
+            )
+        req.collector_id = body.collector_id
+
+    req.source = RequestSource.exception
+    db.commit()
+    db.refresh(req)
+    return PickupRequestOut.model_validate(req)
+
+
+@router.get("/schedules", response_model=list[ScheduleOut], tags=["schedules"])
+def list_schedules(
+    student_id: uuid.UUID | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if student_id is not None:
+        if not may_view_student(db, viewer=user, student_id=student_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted for this child")
+        rows = db.execute(
+            select(Schedule).where(Schedule.student_id == student_id)
+        ).scalars().all()
+        return [ScheduleOut.model_validate(r) for r in rows]
+    return my_schedules(user=user, db=db)
+
+
+@router.post(
+    "/schedules",
+    response_model=ScheduleOut,
+    status_code=status.HTTP_201_CREATED,
+    tags=["schedules"],
+)
+def upsert_schedule(
+    body: ScheduleOut,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Set the recurring default for one weekday.
+
+    Upsert rather than insert: a parent editing Tuesday twice should end up
+    with one Tuesday, and the unique constraint on (student, weekday) would
+    otherwise turn a second edit into a 500.
+    """
+    if not may_delegate(db, granter_id=user.id, student_id=body.student_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "You may not set this child's schedule"
+        )
+    verdict = may_collect(
+        db, collector_id=body.collector_id, student_id=body.student_id
+    )
+    if not verdict.allowed:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "That person is not authorized to collect this child",
+        )
+
+    existing = db.execute(
+        select(Schedule).where(
+            Schedule.student_id == body.student_id, Schedule.weekday == body.weekday
+        )
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        existing.collector_id = body.collector_id
+        existing.pickup_time = body.pickup_time
+        db.commit()
+        db.refresh(existing)
+        return ScheduleOut.model_validate(existing)
+
+    row = Schedule(
+        id=uuid.uuid4(),
+        student_id=body.student_id,
+        collector_id=body.collector_id,
+        weekday=body.weekday,
+        pickup_time=body.pickup_time,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return ScheduleOut.model_validate(row)

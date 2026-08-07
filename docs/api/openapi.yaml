@@ -1404,3 +1404,234 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/OnTimeStats' }
+
+  # ── Self-registration (collector model) ─────────────────────────────
+  /auth/register/driver:
+    post:
+      tags: [auth]
+      security: []
+      summary: A driver registers himself
+      description: >
+        No admin queue, no school involvement. He lands in the database linked
+        to nothing and visible to no school until a parent links him, so
+        liability sits with the parent who granted access rather than with the
+        school.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password, cnic, selfie_url, id_photo_url, registration_no, school_id]
+              properties:
+                name: { type: string }
+                name_ur: { type: string, nullable: true }
+                phone: { type: string }
+                password: { type: string, minLength: 8 }
+                cnic: { type: string, description: "12345-1234567-1 or 1234512345671" }
+                selfie_url:
+                  type: string
+                  description: >
+                    Camera-only in the app. A gallery upload can be any image
+                    from the internet, and the parent is the one who looks at it.
+                id_photo_url: { type: string }
+                registration_no: { type: string }
+                vehicle_photo_url: { type: string, nullable: true }
+                capacity: { type: integer, default: 12 }
+                expected_arrival:
+                  type: string
+                  nullable: true
+                  example: "13:15"
+                  description: >
+                    His own declared arrival time. This is the backbone of
+                    arrival detection, not a fallback, because background
+                    geofences are best-effort on the handsets common here.
+                school_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Registered, status UNASSIGNED
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  status: { type: string, enum: [UNASSIGNED] }
+                  message: { type: string }
+        '409': { description: Phone number already registered }
+
+  /auth/register/parent:
+    post:
+      tags: [auth]
+      security: []
+      summary: A parent registers and is matched to their children by CNIC
+      description: >
+        Matched on CNIC, never on name. A mismatch like "Muhammad Aslam Khan"
+        versus "M. Aslam" is a false negative and merely annoying; two
+        "Muhammad Ali" guardians in one school is a false positive that hands
+        one man another man's children. An unmatched parent phones the school
+        rather than being matched loosely.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password, cnic, school_id]
+              properties:
+                name: { type: string }
+                name_ur: { type: string, nullable: true }
+                phone: { type: string }
+                password: { type: string, minLength: 8 }
+                cnic: { type: string }
+                selfie_url: { type: string, nullable: true }
+                id_photo_url: { type: string, nullable: true }
+                school_id: { type: string, format: uuid }
+                locale: { $ref: '#/components/schemas/Locale' }
+      responses:
+        '201':
+          description: Registered, with any matched children
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  matched_children:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                  message: { type: string }
+
+  /collectors/lookup:
+    get:
+      tags: [collectors]
+      summary: Look up a driver by exact phone before linking him
+      description: >
+        A lookup, not a search. You cannot browse drivers, only confirm one you
+        already know. Returns the photos so the parent decides; there is no
+        automated face match, because she knows what the man she hired looks
+        like and an algorithm reporting a percentage is worse than a person
+        looking at a picture.
+      parameters:
+        - { name: phone, in: query, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The driver, his vehicle, and his photos }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: No driver with that number }
+
+  /students/{student_id}/collectors:
+    get:
+      tags: [collectors]
+      summary: Everyone who may collect this child today
+      description: >
+        Backs the guard's manual-fallback screen. He picks from this list and
+        nothing else, so a manual handover is constrained to exactly the same
+        set as a scan. Returns guardians and live grants only, never a revoked
+        one.
+      parameters:
+        - { name: student_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Authorized collectors with photos }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── One-off pass ────────────────────────────────────────────────────
+  /students/{student_id}/temporary-pass:
+    post:
+      tags: [collectors]
+      summary: Issue a one-day pass to someone with no account
+      description: >
+        The only QR issued to a person with no account. The photo matters
+        because a pass sent over WhatsApp is a forwardable image, and without
+        one whoever receives it can collect a child. Issued without a photo it
+        still works, but the guard's screen says so and the audit entry is
+        flagged: degraded, not blind. Single use, expires at midnight, and
+        burns the moment the child is collected.
+      parameters:
+        - { name: student_id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone]
+              properties:
+                name: { type: string }
+                phone: { type: string }
+                photo_url: { type: string, nullable: true }
+                relation: { type: string, nullable: true }
+      responses:
+        '201': { description: Pass issued, with a signed token to send on WhatsApp }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /passes/verify:
+    post:
+      tags: [qr]
+      summary: Guard scans a one-off pass
+      description: >
+        On a valid scan the speaker fires automatically and the guard presses
+        nothing, so the child starts walking while he checks the photo.
+        Automate the announcement; never automate the release.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Verdict, with both photos and a warning when no photo exists }
+
+  /qr-tokens/verify:
+    post:
+      tags: [qr]
+      summary: Server-side scan verification
+      description: >
+        The guard app performs the same check offline against the cached public
+        key. This endpoint exists so the two can be compared, and so a scan
+        resolves to names and photos the device may not have cached.
+
+
+        A valid signature is necessary but not sufficient. A token minted
+        before a parent revoked access is cryptographically perfect, so
+        authorization is re-checked per child and reported per child.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, device_id]
+              properties:
+                token: { type: string }
+                device_id: { type: string }
+      responses:
+        '200': { description: Verdict, collector, and per-child authorization }
+
+  # ── Classroom displays ──────────────────────────────────────────────
+  /devices:
+    post:
+      tags: [devices]
+      summary: Register a display for a class and get a pairing code
+      description: >
+        Six characters, drawn from an alphabet with O, 0, I, 1 and L removed.
+        Someone reads this off a dashboard and types it into a tablet across
+        the room.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class_id]
+              properties:
+                class_id: { type: string, format: uuid }
+      responses:
+        '201': { description: Device created with a pairing code }
+        '403': { $ref: '#/components/responses/Forbidden' }

@@ -23,6 +23,7 @@ from app.routers import (
     devices,
     handovers,
     operations,
+    passes,
     people,
     qr,
     registration,
@@ -94,6 +95,7 @@ app.include_router(registration.router, prefix=V1)
 app.include_router(qr.router, prefix=V1)
 app.include_router(ws.router, prefix=V1)
 app.include_router(devices.router, prefix=V1)
+app.include_router(passes.router, prefix=V1)
 
 
 @app.get("/health", response_model=HealthOut, tags=["ops"])
