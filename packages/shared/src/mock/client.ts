@@ -26,6 +26,7 @@ import type {
   PickupRequest,
   QrTokenBatchItem,
   QueueEntry,
+  ScanResult,
   Schedule,
   School,
   Student,
@@ -87,6 +88,8 @@ export interface PickupApi {
   endTrip(tripId: Uuid): Promise<void>;
   /** Pre-signed batch fetched at trip start so the gate works with no signal. */
   getQrTokens(tripId: Uuid, count?: number): Promise<QrTokenBatchItem[]>;
+  /** Verify a scanned code. The guard app also does this offline. */
+  verifyQrToken(token: string, deviceId: string): Promise<ScanResult>;
   /** This collector's own position in the live queue. */
   getMyQueueEntry(): Promise<QueueEntry | null>;
   /** Teacher's prep list — from bookings, NOT queue order. */
@@ -289,6 +292,38 @@ export const mockApi: PickupApi = {
 
   async getQrTokens(_tripId, count = 20) {
     return delay(fx.qrTokens.slice(0, count));
+  },
+
+  async verifyQrToken(token: string) {
+    const van = fx.queue.find((q) => q.collector_role === "driver");
+    if (!token || token.length < 20) {
+      return delay({
+        valid: false,
+        code: "malformed" as const,
+        message: "This is not a valid pickup code.",
+      });
+    }
+    return delay({
+      valid: true,
+      jti: "mock-jti",
+      collector: {
+        id: fx.currentDriver.id,
+        name: fx.currentDriver.name,
+        name_ur: fx.currentDriver.name_ur ?? null,
+        photo_url: null,
+        role: "driver" as const,
+      },
+      children: (van?.sibling_group ?? []).map((s, i) => ({
+        pickup_request_id: `req-${i}`,
+        student_id: s.student_id,
+        student_name: s.student_name,
+        student_photo_url: null,
+        status: "NEARBY" as const,
+        authorized: true,
+        reason: null,
+      })),
+      confirm_visually: "Check both photos before releasing the child.",
+    });
   },
 
   async getMyQueueEntry() {

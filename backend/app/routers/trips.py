@@ -26,9 +26,19 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_db, utcnow
 from app.deps import get_current_user
-from app.models import PickupRequest, PickupStatus, School, Trip, User
+from app.models import (
+    PickupRequest,
+    PickupStatus,
+    School,
+    SchoolClass,
+    SpokenAnnouncement,
+    Student,
+    Trip,
+    User,
+)
 from app.schemas import LocationPing, TripOut
-from app.services.eta import Fix, estimate
+from app.services import broadcast
+from app.services.eta import Fix, estimate, should_announce
 
 router = APIRouter()
 
@@ -199,12 +209,94 @@ def push_location(
 
     db.commit()
 
+    announced_classes: list[str] = []
+    if should_announce(eta, settings.announce_eta_seconds):
+        announced_classes = _announce_arrival(db, trip=trip, user=user, eta=eta)
+
+    broadcast.queue_changed(school_id=user.school_id, reason="location")
+
     return {
         "eta_seconds": eta,
         "distance_m": round(distance_m),
         "inside_geofence": inside,
         "status": new_status.value,
+        "announced_to": announced_classes,
     }
+
+
+def _announce_arrival(
+    db: Session, *, trip: Trip, user: User, eta: int
+) -> list[str]:
+    """
+    Speak in every classroom holding a child on this trip.
+
+    Two things this must get right:
+
+    ONE announcement per class per trip, not one per child. A van of six across
+    three rooms is three announcements, never six — and it must not repeat on
+    the next location ping fifteen seconds later. The uniqueness constraint on
+    (class_id, trip_id) is what enforces that, so a race between two workers
+    cannot double-announce either.
+
+    Batched by class, so a room hears "Ali and Sara" once rather than twice.
+    """
+    rows = db.execute(
+        select(PickupRequest, Student, SchoolClass)
+        .join(Student, Student.id == PickupRequest.student_id)
+        .join(SchoolClass, SchoolClass.id == Student.class_id)
+        .where(
+            PickupRequest.trip_id == trip.id,
+            PickupRequest.status.in_([PickupStatus.EN_ROUTE, PickupStatus.NEARBY]),
+        )
+    ).all()
+
+    by_class: dict[uuid.UUID, list[dict]] = {}
+    for _req, student, cls in rows:
+        by_class.setdefault(cls.id, []).append(
+            {"student_id": str(student.id), "student_name": student.name}
+        )
+
+    spoken: list[str] = []
+    for class_id, students in by_class.items():
+        already = db.execute(
+            select(SpokenAnnouncement).where(
+                SpokenAnnouncement.class_id == class_id,
+                SpokenAnnouncement.trip_id == trip.id,
+            )
+        ).scalar_one_or_none()
+        if already is not None:
+            continue
+
+        db.add(
+            SpokenAnnouncement(
+                id=uuid.uuid4(),
+                class_id=class_id,
+                trip_id=trip.id,
+                student_ids=[s["student_id"] for s in students],
+                eta_seconds=eta,
+                spoken_at=utcnow(),
+                played_ok=False,
+                created_at=utcnow(),
+            )
+        )
+        try:
+            db.commit()
+        except Exception:  # noqa: BLE001
+            # Another worker won the race on (class_id, trip_id). That is the
+            # constraint doing its job, not an error.
+            db.rollback()
+            continue
+
+        broadcast.announce(
+            class_id=class_id,
+            trip_id=trip.id,
+            collector_name=user.name,
+            students=students,
+            eta_seconds=eta,
+        )
+        spoken.append(str(class_id))
+
+    return spoken
 
 
 @router.post("/trips/{trip_id}/end", status_code=status.HTTP_204_NO_CONTENT, tags=["trips"])

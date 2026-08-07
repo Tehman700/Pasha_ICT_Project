@@ -151,6 +151,39 @@ export interface Handover {
   verified_at?: IsoDateTime;
 }
 
+/**
+ * The result of scanning a code.
+ *
+ * `valid` is about the signature and the clock. `authorized` is per child and
+ * is a separate question — a token minted before a parent revoked access is
+ * still cryptographically perfect, so the signature is necessary and not
+ * sufficient.
+ */
+export interface ScanResult {
+  valid: boolean;
+  /** Present when refused. The guard app branches on this. */
+  code?: "malformed" | "expired" | "bad_signature" | "already_used" | "not_yet_valid" | "wrong_school";
+  message?: string;
+  jti?: string;
+  collector?: {
+    id: Uuid;
+    name: string;
+    name_ur?: string | null;
+    photo_url: string | null;
+    role: Role;
+  } | null;
+  children?: {
+    pickup_request_id: Uuid;
+    student_id: Uuid;
+    student_name: string;
+    student_photo_url: string | null;
+    status: PickupStatus;
+    authorized: boolean;
+    reason: string | null;
+  }[];
+  confirm_visually?: string;
+}
+
 export interface QrTokenBatchItem {
   token: string;
   exp: IsoDateTime;

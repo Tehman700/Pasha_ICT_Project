@@ -24,6 +24,7 @@ import type {
   PickupRequest,
   QrTokenBatchItem,
   QueueEntry,
+  ScanResult,
   Schedule,
   School,
   Student,
@@ -245,8 +246,13 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
     startTrip: () => post<Trip>("/trips/start"),
     endTrip: (tripId: Uuid) => post<void>(`/trips/${tripId}/end`),
 
-    getQrTokens: (tripId: Uuid, count = 20) =>
+    // Default sized to the trip window, not a round number: 20 tokens is
+    // ~20 minutes against a trip that can run 90.
+    getQrTokens: (tripId: Uuid, count = 90) =>
       post<QrTokenBatchItem[]>("/qr-tokens/batch", { trip_id: tripId, count }),
+
+    verifyQrToken: (token: string, deviceId: string) =>
+      post<ScanResult>("/qr-tokens/verify", { token, device_id: deviceId }),
 
     async getMyQueueEntry() {
       // Derived from the class-wide queue until /me/queue-entry ships, so the

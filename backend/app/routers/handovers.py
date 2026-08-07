@@ -33,6 +33,7 @@ from app.models import (
     User,
 )
 from app.schemas import HandoverIn, HandoverOut
+from app.services import broadcast
 from app.services.authorization import may_collect
 
 router = APIRouter()
@@ -208,6 +209,7 @@ def create_handover(
     savepoint.commit()
     db.commit()
     db.refresh(handover)
+    broadcast.queue_changed(school_id=guard.school_id, reason="handover")
     return HandoverOut.model_validate(handover)
 
 
@@ -315,4 +317,5 @@ def mark_staged(
     )
     db.commit()
     db.refresh(req)
+    broadcast.queue_changed(school_id=user.school_id, reason="staged")
     return {"id": str(req.id), "status": req.status.value}
