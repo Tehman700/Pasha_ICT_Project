@@ -1,0 +1,54 @@
+# Rukhsat reverse proxy.
+#
+# Caddy is the only public entrypoint. FastAPI (8000) and Next.js (3000) both
+# bind to 127.0.0.1, so nothing else on this box is reachable from outside.
+#
+# Certificates are issued and renewed automatically via Let's Encrypt — there
+# is no cron job or manual renewal step to forget.
+#
+# Access logs go to journald (`journalctl -u caddy`), not to files. Ubuntu's
+# Caddy unit sets ProtectSystem, which makes /var/log read-only to the
+# service — a `log { output file ... }` block makes Caddy fail to start
+# outright with 'permission denied', not degrade quietly.
+
+{
+	email tehmanhassan@gmail.com
+}
+
+api.tideover.site {
+	reverse_proxy 127.0.0.1:8000 {
+		# The live queue holds a WebSocket open for the whole trip, which can
+		# run 90 minutes. Default proxy timeouts would cut it long before that.
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+
+	encode gzip zstd
+
+	header {
+		# The apps talk to this host directly, so lock down what a browser
+		# reaching it is allowed to do.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+}
+
+admin.tideover.site {
+	reverse_proxy 127.0.0.1:3000
+
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+}

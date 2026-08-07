@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View } from "react-native";
+import { Image, View } from "react-native";
 import { MotiView } from "moti";
+import { useMutation } from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -12,32 +14,55 @@ import {
   motion,
   radius,
   spacing,
+  useApi,
   useLocale,
 } from "@pickup/ui-native";
-import { fixtures } from "@pickup/shared";
+import type { ScanResult } from "@pickup/shared";
+
+const DEVICE_ID = "GATE-TAB-01";
 
 /**
  * Scan verdict.
  *
- * Ink-inverted at large type because this is read in direct afternoon sun at
- * a school gate — the cream canvas is unreadable there. The verdict colour is
- * the lightened on-ink semantic, which the light-surface values cannot match
- * for luminance.
+ * Ink-inverted at large type because this is read in direct afternoon sun at a
+ * school gate, where the cream canvas is unreadable.
  *
- * A green verdict is NOT the handover. The guard still checks the child photo
- * against the collector photo and confirms visually. Software proposes; a
- * person decides.
+ * A green tick is NOT the handover. The guard sees the child's photo beside
+ * the collector's and confirms with his own eyes. Software proposes; a person
+ * decides — and that ordering is what stops a valid code releasing a child to
+ * whoever is holding the phone.
  */
 export default function VerdictScreen() {
-  const { result } = useLocalSearchParams<{ result?: string }>();
+  const { result: raw } = useLocalSearchParams<{ result?: string }>();
+  const api = useApi();
   const router = useRouter();
   const { strings } = useLocale();
+  const [done, setDone] = useState<string[]>([]);
 
-  const ok = result !== "expired";
-  const child = fixtures.students[0]!;
-  const collector = fixtures.currentDriver;
+  let result: ScanResult | null = null;
+  try {
+    result = raw ? (JSON.parse(raw) as ScanResult) : null;
+  } catch {
+    result = null;
+  }
 
+  const handover = useMutation({
+    mutationFn: (pickupRequestId: string) =>
+      api.submitHandover({
+        pickup_request_id: pickupRequestId,
+        method: "qr",
+        device_id: DEVICE_ID,
+      }),
+    onSuccess: (_data, id) => setDone((prev) => [...prev, id]),
+  });
+
+  const ok = result?.valid === true;
   const accent = ok ? colors.inverted.successOnInk : colors.inverted.errorOnInk;
+
+  const children = result?.children ?? [];
+  const allowed = children.filter((c) => c.authorized);
+  const remaining = allowed.filter((c) => !done.includes(c.pickup_request_id));
+  const complete = allowed.length > 0 && remaining.length === 0;
 
   return (
     <Screen inverted>
@@ -46,11 +71,11 @@ export default function VerdictScreen() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "timing", duration: motion.duration.base * 1000 }}
       >
-        <View style={{ alignItems: "center", paddingTop: spacing.xl }}>
+        <View style={{ alignItems: "center", paddingTop: spacing.base }}>
           <View
             style={{
-              width: 92,
-              height: 92,
+              width: 84,
+              height: 84,
               borderRadius: radius.pill,
               borderWidth: 3,
               borderColor: accent,
@@ -62,95 +87,144 @@ export default function VerdictScreen() {
               {ok ? "✓" : "✕"}
             </T>
           </View>
-
-          <Spacer h={spacing.base} />
+          <Spacer h={spacing.sm} />
           <T variant="displayMd" color={accent} align="center">
             {ok ? strings.staff.verified : strings.staff.denied}
           </T>
-          {!ok ? (
+          {!ok && result?.message ? (
             <>
               <Spacer h={spacing.xs} />
               <T variant="bodyMd" color={colors.inverted.textMuted} align="center">
-                {strings.staff.expired}
+                {result.message}
               </T>
             </>
           ) : null}
         </View>
       </MotiView>
 
-      <Spacer h={spacing.xl} />
+      <Spacer h={spacing.lg} />
 
       {ok ? (
         <>
+          {result?.collector ? (
+            <Row gap={spacing.sm}>
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.inverted.hairline,
+                  overflow: "hidden",
+                }}
+              >
+                {result.collector.photo_url ? (
+                  <Image
+                    source={{ uri: result.collector.photo_url }}
+                    style={{ width: 64, height: 64 }}
+                  />
+                ) : null}
+              </View>
+              <View style={{ flex: 1 }}>
+                <T variant="titleMd" color={colors.inverted.text}>
+                  {result.collector.name}
+                </T>
+                <T variant="caption" color={colors.inverted.textMuted}>
+                  {strings.role[result.collector.role]}
+                </T>
+              </View>
+            </Row>
+          ) : null}
+
+          <Spacer h={spacing.base} />
           <T variant="captionUppercase" color={colors.inverted.textMuted}>
-            {strings.staff.confirmVisually}
+            {result?.confirm_visually ?? strings.staff.confirmVisually}
           </T>
           <Spacer h={spacing.sm} />
 
-          <Row gap={spacing.sm}>
-            {[
-              { label: strings.queue.child, name: child.name, sub: child.class_name },
-              { label: strings.queue.collector, name: collector.name, sub: "ICT-2291" },
-            ].map((p) => (
-              <View
-                key={p.label}
-                style={{
-                  flex: 1,
-                  backgroundColor: colors.inverted.canvasSoft,
-                  borderRadius: radius.lg,
-                  borderWidth: 1,
-                  borderColor: colors.inverted.hairline,
-                  padding: spacing.base,
-                  alignItems: "center",
-                }}
-              >
+          {children.map((c) => {
+            const isDone = done.includes(c.pickup_request_id);
+            return (
+              <View key={c.pickup_request_id} style={{ marginBottom: spacing.xs }}>
                 <View
                   style={{
-                    width: 84,
-                    height: 84,
-                    borderRadius: radius.pill,
-                    backgroundColor: colors.inverted.hairline,
-                    alignItems: "center",
-                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: !c.authorized
+                      ? colors.inverted.errorOnInk
+                      : isDone
+                        ? colors.inverted.successOnInk
+                        : colors.inverted.hairline,
+                    borderRadius: radius.lg,
+                    padding: spacing.base,
+                    backgroundColor: isDone ? colors.inverted.canvasSoft : "transparent",
                   }}
                 >
-                  <T variant="caption" color={colors.inverted.textMuted}>
-                    photo
-                  </T>
+                  <Row>
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: radius.pill,
+                        backgroundColor: colors.inverted.hairline,
+                      }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <T variant="titleSm" color={colors.inverted.text}>
+                        {c.student_name}
+                      </T>
+                      {/* A valid signature is not authorization. A token minted
+                          before a parent revoked access is still perfect. */}
+                      {!c.authorized ? (
+                        <T variant="caption" color={colors.inverted.errorOnInk}>
+                          {strings.staff.notAuthorized}
+                        </T>
+                      ) : (
+                        <T variant="caption" color={colors.inverted.textMuted}>
+                          {c.status}
+                        </T>
+                      )}
+                    </View>
+                    {c.authorized ? (
+                      <Button
+                        label={isDone ? `✓ ${strings.staff.handoverComplete}` : strings.common.confirm}
+                        variant={isDone ? "ghost" : "primary"}
+                        disabled={isDone || handover.isPending}
+                        onPress={() => handover.mutate(c.pickup_request_id)}
+                      />
+                    ) : (
+                      <Badge tone="error">refused</Badge>
+                    )}
+                  </Row>
                 </View>
-                <Spacer h={spacing.sm} />
-                <T variant="captionUppercase" color={colors.inverted.textMuted}>
-                  {p.label}
-                </T>
-                <Spacer h={4} />
-                <T variant="titleMd" color={colors.inverted.text} align="center">
-                  {p.name}
-                </T>
-                <T variant="caption" color={colors.inverted.textMuted}>
-                  {p.sub}
-                </T>
               </View>
-            ))}
-          </Row>
+            );
+          })}
+
+          {children.length > 1 ? (
+            <>
+              <Spacer h={spacing.xs} />
+              <T variant="caption" color={colors.inverted.textMuted}>
+                {remaining.length > 0
+                  ? `${remaining.length} ${strings.staff.remaining}`
+                  : "The trip only completes when every child has been handed over."}
+              </T>
+            </>
+          ) : null}
 
           <Spacer h={spacing.lg} />
           <Button
-            label={strings.staff.confirmHandover}
-            variant="primary"
+            label={complete ? strings.staff.handoverComplete : strings.common.back}
+            variant={complete ? "primary" : "ghost"}
             large
             full
             onPress={() => router.replace("/guard/scanner")}
           />
-          <Spacer h={spacing.xs} />
-          <View style={{ alignItems: "center" }}>
-            <Badge tone="success">{strings.staff.offlineQueued}</Badge>
-          </View>
         </>
       ) : (
         <>
           <T variant="bodyMd" color={colors.inverted.textMuted} align="center">
-            Ask them to refresh their code, or complete this handover manually.
-            Never turn a family away because the software said no.
+            {result?.code === "not_yet_valid"
+              ? "Their phone is showing an old code. Ask them to look again."
+              : "Ask for a fresh code, or complete this handover manually. Never turn a family away because the software said no."}
           </T>
           <Spacer h={spacing.lg} />
           <Button
@@ -160,16 +234,15 @@ export default function VerdictScreen() {
             full
             onPress={() => router.replace("/guard/manual")}
           />
+          <Spacer h={spacing.xs} />
+          <Button
+            label={strings.common.back}
+            variant="ghost"
+            full
+            onPress={() => router.replace("/guard/scanner")}
+          />
         </>
       )}
-
-      <Spacer h={spacing.xs} />
-      <Button
-        label={strings.common.back}
-        variant="ghost"
-        full
-        onPress={() => router.replace("/guard/scanner")}
-      />
     </Screen>
   );
 }

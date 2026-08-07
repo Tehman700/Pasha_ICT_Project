@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 import { I18nManager } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  createHttpApi,
   dir,
   mockApi,
   t,
@@ -31,9 +32,28 @@ type LocaleValue = {
 const LocaleContext = createContext<LocaleValue | null>(null);
 const ApiContext = createContext<PickupApi>(mockApi);
 
+/**
+ * Resolve the API client once.
+ *
+ * EXPO_PUBLIC_API_URL points at the live backend. When it is absent — or when
+ * EXPO_PUBLIC_USE_MOCK_API is "true" — the apps fall back to fixtures, so the
+ * UI is still workable with no network and no backend running.
+ *
+ * On a physical phone, localhost is the PHONE, not your laptop. Set
+ * EXPO_PUBLIC_API_URL to the production URL or your machine's LAN address.
+ */
+function resolveApi(): PickupApi {
+  const url = process.env.EXPO_PUBLIC_API_URL;
+  const forceMock = process.env.EXPO_PUBLIC_USE_MOCK_API === "true";
+  if (!url || forceMock) return mockApi;
+  return createHttpApi({ baseUrl: url });
+}
+
+const defaultApi = resolveApi();
+
 export function AppProviders({
   children,
-  api = mockApi,
+  api = defaultApi,
 }: {
   children: React.ReactNode;
   api?: PickupApi;

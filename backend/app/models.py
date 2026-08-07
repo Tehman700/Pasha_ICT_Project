@@ -143,6 +143,20 @@ class User(Base, TimestampMixin):
     fcm_token: Mapped[Optional[str]] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    # ── Identity, for collectors ──────────────────────────────────────
+    #
+    # CNIC is the matching key for parents, not the name. Name matching fails
+    # both ways: "Muhammad Aslam Khan" / "M. Aslam" is one man as three
+    # strings (a false negative, annoying), while two "Muhammad Ali" guardians
+    # in a 300-student school is a FALSE POSITIVE that hands one man another
+    # man's children. The second failure is why this is not a close call.
+    cnic: Mapped[Optional[str]] = mapped_column(String(20), index=True)
+    id_photo_url: Mapped[Optional[str]] = mapped_column(Text)
+    #: Camera-only for drivers. A gallery upload can be any image off the
+    #: internet, and a driver is the highest-privilege actor in the system.
+    #: Verified by the PARENT by eye when she links him — no face matching.
+    selfie_url: Mapped[Optional[str]] = mapped_column(Text)
+
     school: Mapped[School] = relationship(back_populates="users")
 
     __table_args__ = (Index("ix_users_school_role", "school_id", "role"),)
@@ -165,6 +179,8 @@ class SchoolClass(Base, TimestampMixin):
 
 
 class Student(Base, TimestampMixin):
+    """A child. `guardian_cnic` is how a self-registering parent is matched."""
+
     __tablename__ = "students"
 
     id: Mapped[uuid.UUID] = _pk()
@@ -177,6 +193,9 @@ class Student(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     name_ur: Mapped[Optional[str]] = mapped_column(String(200))
     photo_url: Mapped[Optional[str]] = mapped_column(Text)
+    #: Set by the school when the student is enrolled. A parent self-registers
+    #: with their CNIC and is matched against this.
+    guardian_cnic: Mapped[Optional[str]] = mapped_column(String(20), index=True)
 
     school_class: Mapped[SchoolClass] = relationship(back_populates="students")
 
@@ -264,6 +283,14 @@ class Vehicle(Base, TimestampMixin):
     registration_no: Mapped[str] = mapped_column(String(32), nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, default=12, nullable=False)
     photo_url: Mapped[Optional[str]] = mapped_column(Text)
+    #: The driver's own declared arrival time, set at registration.
+    #:
+    #: This is the BACKBONE of arrival detection, not a fallback. Background
+    #: geofences are best-effort on Xiaomi, Oppo, Vivo and Infinix, whose
+    #: battery managers kill background apps aggressively and which dominate
+    #: this market. When the clever thing fails, the system falls back to what
+    #: the school does today: a time.
+    expected_arrival: Mapped[Optional[time]] = mapped_column(Time)
 
     __table_args__ = (
         UniqueConstraint("school_id", "registration_no", name="uq_vehicle_reg"),

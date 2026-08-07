@@ -15,7 +15,8 @@
     "test:frontend": "pnpm --filter @pickup/shared test",
     "test:backend": "node scripts/run-backend-tests.mjs",
     "test": "pnpm test:frontend && pnpm test:backend",
-    "verify": "pnpm typecheck && pnpm test && pnpm build:admin"
+    "verify": "pnpm typecheck && pnpm check:migrations && pnpm test && pnpm build:admin",
+    "check:migrations": "node scripts/check-migrations.mjs"
   },
   "packageManager": "pnpm@10.32.1",
   "devDependencies": {

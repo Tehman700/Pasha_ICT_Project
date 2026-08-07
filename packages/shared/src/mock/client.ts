@@ -22,9 +22,11 @@ import type {
   NameAudio,
   OnTimeStats,
   PickupAuthorization,
+  CollectorLookup,
   PickupRequest,
   QrTokenBatchItem,
   QueueEntry,
+  ScanResult,
   Schedule,
   School,
   Student,
@@ -47,6 +49,9 @@ export interface PickupApi {
   listUsers(role?: User["role"]): Promise<User[]>;
 
   listVehicles(): Promise<Vehicle[]>;
+  /** Look a driver up by exact phone before linking him. Not a search. */
+  lookupCollector(phone: string): Promise<CollectorLookup>;
+  grantAuthorization(studentId: Uuid, collectorUserId: Uuid): Promise<PickupAuthorization>;
   listAuthorizations(filter?: {
     studentId?: Uuid;
     collectorId?: Uuid;
@@ -83,6 +88,8 @@ export interface PickupApi {
   endTrip(tripId: Uuid): Promise<void>;
   /** Pre-signed batch fetched at trip start so the gate works with no signal. */
   getQrTokens(tripId: Uuid, count?: number): Promise<QrTokenBatchItem[]>;
+  /** Verify a scanned code. The guard app also does this offline. */
+  verifyQrToken(token: string, deviceId: string): Promise<ScanResult>;
   /** This collector's own position in the live queue. */
   getMyQueueEntry(): Promise<QueueEntry | null>;
   /** Teacher's prep list — from bookings, NOT queue order. */
@@ -139,6 +146,45 @@ export const mockApi: PickupApi = {
 
   async listVehicles() {
     return delay(fx.vehicles);
+  },
+
+  async lookupCollector(phone: string) {
+    const driver = fx.users.find((u) => u.phone === phone && u.role === "driver");
+    if (!driver) throw new Error("No driver with that number");
+    const vehicle = fx.vehicles.find((v) => v.driver_user_id === driver.id);
+    return delay({
+      id: driver.id,
+      name: driver.name,
+      name_ur: driver.name_ur ?? null,
+      phone: driver.phone,
+      selfie_url: null,
+      id_photo_url: null,
+      cnic_last4: "4567",
+      vehicle: vehicle
+        ? {
+            registration_no: vehicle.registration_no,
+            capacity: vehicle.capacity,
+            photo_url: null,
+            expected_arrival: "13:15",
+          }
+        : null,
+      linked_families: 4,
+      verify_yourself:
+        "Check the photo against the person you hired. The school has not vetted this driver.",
+    });
+  },
+
+  async grantAuthorization(studentId: Uuid, collectorUserId: Uuid) {
+    return delay({
+      id: "auth-new",
+      student_id: studentId,
+      collector_user_id: collectorUserId,
+      granted_by_user_id: fx.currentParent.id,
+      kind: "standing" as const,
+      valid_from: new Date().toISOString().slice(0, 10),
+      valid_until: null,
+      revoked_at: null,
+    });
   },
 
   async listAuthorizations(filter) {
@@ -246,6 +292,38 @@ export const mockApi: PickupApi = {
 
   async getQrTokens(_tripId, count = 20) {
     return delay(fx.qrTokens.slice(0, count));
+  },
+
+  async verifyQrToken(token: string) {
+    const van = fx.queue.find((q) => q.collector_role === "driver");
+    if (!token || token.length < 20) {
+      return delay({
+        valid: false,
+        code: "malformed" as const,
+        message: "This is not a valid pickup code.",
+      });
+    }
+    return delay({
+      valid: true,
+      jti: "mock-jti",
+      collector: {
+        id: fx.currentDriver.id,
+        name: fx.currentDriver.name,
+        name_ur: fx.currentDriver.name_ur ?? null,
+        photo_url: null,
+        role: "driver" as const,
+      },
+      children: (van?.sibling_group ?? []).map((s, i) => ({
+        pickup_request_id: `req-${i}`,
+        student_id: s.student_id,
+        student_name: s.student_name,
+        student_photo_url: null,
+        status: "NEARBY" as const,
+        authorized: true,
+        reason: null,
+      })),
+      confirm_visually: "Check both photos before releasing the child.",
+    });
   },
 
   async getMyQueueEntry() {

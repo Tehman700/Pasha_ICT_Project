@@ -151,6 +151,39 @@ export interface Handover {
   verified_at?: IsoDateTime;
 }
 
+/**
+ * The result of scanning a code.
+ *
+ * `valid` is about the signature and the clock. `authorized` is per child and
+ * is a separate question — a token minted before a parent revoked access is
+ * still cryptographically perfect, so the signature is necessary and not
+ * sufficient.
+ */
+export interface ScanResult {
+  valid: boolean;
+  /** Present when refused. The guard app branches on this. */
+  code?: "malformed" | "expired" | "bad_signature" | "already_used" | "not_yet_valid" | "wrong_school";
+  message?: string;
+  jti?: string;
+  collector?: {
+    id: Uuid;
+    name: string;
+    name_ur?: string | null;
+    photo_url: string | null;
+    role: Role;
+  } | null;
+  children?: {
+    pickup_request_id: Uuid;
+    student_id: Uuid;
+    student_name: string;
+    student_photo_url: string | null;
+    status: PickupStatus;
+    authorized: boolean;
+    reason: string | null;
+  }[];
+  confirm_visually?: string;
+}
+
 export interface QrTokenBatchItem {
   token: string;
   exp: IsoDateTime;
@@ -206,6 +239,32 @@ export interface PickupAuthorization {
   valid_from: IsoDate;
   valid_until: IsoDate | null;
   revoked_at: IsoDateTime | null;
+}
+
+/**
+ * What a parent sees before linking a driver.
+ *
+ * The school has vetted nobody, so the photos are the verification and the
+ * parent is the verifier. There is deliberately no automated face match — she
+ * knows what the man she hired looks like.
+ */
+export interface CollectorLookup {
+  id: Uuid;
+  name: string;
+  name_ur?: string | null;
+  phone: string;
+  selfie_url: string | null;
+  id_photo_url: string | null;
+  cnic_last4: string | null;
+  vehicle: {
+    registration_no: string;
+    capacity: number;
+    photo_url: string | null;
+    expected_arrival: string | null;
+  } | null;
+  /** How many families already link him. Context, not an endorsement. */
+  linked_families: number;
+  verify_yourself: string;
 }
 
 export interface Vehicle {
@@ -286,7 +345,7 @@ export interface OnTimeStats {
 
 // ── Errors ─────────────────────────────────────────────────────────────
 
-export interface ApiError {
+export interface ApiErrorBody {
   status: number;
   code: string;
   message: string;

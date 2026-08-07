@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { Badge } from "@/components/ui/Badge";
 
@@ -18,7 +20,11 @@ type NavGroup = { label: string; items: NavItem[] };
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const api = useApi();
   const { strings, locale, toggle } = useLocale();
+  // Identify the signed-in admin from the API, not from fixtures.
+  const me = useQuery({ queryKey: ["me"], queryFn: () => api.me(), retry: false });
+  const school = useQuery({ queryKey: ["schools"], queryFn: () => api.listSchools() });
   const n = strings.nav;
 
   const groups: NavGroup[] = [
@@ -86,8 +92,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
         <div className="px-6 py-4 border-t border-hairline">
           <p className="type-caption text-muted-soft">
-            Roots Montessori · Islamabad
+            {school.data?.[0]?.name ?? "—"}
           </p>
+          {me.data ? (
+            <p className="type-caption text-muted-soft mt-1">{me.data.name}</p>
+          ) : null}
         </div>
       </aside>
 

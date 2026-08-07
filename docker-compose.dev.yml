@@ -6,7 +6,7 @@
 #  That constraint is unchanged; this file exists only so both developers get
 #  an identical database on their own machines in one command.
 #
-#  Versions are pinned to match what Ubuntu 24.04 installs on the EC2 box, so
+#  Versions are pinned to match what is installed natively on the EC2 box, so
 #  local and production do not drift.
 #
 #    docker compose -f docker-compose.dev.yml up -d
@@ -22,7 +22,7 @@
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: rukhsat-pg
     environment:
       POSTGRES_USER: rukhsat_app
@@ -31,7 +31,12 @@ services:
     ports:
       - "5544:5432"
     volumes:
-      - rukhsat_pgdata:/var/lib/postgresql/data
+      # Postgres 18+ images want the mount at /var/lib/postgresql, NOT at
+      # .../data as every 17-and-earlier example shows. The image places the
+      # cluster in a major-version subdirectory so `pg_upgrade --link` can work
+      # without crossing a mount boundary. Mounting the old path makes the
+      # container exit at startup with "PostgreSQL data in unused mount/volume".
+      - rukhsat_pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rukhsat_app -d rukhsat"]
       interval: 5s
@@ -39,7 +44,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: rukhsat-redis
     ports:
       - "6399:6379"

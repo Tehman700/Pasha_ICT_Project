@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { useStaggerIn } from "@/lib/gsap";
+import { useLiveQueue } from "@/lib/useLiveQueue";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,8 @@ export default function QueuePage() {
   const api = useApi();
   const { strings } = useLocale();
   const [classFilter, setClassFilter] = useState<string | null>(null);
+  // Pushes on every state change; falls back to polling rather than going dark.
+  const live = useLiveQueue(classFilter);
 
   const classes = useQuery({ queryKey: ["classes"], queryFn: () => api.listClasses() });
   const queue = useQuery({
@@ -39,6 +42,16 @@ export default function QueuePage() {
       <PageHeader
         title={strings.queue.title}
         subtitle="Ordered by live ETA. Booking time drives the prep list, not the queue."
+        action={
+          <span className="inline-flex items-center gap-2 type-caption text-muted">
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${
+                live === "live" ? "bg-success" : "bg-muted-soft"
+              }`}
+            />
+            {live === "live" ? "Live" : live === "polling" ? "Polling" : "Connecting"}
+          </span>
+        }
       />
 
       <div className="flex flex-wrap gap-2 mb-6">

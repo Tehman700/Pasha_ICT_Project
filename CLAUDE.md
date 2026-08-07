@@ -20,6 +20,18 @@ If a task seems to require violating one of these, stop and flag it instead of q
 - **No Docker in production.** Postgres, Redis, FastAPI, and Next.js run natively via systemd on one EC2 instance. See `docs/DEPLOYMENT.md`.
 - **No background location permission**, anywhere. Tracking is foreground-only, and starts only on an explicit "On my way" tap.
 - **QR codes rotate** (~60s, ES256-signed) and are **verified offline** by the guard app. Never make them static.
+- **A collector never claims a child.** Only a parent grants access to their own
+  children, or an admin does by phone with it logged and visible to the parent.
+  There is **no student search endpoint for collectors** — not restricted, not
+  paginated, none. The search itself is the leak: even a zero-result query
+  confirms whether a child is enrolled.
+- **The school vets nobody.** Drivers self-register and are invisible until a
+  parent links them. Liability sits with the parent who granted access, not
+  with the school.
+- **The schedule is the backstop.** Geofences fire late or not at all — OEM
+  battery managers on Xiaomi, Oppo, Vivo and Infinix are endemic in this
+  market. The driver's own declared arrival time is what makes the system work
+  on the days the clever thing fails.
 - **Manual fallback is mandatory** in the guard app. Software must never be the reason a real handover can't happen.
 - **No SMS.** Notifications only, via FCM, with explicit user consent.
 - **Urdu is required**, not optional, alongside English — every new user-facing string needs both from the start.

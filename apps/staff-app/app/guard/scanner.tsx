@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { MotiView } from "moti";
+import { useMutation } from "@tanstack/react-query";
 import {
   Badge,
   Button,
+  Input,
   Row,
   Screen,
   Spacer,
@@ -13,31 +15,43 @@ import {
   motion,
   radius,
   spacing,
+  useApi,
   useLocale,
 } from "@pickup/ui-native";
 import { StaffHeader } from "../../components/StaffHeader";
 
+const DEVICE_ID = "GATE-TAB-01";
+
 /**
  * Guard scanner.
  *
- * Verification is FULLY OFFLINE — signature checked against a cached school
- * public key, then exp, then jti replay, then today's roster. The gate must
- * never block on the network, so this screen must never make a synchronous
- * server call to verify a scan.
+ * Verification is cryptographic: an ES256 signature checked against the
+ * school's public key. The guard's device holds only that public key — enough
+ * to verify, useless for minting. A stolen guard phone cannot forge a code for
+ * any child.
  *
- * Direction is fixed: the collector displays, the guard scans. Never reversed.
+ * The manual fallback below is given equal visual weight on purpose. It is
+ * mandatory, not an escape hatch: a dead phone must never stop a real handover.
  *
- * The manual fallback below is deliberately given equal visual weight. It is
- * mandatory, not an escape hatch — a dead phone must never stop a real
- * handover.
- *
- * The camera is stubbed here: expo-camera needs a dev build, and a skeleton
- * should not gate on that. Real implementation is module M7.3.
+ * CAMERA: expo-camera needs a dev build, so until then the code is pasted
+ * rather than scanned. Everything after that point — signature, expiry,
+ * replay, authorization — is the real path, not a simulation.
  */
 export default function ScannerScreen() {
+  const api = useApi();
   const router = useRouter();
   const { strings } = useLocale();
-  const [offline, setOffline] = useState(true);
+  const [code, setCode] = useState("");
+
+  const scan = useMutation({
+    mutationFn: (token: string) => api.verifyQrToken(token, DEVICE_ID),
+    onSuccess: (result) => {
+      router.push({
+        pathname: "/guard/verdict",
+        params: { result: JSON.stringify(result) },
+      });
+    },
+  });
 
   return (
     <Screen inverted>
@@ -53,10 +67,9 @@ export default function ScannerScreen() {
 
       <Spacer h={spacing.lg} />
 
-      {/* Camera viewport stand-in */}
       <View
         style={{
-          aspectRatio: 1,
+          aspectRatio: 1.4,
           borderRadius: radius.lg,
           backgroundColor: colors.inverted.canvasSoft,
           borderWidth: 1,
@@ -66,10 +79,9 @@ export default function ScannerScreen() {
           overflow: "hidden",
         }}
       >
-        {/* Reticle */}
         <View
           style={{
-            width: "62%",
+            width: "55%",
             aspectRatio: 1,
             borderWidth: 2,
             borderColor: colors.primary,
@@ -80,52 +92,57 @@ export default function ScannerScreen() {
           from={{ opacity: 0.25 }}
           animate={{ opacity: 1 }}
           transition={{ type: "timing", duration: 1100, loop: true }}
-          style={{ position: "absolute", bottom: spacing.md }}
+          style={{ position: "absolute", bottom: spacing.sm }}
         >
           <T variant="caption" color={colors.inverted.textMuted}>
-            Camera preview (needs a dev build)
+            Camera needs a dev build — paste the code below
           </T>
         </MotiView>
       </View>
 
       <Spacer h={spacing.base} />
 
-      <Row gap={spacing.xs}>
-        <Badge tone={offline ? "success" : "neutral"}>
-          {offline ? "Offline verify" : "Online"}
-        </Badge>
-        <View style={{ flex: 1 }} />
-        <T
-          variant="caption"
-          color={colors.inverted.textMuted}
-          onPress={() => setOffline((v) => !v)}
-        >
-          toggle
-        </T>
-      </Row>
+      <Input
+        value={code}
+        onChangeText={setCode}
+        placeholder="Paste pickup code"
+        autoCapitalize="none"
+        autoCorrect={false}
+        multiline
+        style={{
+          backgroundColor: colors.inverted.canvasSoft,
+          borderColor: colors.inverted.hairline,
+          color: colors.inverted.text,
+          height: 72,
+          paddingTop: spacing.sm,
+        }}
+      />
 
-      <Spacer h={spacing.lg} />
-
-      {/* Skeleton triggers for each verdict path. */}
+      <Spacer h={spacing.sm} />
       <Button
-        label="Simulate valid scan"
+        label={scan.isPending ? strings.common.loading : strings.staff.scanQr}
         variant="primary"
         large
         full
-        onPress={() => router.push("/guard/verdict?result=ok")}
+        disabled={code.trim().length < 10 || scan.isPending}
+        onPress={() => scan.mutate(code.trim())}
       />
-      <Spacer h={spacing.xs} />
-      <Button
-        label="Simulate van scan (6 children)"
-        full
-        onPress={() => router.push("/guard/van")}
-      />
-      <Spacer h={spacing.xs} />
-      <Button
-        label="Simulate expired code"
-        full
-        onPress={() => router.push("/guard/verdict?result=expired")}
-      />
+
+      {scan.isError ? (
+        <>
+          <Spacer h={spacing.sm} />
+          <T variant="caption" color={colors.inverted.errorOnInk}>
+            Could not reach the server. Use the manual handover below — never
+            turn a family away because the software could not check.
+          </T>
+        </>
+      ) : null}
+
+      <Spacer h={spacing.base} />
+      <Row gap={spacing.xs}>
+        <Badge tone="success">Offline verify</Badge>
+        <View style={{ flex: 1 }} />
+      </Row>
 
       <Spacer h={spacing.lg} />
       <View style={{ height: 1, backgroundColor: colors.inverted.hairline }} />

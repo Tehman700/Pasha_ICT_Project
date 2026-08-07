@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { Image, View } from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -9,47 +9,76 @@ import {
   Field,
   Input,
   Label,
-  Loading,
-  PageTitle,
   Row,
   Screen,
   Spacer,
   T,
   colors,
+  radius,
   spacing,
   useApi,
   useLocale,
 } from "@pickup/ui-native";
+import type { CollectorLookup } from "@pickup/shared";
 import { ScreenHeader } from "../../components/ScreenHeader";
 
 type Mode = "driver" | "relative";
 
 /**
- * Add a collector — two paths, one model.
+ * Add a collector.
  *
- *  - DRIVER: registered and vetted by the school once. The parent picks from
- *    the school's approved list. This is what guarantees one driver = one
- *    account; if every parent created their own driver record, one van would
- *    appear many times in the queue.
+ * The school approves nobody. A driver self-registers and is invisible until a
+ * parent links him — so there is no approved list to pick from. The parent
+ * looks him up by the phone number he gave her, checks his photo against the
+ * man she actually hired, and decides.
  *
- *  - RELATIVE: added directly by the parent, no school vetting. A family
- *    matter, not a school one.
- *
- * Both become `kind: "standing"` authorizations and both get a rotating QR.
+ * Deliberately a LOOKUP, not a search: you cannot browse drivers, only confirm
+ * one you already know. And there is no automated face match — she knows what
+ * he looks like, and an algorithm reporting a percentage is worse than a
+ * person looking at a picture.
  */
 export default function AddCollectorScreen() {
   const api = useApi();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { strings } = useLocale();
 
   const [mode, setMode] = useState<Mode>("driver");
-  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [found, setFound] = useState<CollectorLookup | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [relativePhone, setRelativePhone] = useState("");
 
-  const vehicles = useQuery({ queryKey: ["vehicles"], queryFn: () => api.listVehicles() });
-  const children = useQuery({ queryKey: ["myChildren"], queryFn: () => api.getMyChildren() });
+  const children = useQuery({
+    queryKey: ["myChildren"],
+    queryFn: () => api.getMyChildren(),
+  });
+
+  const lookup = useMutation({
+    mutationFn: (p: string) => api.lookupCollector(p),
+    onSuccess: (data) => {
+      setFound(data);
+      setError(null);
+    },
+    onError: () => {
+      setFound(null);
+      setError("No driver registered with that number. Check it with him.");
+    },
+  });
+
+  const grant = useMutation({
+    mutationFn: async (collectorId: string) => {
+      for (const studentId of selectedChildren) {
+        await api.grantAuthorization(studentId, collectorId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myCollectors"] });
+      router.back();
+    },
+  });
 
   function toggleChild(id: string) {
     setSelectedChildren((prev) =>
@@ -59,16 +88,15 @@ export default function AddCollectorScreen() {
 
   const canSave =
     selectedChildren.length > 0 &&
-    (mode === "driver" ? !!selectedDriver : name.trim() !== "" && phone.trim() !== "");
+    (mode === "driver" ? !!found : name.trim() !== "" && relativePhone.trim() !== "");
 
   return (
     <Screen>
       <ScreenHeader title={strings.parent.addCollector} />
-      <PageTitle title={strings.parent.addCollector} />
 
       <Row gap={spacing.xs}>
         <Button
-          label={strings.parent.pickDriver}
+          label={strings.role.driver}
           variant={mode === "driver" ? "ink" : "secondary"}
           onPress={() => setMode("driver")}
         />
@@ -79,42 +107,117 @@ export default function AddCollectorScreen() {
         />
       </Row>
 
-      <Spacer h={spacing.sm} />
-      <T variant="caption" color={colors.muted}>
-        {mode === "driver" ? strings.parent.pickDriverNote : strings.parent.addRelativeNote}
-      </T>
       <Spacer h={spacing.lg} />
 
       {mode === "driver" ? (
-        vehicles.isLoading ? (
-          <Loading />
-        ) : (
-          vehicles.data?.map((v) => {
-            const on = selectedDriver === v.driver_user_id;
-            return (
-              <View key={v.id} style={{ marginBottom: spacing.sm }}>
-                <Card accent={on ? "primary" : "none"}>
-                  <Row>
-                    <View style={{ flex: 1 }}>
-                      <T variant="titleMd" color={colors.ink}>
-                        {v.driver_name}
-                      </T>
-                      <Spacer h={4} />
+        <>
+          <Field
+            label="Driver's phone number"
+            hint="The number he registered with. Ask him for it."
+          >
+            <Input
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+92 321 5000011"
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+            />
+          </Field>
+          <Button
+            label={lookup.isPending ? strings.common.loading : strings.common.search}
+            variant="primary"
+            full
+            disabled={phone.trim().length < 5 || lookup.isPending}
+            onPress={() => lookup.mutate(phone)}
+          />
+
+          {error ? (
+            <>
+              <Spacer h={spacing.sm} />
+              <T variant="bodySm" color={colors.error}>
+                {error}
+              </T>
+            </>
+          ) : null}
+
+          {found ? (
+            <>
+              <Spacer h={spacing.lg} />
+              <Card accent="primary">
+                <Row align="flex-start">
+                  {found.selfie_url ? (
+                    <Image
+                      source={{ uri: found.selfie_url }}
+                      style={{ width: 72, height: 72, borderRadius: radius.pill }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: radius.pill,
+                        backgroundColor: colors.surfaceStrong,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <T variant="caption" color={colors.muted}>
-                        {v.registration_no} · {strings.drivers.capacity} {v.capacity}
+                        no photo
                       </T>
                     </View>
-                    <Button
-                      label={on ? "✓" : strings.common.add}
-                      variant={on ? "primary" : "secondary"}
-                      onPress={() => setSelectedDriver(on ? null : v.driver_user_id)}
-                    />
-                  </Row>
-                </Card>
-              </View>
-            );
-          })
-        )
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <T variant="titleMd" color={colors.ink}>
+                      {found.name}
+                    </T>
+                    <Spacer h={4} />
+                    <T variant="caption" color={colors.muted}>
+                      {found.phone}
+                      {found.cnic_last4 ? ` · CNIC ••••${found.cnic_last4}` : ""}
+                    </T>
+                    {found.vehicle ? (
+                      <>
+                        <Spacer h={6} />
+                        <Row gap={6} style={{ flexWrap: "wrap" }}>
+                          <Badge tone="neutral">{found.vehicle.registration_no}</Badge>
+                          {found.vehicle.expected_arrival ? (
+                            <Badge tone="neutral">
+                              arrives {found.vehicle.expected_arrival}
+                            </Badge>
+                          ) : null}
+                        </Row>
+                      </>
+                    ) : null}
+                    {found.linked_families > 0 ? (
+                      <>
+                        <Spacer h={6} />
+                        <T variant="caption" color={colors.mutedSoft}>
+                          {found.linked_families} other{" "}
+                          {found.linked_families === 1 ? "family uses" : "families use"}{" "}
+                          him
+                        </T>
+                      </>
+                    ) : null}
+                  </View>
+                </Row>
+
+                <Spacer h={spacing.base} />
+                {/* The school has vetted nobody. She is the check. */}
+                <View
+                  style={{
+                    borderStartWidth: 3,
+                    borderStartColor: colors.primary,
+                    paddingStart: spacing.sm,
+                  }}
+                >
+                  <T variant="caption" color={colors.body}>
+                    {found.verify_yourself}
+                  </T>
+                </View>
+              </Card>
+            </>
+          ) : null}
+        </>
       ) : (
         <Card>
           <Field label="Name">
@@ -125,8 +228,8 @@ export default function AddCollectorScreen() {
             hint="They sign in with this number and get their own pickup code."
           >
             <Input
-              value={phone}
-              onChangeText={setPhone}
+              value={relativePhone}
+              onChangeText={setRelativePhone}
               placeholder="+92 333 1000090"
               keyboardType="phone-pad"
             />
@@ -151,17 +254,17 @@ export default function AddCollectorScreen() {
 
       <Spacer h={spacing.sm} />
       <T variant="caption" color={colors.mutedSoft}>
-        Access is per child. You can change or remove it at any time, and it
-        only ever affects your own children.
+        Access is per child, and only ever your own. You can remove it at any
+        time, and it never affects another family.
       </T>
 
       <Spacer h={spacing.lg} />
       <Button
-        label={strings.common.save}
+        label={grant.isPending ? strings.common.loading : strings.common.save}
         variant="primary"
         full
-        disabled={!canSave}
-        onPress={() => router.back()}
+        disabled={!canSave || grant.isPending}
+        onPress={() => found && grant.mutate(found.id)}
       />
     </Screen>
   );
