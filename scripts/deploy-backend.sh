@@ -36,7 +36,12 @@ JWT_EXPIRES_SECONDS=86400
 
 QR_SIGNING_PRIVATE_KEY_PATH=./keys/qr_private.pem
 QR_SIGNING_PUBLIC_KEY_PATH=./keys/qr_public.pem
-FCM_SERVICE_ACCOUNT_JSON_PATH=./keys/fcm-service-account.json
+# Absolute on purpose. A relative path here resolves against the repo root in
+# config.py but against WorkingDirectory (=/srv/rukhsat/backend) for anything
+# using plain cwd — and the failure mode is push silently disabling itself,
+# which nobody notices until a parent asks why she got no notification.
+# Uploaded once, out of band; git reset --hard leaves untracked files alone.
+FCM_SERVICE_ACCOUNT_JSON_PATH=/srv/rukhsat/backend/keys/fcm-service-account.json
 
 GEOFENCE_RADIUS_M=1000
 ANNOUNCE_ETA_SECONDS=120

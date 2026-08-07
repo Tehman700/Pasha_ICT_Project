@@ -47,11 +47,24 @@ async def lifespan(_: FastAPI):
     silently and leave the next morning empty.
     """
     from app.jobs.generate_requests import run_nightly
+    from app.jobs.reminders import run_morning
 
     scheduler.add_job(
         run_nightly,
         CronTrigger(hour=0, minute=15),
         id="generate_pickup_requests",
+        replace_existing=True,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    # Reminders go out mid-morning, not at dawn: a 7am notification is read
+    # and forgotten before it matters, and a parent who needs to change who is
+    # collecting still has hours to do it. Both workers run this job — the
+    # Redis claim inside it is what keeps delivery to exactly once.
+    scheduler.add_job(
+        run_morning,
+        CronTrigger(hour=10, minute=0, day_of_week="mon-fri"),
+        id="pickup_reminders",
         replace_existing=True,
         coalesce=True,
         misfire_grace_time=3600,

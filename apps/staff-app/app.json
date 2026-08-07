@@ -29,7 +29,8 @@
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE_LOCATION"
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -43,7 +44,13 @@
           "cameraPermission": "The guard app uses the camera only to scan pickup codes at the gate."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#f54e00"
+        }
+      ]
     ]
   }
 }

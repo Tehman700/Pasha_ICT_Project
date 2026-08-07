@@ -17,6 +17,7 @@ import type {
   ClassroomDevice,
   Handover,
   IsoDate,
+  Locale,
   LoginRequest,
   LoginResponse,
   NameAudio,
@@ -41,6 +42,14 @@ import * as fx from "./fixtures";
 export interface PickupApi {
   login(body: LoginRequest): Promise<LoginResponse>;
   me(): Promise<User>;
+  /**
+   * Registers the device push token and the language preference.
+   *
+   * `fcm_token: null` unregisters — used when a user revokes notification
+   * permission in Android settings, so the backend stops sending to a device
+   * that will never show them.
+   */
+  updateMe(body: { fcm_token?: string | null; locale?: Locale }): Promise<User>;
 
   listSchools(): Promise<School[]>;
   listClasses(schoolId?: Uuid): Promise<ClassRoom[]>;
@@ -113,6 +122,11 @@ export const mockApi: PickupApi = {
 
   async me() {
     return delay(fx.users.find((u) => u.role === "admin")!);
+  },
+
+  async updateMe(body) {
+    const user = fx.users.find((u) => u.role === "admin")!;
+    return delay({ ...user, locale: body.locale ?? user.locale });
   },
 
   async listSchools() {

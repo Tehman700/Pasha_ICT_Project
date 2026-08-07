@@ -6,10 +6,10 @@
 >
 > | | |
 > |---|---|
-> | Modules | **41 of 44** |
+> | Modules | **43 of 44** |
 > | Endpoints | 48 REST + 2 WebSocket |
 > | API contract | 51 paths, **zero undocumented endpoints** |
-> | Tests | **189 backend** + 22 frontend |
+> | Tests | **188 backend** + 22 frontend |
 > | Screens | 37 (12 parent · 9 staff · 16 admin/display) |
 >
 > `pnpm verify` runs typecheck across 5 packages, a migration round-trip,
@@ -20,13 +20,21 @@
 > he appears → trip starts → location streams → ETA drops → **announcement
 > fires once per class at ~120s and does not repeat** → teacher stages →
 > guard scans a real ES256 token → per-child authorization re-checked →
-> handover → audit log. Plus one-off passes, manual fallback, and the
-> nightly job.
+> handover → audit log **→ the parent's phone is told who took her child**.
+> Plus one-off passes, manual fallback, and the nightly job.
 >
-> **Not built (3):**
-> - **M0.5** Play Console — not on the competition path (delivery is a direct APK)
-> - **M8.2** push notifications — needs your Firebase project
+> **Not built (1):**
 > - **M9.2** Urdu QA pass — strings exist in both languages; needs a device sweep
+>
+> **M0.5 Play Console** is in progress — the account is bought and awaiting
+> verification. Judges get a direct APK; the store listing is for afterwards.
+>
+> **Push (M8.1/M8.2)** ships against Firebase project `rukhsat-87a43`, FCM
+> HTTP v1. Three notifications and no more: morning reminder, collector
+> arriving, handed over. There is deliberately no teacher push — voice
+> replaces it. Delivery to a real handset is unverifiable until M9.5 produces
+> a dev build, because Expo Go cannot receive FCM messages for another app's
+> Firebase project.
 >
 > **Deferred by agreement:** vans as entities with drivers as reassignable
 > assignments. Correct, but a substitute driver will not occur during a demo.
@@ -456,14 +464,41 @@ Queue locally, sync on reconnect, idempotent by `jti`.
 
 # Phase 8 — Push Notifications
 
-### M8.1 — FCM registration
-`users.fcm_token` exists in the schema but nothing can set it — **push cannot
-work at all until this ships.**
+### M8.1 — FCM registration  ✅ DONE
+`PATCH /users/me` takes the token; `usePushTokenRotation` keeps it fresh when
+FCM rotates it (which happens on restore, clear-data, and at Google's
+discretion — an app that registers only at first launch goes silently
+undeliverable weeks later). Permission is requested **after login**, never at
+launch: Android 13+ lets you ask once, and a stranger on the login screen has
+no reason to say yes. A denial clears the token server-side rather than
+leaving the backend pushing at a phone that will never display anything.
+
+The device FCM token is registered, **not** the Expo push token — the backend
+talks to FCM v1 directly with a service account, and an `ExponentPushToken[…]`
+fails there in a way indistinguishable from a revoked permission.
 - **Depends on:** M1.2
 
-### M8.2 — Parent notifications
-Pickup reminder, geofence arrival, handover complete. Explicit consent; handle
-denial gracefully. **No teacher arrival push — voice replaces it.** No SMS.
+### M8.2 — Parent notifications  ✅ DONE
+Morning reminder, collector arriving, handed over. **No teacher arrival push —
+voice replaces it.** No SMS.
+
+`services/push.py` is the transport (OAuth from the service account via pyjwt,
+no `firebase-admin` — grpcio alone is ~100MB on a 1.9GB box). `services/notify.py`
+owns the domain: who to tell, in whose language.
+
+Four decisions worth not re-litigating:
+- **The collector is named** in the arrival and handover messages. A lock
+  screen reading "Zara was handed to Ahmed Khan" is legible to anyone holding
+  the phone — but a parent seeing a name she did not expect is the most
+  valuable alert this system produces.
+- **Handovers never collapse.** Two children released must leave two
+  notifications; collapsing would hide a release. Arrivals *do* collapse, so a
+  moving ETA leaves one entry rather than four.
+- **A dead token is cleared** on FCM's `UNREGISTERED`, but not on a mere
+  failure — a network blip is not an uninstall.
+- **The reminder job claims a Redis key before sending.** Two uvicorn workers
+  each run their own scheduler, and a push cannot be un-sent, so losing Redis
+  means send nothing rather than send twice.
 - **Depends on:** M8.1, M4.4
 
 ---

@@ -21,6 +21,15 @@ build/
 keys/*
 !keys/README.md
 
+# Firebase.
+#
+# The service account can send push to every user of this system — it is a
+# real secret and must never reach the repo. `google-services.json` is not a
+# secret (it ships inside the APK, anyone can unzip it), but it is per-project
+# config that differs between machines, so it stays untracked too.
+fcm-service*.json
+google-services*.json
+
 # OS
 .DS_Store
 Thumbs.db
@@ -31,3 +40,9 @@ Thumbs.db
 
 # Alembic bytecode
 alembic/versions/__pycache__/
+
+# Uploaded name-audio clips. These are runtime data, not source: production
+# has its own on disk, and committing local test recordings would overwrite
+# nothing while growing the repo with every demo.
+backend/media/name-audio/*
+!backend/media/name-audio/.gitkeep

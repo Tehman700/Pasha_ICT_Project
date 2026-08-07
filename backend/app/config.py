@@ -24,7 +24,12 @@ class Settings(BaseSettings):
 
     qr_signing_private_key_path: str = "./keys/qr_private.pem"
     qr_signing_public_key_path: str = "./keys/qr_public.pem"
-    fcm_service_account_json_path: str = "./keys/fcm-service-account.json"
+    # Push. Absent credentials disable push cleanly rather than erroring —
+    # local dev and CI have no Firebase project and must still run.
+    fcm_service_account_json_path: str = "./fcm-services-account.json"
+    #: Overrides project_id from the key file. Only needed to point a staging
+    #: deploy at a different Firebase project without swapping the key.
+    fcm_project_id: str = ""
 
     geofence_radius_m: int = 1000
     # The classroom announcement fires on ETA, not on the geofence ring —

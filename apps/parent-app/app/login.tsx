@@ -15,6 +15,7 @@ import {
   USING_MOCK,
   colors,
   motion,
+  register as registerForPush,
   spacing,
   useApi,
   useLocale,
@@ -38,6 +39,10 @@ export default function LoginScreen() {
         setError("This app is for parents and drivers. Staff use the staff app.");
         return;
       }
+      // Ask for notification permission here, not at launch: Android only lets
+      // you ask once, and a stranger on the login screen has no reason to say
+      // yes. Fire and forget — a refusal must not hold up the sign-in.
+      void registerForPush(api);
       router.replace("/");
     },
     onError: (err) => {

@@ -15,6 +15,7 @@ import {
   USING_MOCK,
   colors,
   motion,
+  register as registerForPush,
   spacing,
   useApi,
   useLocale,
@@ -39,6 +40,10 @@ export default function StaffLoginScreen() {
     mutationFn: () => api.login({ phone: phone.trim(), password }),
     onSuccess: (res) => {
       const role = res.user.role;
+      // Staff get no pickup notifications — voice replaces the teacher push
+      // entirely. This registers the device anyway so an admin broadcast has
+      // somewhere to land, and so the token is fresh if that ever ships.
+      void registerForPush(api);
       if (USING_MOCK) return router.replace("/teacher");
       if (role === "teacher") return router.replace("/teacher");
       if (role === "guard" || role === "admin") return router.replace("/guard/scanner");
