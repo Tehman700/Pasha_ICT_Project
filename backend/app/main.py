@@ -5,12 +5,14 @@ Every route lives under /v1 to match `docs/api/openapi.yaml`.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import redis
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.config import settings
@@ -18,6 +20,7 @@ from app.db import engine
 from app.routers import (
     auth,
     collectors,
+    devices,
     handovers,
     operations,
     people,
@@ -76,6 +79,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MEDIA_ROOT = Path("media")
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")
+
 V1 = "/v1"
 app.include_router(auth.router, prefix=V1)
 app.include_router(people.router, prefix=V1)
@@ -86,6 +93,7 @@ app.include_router(handovers.router, prefix=V1)
 app.include_router(registration.router, prefix=V1)
 app.include_router(qr.router, prefix=V1)
 app.include_router(ws.router, prefix=V1)
+app.include_router(devices.router, prefix=V1)
 
 
 @app.get("/health", response_model=HealthOut, tags=["ops"])
