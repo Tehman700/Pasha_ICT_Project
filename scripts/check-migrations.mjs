@@ -57,4 +57,25 @@ if (!ok) {
   process.exit(1);
 }
 
+// `downgrade base` drops every table, so the demo data goes with it. Several
+// tests assert against that data — the sibling groups, the van carrying six
+// children from four families, the one-time pass — so the check has to restore
+// what it destroyed or it breaks the suite that runs after it.
+const python =
+  process.platform === "win32"
+    ? path.join(backend, ".venv", "Scripts", "python.exe")
+    : path.join(backend, ".venv", "bin", "python");
+
+process.stdout.write("  reseed demo data      ");
+const seed = spawnSync(python, ["../scripts/seed.py", "--reset"], {
+  cwd: backend,
+  encoding: "utf8",
+});
+if (seed.status !== 0) {
+  console.log("FAIL");
+  console.error(`${seed.stdout ?? ""}${seed.stderr ?? ""}`.split("\n").slice(-20).join("\n"));
+  process.exit(1);
+}
+console.log("ok");
+
 console.log("Migration round-trip clean.\n");

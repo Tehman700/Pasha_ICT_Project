@@ -11,7 +11,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import engine
-from app.routers import auth, collectors, operations, people
+from app.routers import auth, collectors, handovers, operations, people, trips
 from app.schemas import HealthOut
 
 app = FastAPI(
@@ -35,6 +35,8 @@ app.include_router(auth.router, prefix=V1)
 app.include_router(people.router, prefix=V1)
 app.include_router(collectors.router, prefix=V1)
 app.include_router(operations.router, prefix=V1)
+app.include_router(trips.router, prefix=V1)
+app.include_router(handovers.router, prefix=V1)
 
 
 @app.get("/health", response_model=HealthOut, tags=["ops"])
