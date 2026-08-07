@@ -22,13 +22,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "CAMERA",
-        "POST_NOTIFICATIONS"
-      ],
+      "permissions": ["CAMERA", "POST_NOTIFICATIONS"],
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -41,7 +39,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "The guard app uses the camera only to scan pickup codes at the gate."
+          "cameraPermission": "The guard app uses the camera only to scan pickup codes at the gate.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       "expo-secure-store",
@@ -51,6 +51,20 @@
           "color": "#f54e00"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "37936b34-dd23-44ca-b4cb-72a533ece8f2"
+      }
+    },
+    "owner": "tehman600",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/37936b34-dd23-44ca-b4cb-72a533ece8f2"
+    },
+    "ios": {}
   }
 }

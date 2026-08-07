@@ -22,10 +22,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
-      ],
+      "permissions": ["ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"],
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE_LOCATION"
@@ -45,6 +42,20 @@
           "color": "#f54e00"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f9f78bd2-a8a4-4189-8a00-8dd236ae3852"
+      }
+    },
+    "owner": "tehman600",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f9f78bd2-a8a4-4189-8a00-8dd236ae3852"
+    },
+    "ios": {}
   }
 }
