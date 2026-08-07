@@ -141,6 +141,15 @@ def verify(
         raise TokenInvalid("expired", "This code has expired. Ask for a fresh one.") from None
     except jwt.InvalidSignatureError:
         raise TokenInvalid("bad_signature", "This code was not issued by the school.") from None
+    except (jwt.ImmatureSignatureError, jwt.InvalidIssuedAtError):
+        # A token from later in the batch, shown too early — the phone is on
+        # the wrong one, or a clock is badly out. Emphatically NOT a forgery,
+        # and telling a guard "not a valid code" would send him down the wrong
+        # path: he should ask for the current code, not refuse the child.
+        raise TokenInvalid(
+            "not_yet_valid",
+            "This code is not active yet. Ask them to show the current one.",
+        ) from None
     except jwt.PyJWTError:
         raise TokenInvalid("malformed", "This is not a valid pickup code.") from None
 

@@ -198,3 +198,69 @@ class TestBatchSizing:
         # Otherwise a code expires in the gap between the guard raising the
         # camera and the shutter firing.
         assert TOKEN_LIFETIME_SECONDS > ROTATE_SECONDS
+
+
+class TestErrorMessagesGuideTheGuard:
+    """
+    The message shown at the gate has to point at the right next action.
+
+    A guard is holding a phone in front of a parent and a queue. "Not a valid
+    code" and "not active yet" mean completely different things to him: one
+    means refuse, the other means ask for the current code.
+    """
+
+    def test_a_not_yet_active_token_is_distinguished_from_a_forgery(self, keys):
+        private, public = keys
+        future = mint_batch(
+            private_key_pem=private,
+            trip_id=uuid.uuid4(),
+            collector_id=uuid.uuid4(),
+            school_id=uuid.uuid4(),
+            student_ids=[uuid.uuid4()],
+            count=1,
+            start=datetime.now(timezone.utc) + timedelta(minutes=30),
+        )[0]["token"]
+
+        with pytest.raises(TokenInvalid) as exc:
+            verify(future, public_key_pem=public)
+        assert exc.value.code == "not_yet_valid"
+        assert "current one" in exc.value.message
+
+    def test_each_failure_has_its_own_code(self, keys):
+        # Four distinct outcomes, four distinct codes — the guard app branches
+        # on these, so collapsing any two changes what he does.
+        private, public = keys
+        seen = set()
+
+        with pytest.raises(TokenInvalid) as e1:
+            verify("garbage", public_key_pem=public)
+        seen.add(e1.value.code)
+
+        expired = mint_batch(
+            private_key_pem=private, trip_id=uuid.uuid4(), collector_id=uuid.uuid4(),
+            school_id=uuid.uuid4(), student_ids=[uuid.uuid4()], count=1,
+            start=datetime.now(timezone.utc) - timedelta(hours=2),
+        )[0]["token"]
+        with pytest.raises(TokenInvalid) as e2:
+            verify(expired, public_key_pem=public)
+        seen.add(e2.value.code)
+
+        forged = mint_batch(
+            private_key_pem=generate_keypair()[0], trip_id=uuid.uuid4(),
+            collector_id=uuid.uuid4(), school_id=uuid.uuid4(),
+            student_ids=[uuid.uuid4()], count=1,
+        )[0]["token"]
+        with pytest.raises(TokenInvalid) as e3:
+            verify(forged, public_key_pem=public)
+        seen.add(e3.value.code)
+
+        good = mint_batch(
+            private_key_pem=private, trip_id=uuid.uuid4(), collector_id=uuid.uuid4(),
+            school_id=uuid.uuid4(), student_ids=[uuid.uuid4()], count=1,
+        )[0]
+        payload = verify(good["token"], public_key_pem=public)
+        with pytest.raises(TokenInvalid) as e4:
+            verify(good["token"], public_key_pem=public, used_jtis={payload["jti"]})
+        seen.add(e4.value.code)
+
+        assert seen == {"malformed", "expired", "bad_signature", "already_used"}
