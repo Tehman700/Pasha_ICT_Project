@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { View } from "react-native";
 import { MotiView } from "moti";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { useMutation } from "@tanstack/react-query";
 import {
   Badge,
@@ -33,15 +34,36 @@ const DEVICE_ID = "GATE-TAB-01";
  * The manual fallback below is given equal visual weight on purpose. It is
  * mandatory, not an escape hatch: a dead phone must never stop a real handover.
  *
- * CAMERA: expo-camera needs a dev build, so until then the code is pasted
- * rather than scanned. Everything after that point — signature, expiry,
- * replay, authorization — is the real path, not a simulation.
+ * The paste field is kept below the camera rather than removed. A cracked
+ * lens or a denied permission must not be the reason a child cannot go home,
+ * and a guard reading six characters aloud is a worse day than a guard typing.
  */
 export default function ScannerScreen() {
   const api = useApi();
   const router = useRouter();
   const { strings } = useLocale();
   const [code, setCode] = useState("");
+  const [permission, requestPermission] = useCameraPermissions();
+
+  /**
+   * A barcode in frame fires this callback many times per second. Without the
+   * latch, one QR held up at the gate becomes a burst of verify calls and a
+   * stack of verdict screens the guard has to dismiss one by one.
+   *
+   * A ref, not state: `onBarcodeScanned` closes over the value at render time,
+   * so a state flag would still let several frames through before React
+   * re-rendered.
+   */
+  const busy = useRef(false);
+
+  // Re-arm when the guard comes back from the verdict screen. Tokens rotate
+  // about every 60s, so the next child's code is a genuinely new scan.
+  useFocusEffect(
+    useCallback(() => {
+      busy.current = false;
+      return undefined;
+    }, []),
+  );
 
   const scan = useMutation({
     mutationFn: (token: string) => api.verifyQrToken(token, DEVICE_ID),
@@ -51,7 +73,22 @@ export default function ScannerScreen() {
         params: { result: JSON.stringify(result) },
       });
     },
+    onError: () => {
+      // Let the guard try again rather than stranding them on a dead screen.
+      busy.current = false;
+    },
   });
+
+  const onBarcodeScanned = ({ data }: { data: string }) => {
+    if (busy.current || scan.isPending) return;
+    const token = data.trim();
+    if (token.length < 10) return;
+    busy.current = true;
+    setCode(token);
+    scan.mutate(token);
+  };
+
+  const cameraReady = permission?.granted === true;
 
   return (
     <Screen inverted>
@@ -79,6 +116,17 @@ export default function ScannerScreen() {
           overflow: "hidden",
         }}
       >
+        {cameraReady ? (
+          <CameraView
+            style={{ position: "absolute", width: "100%", height: "100%" }}
+            facing="back"
+            // QR only. Letting it read every symbology means a barcode on a
+            // lunchbox in frame triggers a verify call.
+            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+            onBarcodeScanned={onBarcodeScanned}
+          />
+        ) : null}
+
         <View
           style={{
             width: "55%",
@@ -88,16 +136,35 @@ export default function ScannerScreen() {
             borderRadius: radius.md,
           }}
         />
-        <MotiView
-          from={{ opacity: 0.25 }}
-          animate={{ opacity: 1 }}
-          transition={{ type: "timing", duration: 1100, loop: true }}
-          style={{ position: "absolute", bottom: spacing.sm }}
-        >
-          <T variant="caption" color={colors.inverted.textMuted}>
-            Camera needs a dev build — paste the code below
-          </T>
-        </MotiView>
+
+        {cameraReady ? (
+          scan.isPending ? (
+            <MotiView
+              from={{ opacity: 0.3 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: "timing", duration: 600, loop: true }}
+              style={{ position: "absolute", bottom: spacing.sm }}
+            >
+              <T variant="caption" color={colors.inverted.text}>
+                {strings.common.loading}
+              </T>
+            </MotiView>
+          ) : null
+        ) : (
+          <View style={{ position: "absolute", bottom: spacing.sm, alignItems: "center" }}>
+            <T variant="caption" color={colors.inverted.textMuted}>
+              {permission?.canAskAgain === false
+                ? "Camera blocked in Settings — use the code below"
+                : "Camera off — tap to enable, or use the code below"}
+            </T>
+            {permission?.canAskAgain !== false ? (
+              <>
+                <Spacer h={spacing.xs} />
+                <Button label="Enable camera" onPress={() => void requestPermission()} />
+              </>
+            ) : null}
+          </View>
+        )}
       </View>
 
       <Spacer h={spacing.base} />

@@ -24,11 +24,15 @@ keys/*
 # Firebase.
 #
 # The service account can send push to every user of this system — it is a
-# real secret and must never reach the repo. `google-services.json` is not a
-# secret (it ships inside the APK, anyone can unzip it), but it is per-project
-# config that differs between machines, so it stays untracked too.
+# real secret and must never reach the repo.
 fcm-service*.json
-google-services*.json
+
+# `apps/*/google-services.json` IS committed, deliberately. It is not a secret
+# — it ships inside the APK and anyone can unzip it — and EAS builds from a git
+# archive, so an ignored file simply would not reach the build server. Push
+# would then fail on a real device with no error anyone could trace.
+# The two loose copies at the repo root are just the originals as downloaded.
+/google-services-*.json
 
 # OS
 .DS_Store
