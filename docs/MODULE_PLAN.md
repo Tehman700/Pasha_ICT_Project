@@ -1,26 +1,39 @@
 # Module Plan — Dependency-Ordered Build Sequence
 
-> ## Status — updated 6 Aug 2026
+> ## Status — updated 7 Aug 2026
 >
-> **Done:** M0.2 (design system) · M1.4a (all 37 screens, mocked)
+> **Live:** https://api.tideover.site · https://admin.tideover.site
 >
-> All four surfaces exist and are clickable end to end against a typed mock
-> layer. Nothing talks to a server yet, by design — swapping in the real
-> backend is M1.4b and changes one call site, not 37 screens.
+> | | |
+> |---|---|
+> | Modules | **41 of 44** |
+> | Endpoints | 48 REST + 2 WebSocket |
+> | API contract | 51 paths, **zero undocumented endpoints** |
+> | Tests | **189 backend** + 22 frontend |
+> | Screens | 37 (12 parent · 9 staff · 16 admin/display) |
 >
-> | Surface | Screens | Runs with |
-> |---|---|---|
-> | `apps/admin-web` | 14 | `pnpm dev:admin` |
-> | classroom display (in admin-web) | 2 | `/display/[classId]`, kiosk browser |
-> | `apps/parent-app` | 12 | `pnpm dev:parent` + Expo Go |
-> | `apps/staff-app` | 9 | `pnpm dev:staff` + Expo Go |
+> `pnpm verify` runs typecheck across 5 packages, a migration round-trip,
+> a reseed, all tests, and the admin build.
 >
-> Verified by `pnpm verify`: 5 packages typecheck, 22 contract tests pass,
-> admin-web builds 16 routes, both mobile apps produce Android bundles.
-> See `docs/RUNNING_ON_PHONES.md` to view them on a device.
+> **What works end to end, verified against production:**
+> driver self-registers → invisible to the school → parent links him by phone →
+> he appears → trip starts → location streams → ETA drops → **announcement
+> fires once per class at ~120s and does not repeat** → teacher stages →
+> guard scans a real ES256 token → per-child authorization re-checked →
+> handover → audit log. Plus one-off passes, manual fallback, and the
+> nightly job.
 >
-> **Everything below this line is still outstanding**, except where marked.
-> The next module on the critical path is **M0.3 — the API contract**.
+> **Not built (3):**
+> - **M0.5** Play Console — not on the competition path (delivery is a direct APK)
+> - **M8.2** push notifications — needs your Firebase project
+> - **M9.2** Urdu QA pass — strings exist in both languages; needs a device sweep
+>
+> **Deferred by agreement:** vans as entities with drivers as reassignable
+> assignments. Correct, but a substitute driver will not occur during a demo.
+>
+> **Stubbed pending a dev build:** guard camera (`expo-camera`) — the code is
+> pasted instead of scanned, but everything after that point is the real
+> cryptographic path.
 
 This is the **build order**: what gets built first, what unblocks what, and when
 each module is done. It is ordered by *dependency*, not by calendar day.
