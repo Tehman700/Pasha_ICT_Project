@@ -11,7 +11,16 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_current_user, require_admin, require_guard, require_staff
-from app.models import Guardianship, Role, School, SchoolClass, Student, User, Vehicle
+from app.models import (
+    Guardianship,
+    PickupAuthorization,
+    Role,
+    School,
+    SchoolClass,
+    Student,
+    User,
+    Vehicle,
+)
 from app.schemas import (
     ClassOut,
     GuardianshipOut,
@@ -62,15 +71,33 @@ def school_drivers(
     db: Session = Depends(get_db),
 ):
     """
-    The vetted list a parent picks from.
+    Drivers currently serving this school.
 
-    Drivers are registered by the school exactly once. If each parent created
-    their own driver record, one van would appear many times in the queue.
+    NOT an approved list — the school approves nobody. A driver appears here
+    only because a parent linked him to a child, and disappears when the last
+    such link is revoked. He may serve three schools; each sees him only
+    through their own students.
+
+    Derived from live authorizations rather than a stored flag, because a
+    stored flag drifts: revoke the last link and a stale ASSIGNED would leave
+    him visible to a school he no longer serves.
     """
+    linked_driver_ids = (
+        select(PickupAuthorization.collector_user_id)
+        .join(Student, Student.id == PickupAuthorization.student_id)
+        .where(
+            Student.school_id == school_id,
+            PickupAuthorization.revoked_at.is_(None),
+        )
+        .scalar_subquery()
+    )
     rows = db.execute(
         select(User, Vehicle)
         .join(Vehicle, Vehicle.driver_user_id == User.id)
-        .where(User.school_id == school_id, User.role == Role.driver)
+        .where(
+            User.role == Role.driver,
+            User.id.in_(linked_driver_ids),
+        )
     ).all()
     return [
         {

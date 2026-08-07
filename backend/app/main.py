@@ -15,7 +15,15 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import engine
-from app.routers import auth, collectors, handovers, operations, people, trips
+from app.routers import (
+    auth,
+    collectors,
+    handovers,
+    operations,
+    people,
+    registration,
+    trips,
+)
 from app.schemas import HealthOut
 
 scheduler = BackgroundScheduler(timezone="Asia/Karachi")
@@ -73,6 +81,7 @@ app.include_router(collectors.router, prefix=V1)
 app.include_router(operations.router, prefix=V1)
 app.include_router(trips.router, prefix=V1)
 app.include_router(handovers.router, prefix=V1)
+app.include_router(registration.router, prefix=V1)
 
 
 @app.get("/health", response_model=HealthOut, tags=["ops"])
