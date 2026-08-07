@@ -17,6 +17,7 @@
     "expo-constants": "~57.0.9",
     "expo-linking": "~57.0.5",
     "expo-router": "~57.0.10",
+    "expo-secure-store": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "moti": "^0.30.0",
     "react": "19.2.3",
