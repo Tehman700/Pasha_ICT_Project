@@ -208,6 +208,32 @@ export interface PickupAuthorization {
   revoked_at: IsoDateTime | null;
 }
 
+/**
+ * What a parent sees before linking a driver.
+ *
+ * The school has vetted nobody, so the photos are the verification and the
+ * parent is the verifier. There is deliberately no automated face match — she
+ * knows what the man she hired looks like.
+ */
+export interface CollectorLookup {
+  id: Uuid;
+  name: string;
+  name_ur?: string | null;
+  phone: string;
+  selfie_url: string | null;
+  id_photo_url: string | null;
+  cnic_last4: string | null;
+  vehicle: {
+    registration_no: string;
+    capacity: number;
+    photo_url: string | null;
+    expected_arrival: string | null;
+  } | null;
+  /** How many families already link him. Context, not an endorsement. */
+  linked_families: number;
+  verify_yourself: string;
+}
+
 export interface Vehicle {
   id: Uuid;
   school_id: Uuid;

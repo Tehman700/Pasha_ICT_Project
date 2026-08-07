@@ -22,6 +22,7 @@ import type {
   NameAudio,
   OnTimeStats,
   PickupAuthorization,
+  CollectorLookup,
   PickupRequest,
   QrTokenBatchItem,
   QueueEntry,
@@ -47,6 +48,9 @@ export interface PickupApi {
   listUsers(role?: User["role"]): Promise<User[]>;
 
   listVehicles(): Promise<Vehicle[]>;
+  /** Look a driver up by exact phone before linking him. Not a search. */
+  lookupCollector(phone: string): Promise<CollectorLookup>;
+  grantAuthorization(studentId: Uuid, collectorUserId: Uuid): Promise<PickupAuthorization>;
   listAuthorizations(filter?: {
     studentId?: Uuid;
     collectorId?: Uuid;
@@ -139,6 +143,45 @@ export const mockApi: PickupApi = {
 
   async listVehicles() {
     return delay(fx.vehicles);
+  },
+
+  async lookupCollector(phone: string) {
+    const driver = fx.users.find((u) => u.phone === phone && u.role === "driver");
+    if (!driver) throw new Error("No driver with that number");
+    const vehicle = fx.vehicles.find((v) => v.driver_user_id === driver.id);
+    return delay({
+      id: driver.id,
+      name: driver.name,
+      name_ur: driver.name_ur ?? null,
+      phone: driver.phone,
+      selfie_url: null,
+      id_photo_url: null,
+      cnic_last4: "4567",
+      vehicle: vehicle
+        ? {
+            registration_no: vehicle.registration_no,
+            capacity: vehicle.capacity,
+            photo_url: null,
+            expected_arrival: "13:15",
+          }
+        : null,
+      linked_families: 4,
+      verify_yourself:
+        "Check the photo against the person you hired. The school has not vetted this driver.",
+    });
+  },
+
+  async grantAuthorization(studentId: Uuid, collectorUserId: Uuid) {
+    return delay({
+      id: "auth-new",
+      student_id: studentId,
+      collector_user_id: collectorUserId,
+      granted_by_user_id: fx.currentParent.id,
+      kind: "standing" as const,
+      valid_from: new Date().toISOString().slice(0, 10),
+      valid_until: null,
+      revoked_at: null,
+    });
   },
 
   async listAuthorizations(filter) {

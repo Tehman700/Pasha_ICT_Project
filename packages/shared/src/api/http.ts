@@ -10,6 +10,7 @@
 
 import type {
   Announcement,
+  CollectorLookup,
   AuditLogEntry,
   ClassRoom,
   ClassroomDevice,
@@ -188,6 +189,16 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
     listUsers: (role?: User["role"]) => get<User[]>("/users", { role }),
 
     listVehicles: () => get<Vehicle[]>("/vehicles"),
+
+    // `+` in a query string decodes to a space, so it must be encoded here or
+    // the server sees a leading space and 404s on a number that exists.
+    lookupCollector: (phone: string) =>
+      get<CollectorLookup>(`/collectors/lookup?phone=${encodeURIComponent(phone.trim())}`),
+
+    grantAuthorization: (studentId: Uuid, collectorUserId: Uuid) =>
+      post<PickupAuthorization>(`/students/${studentId}/authorizations`, {
+        collector_user_id: collectorUserId,
+      }),
 
     async listAuthorizations(filter) {
       if (filter?.studentId) {

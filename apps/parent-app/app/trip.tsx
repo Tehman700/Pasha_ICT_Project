@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { MotiView } from "moti";
 import { useQuery } from "@tanstack/react-query";
+import { fixtures } from "@pickup/shared";
 import {
   Badge,
   Button,
@@ -22,6 +23,7 @@ import {
   useLocale,
 } from "@pickup/ui-native";
 import { ScreenHeader } from "../components/ScreenHeader";
+import { OsmMap } from "../components/OsmMap";
 
 /**
  * "On my way" — the live trip.
@@ -30,12 +32,14 @@ import { ScreenHeader } from "../components/ScreenHeader";
  * while this screen is open, and stops on handover or after 90 minutes.
  *
  * Do NOT add `expo-task-manager`, a background service, or
- * ACCESS_BACKGROUND_LOCATION here. Server-side geofencing exists precisely so
- * this app never needs that permission — it is the single biggest Play Store
- * review risk in the project, and `app.json` blocks it explicitly.
+ * ACCESS_BACKGROUND_LOCATION here without the Play declaration — server-side
+ * geofencing exists so this app does not need that permission, and `app.json`
+ * blocks it explicitly.
  *
- * The map is a placeholder: react-native-maps needs a Google Maps API key and
- * a dev build, neither of which belongs in a skeleton.
+ * The map is OpenStreetMap via Leaflet in a WebView, NOT react-native-maps.
+ * That would need a Google Maps key, a billing account, and an international
+ * credit card — the riskiest non-technical dependency in the project — plus a
+ * dev build. This has none of those and runs in Expo Go today.
  */
 export default function TripScreen() {
   const api = useApi();
@@ -95,22 +99,15 @@ export default function TripScreen() {
 
       <Spacer h={spacing.lg} />
 
-      {/* Map placeholder — real map needs a dev build + Maps key. */}
-      <View
-        style={{
-          height: 180,
-          borderRadius: radius.lg,
-          borderWidth: 1,
-          borderColor: colors.hairline,
-          backgroundColor: colors.canvasSoft,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <T variant="caption" color={colors.mutedSoft} align="center">
-          Map view{"\n"}(needs a dev build + Maps SDK key)
-        </T>
-      </View>
+      {/* OpenStreetMap via Leaflet — no API key, no billing, runs in Expo Go. */}
+      <OsmMap
+        lat={trip.data?.last_lat ?? null}
+        lng={trip.data?.last_lng ?? null}
+        schoolLat={fixtures.school.lat}
+        schoolLng={fixtures.school.lng}
+        height={200}
+        label="You"
+      />
 
       <Spacer h={spacing.base} />
 
