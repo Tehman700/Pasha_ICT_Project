@@ -91,25 +91,35 @@ include, and a heredoc appended to `redis.conf` can leave `maxmemory` at `0`
 while every command reports success. Use `redis-cli config set` followed by
 `config rewrite`, which writes running values back to the real file.
 
-## 5. Deploy on push
+## 5. Deploying
 
-`.github/workflows/deploy.yml` runs on push to `main`, with path filters so a
-backend change does not rebuild Next.js.
+Deployment is by script, run from a machine whose IP is allowed through the
+security group:
 
-Because SSH is closed, each run **opens port 22 to its own runner IP**, deploys,
-then closes it in a step marked `always()` — so a failed deploy cannot leave the
-hole open.
+```bash
+scp -i <key>.pem scripts/deploy-backend.sh ubuntu@13.205.248.87:/tmp/
+ssh -i <key>.pem ubuntu@13.205.248.87   "sudo DB_PASSWORD='...' JWT_SECRET='...' bash /tmp/deploy-backend.sh"
 
-Required repository secrets:
-
-```
-AWS_ACCESS_KEY_ID       AWS_SECRET_ACCESS_KEY
-EC2_SSH_KEY             DB_PASSWORD            JWT_SECRET
+scp -i <key>.pem scripts/deploy-admin-web.sh ubuntu@13.205.248.87:/tmp/
+ssh -i <key>.pem ubuntu@13.205.248.87 "sudo bash /tmp/deploy-admin-web.sh"
 ```
 
-`.github/workflows/ci.yml` runs typecheck, frontend tests, the admin build, a
-migration **round-trip** (upgrade → downgrade → upgrade) and the backend suite
-against Postgres 18 and Redis 8 — pinned to production versions.
+Both are re-runnable: pull, build, migrate, restart.
+
+**There is no GitHub Actions pipeline.** It was built and worked for deploys,
+but GitHub stopped triggering runs on this repository for reasons not visible
+from the API — workflows stayed `active`, pushes registered as events, and no
+run started. Rather than keep a pipeline nobody can trust, the checks moved to
+`pnpm verify`, which runs locally before every push and does strictly more than
+CI did (it includes the migration round-trip).
+
+Run this before pushing anything:
+
+```bash
+pnpm verify
+```
+
+  typecheck (5 packages) → migration round-trip → 73 tests → admin build
 
 ## 6. Operating it
 

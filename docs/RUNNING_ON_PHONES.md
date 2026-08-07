@@ -153,7 +153,7 @@ the competition distribution plan — Play closed testing cannot unlock in time.
 ## Verifying the build yourself
 
 ```bash
-pnpm verify     # typechecks all 5 packages, runs 22 tests, builds admin-web
+pnpm verify     # typecheck, migration round-trip, 73 tests, admin build
 ```
 
 To confirm the mobile apps compile all the way to a phone bundle:
@@ -162,5 +162,3 @@ To confirm the mobile apps compile all the way to a phone bundle:
 cd apps/parent-app && npx expo export --platform android
 cd apps/staff-app  && npx expo export --platform android
 ```
-
-<!-- CI trigger check 230601 -->
