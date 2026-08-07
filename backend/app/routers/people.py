@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, require_admin, require_guard, require_staff
 from app.models import Guardianship, Role, School, SchoolClass, Student, User, Vehicle
 from app.schemas import (
     ClassOut,
@@ -21,6 +21,7 @@ from app.schemas import (
     VehicleOut,
 )
 from app.security import hash_password
+from app.services.authorization import may_view_student
 
 router = APIRouter()
 
@@ -103,7 +104,7 @@ def list_students(
     class_id: uuid.UUID | None = None,
     limit: int = Query(200, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ):
     stmt = select(Student).where(Student.school_id == user.school_id)
@@ -116,12 +117,15 @@ def list_students(
 @router.get("/students/search", response_model=list[StudentOut], tags=["students"])
 def search_students(
     q: str = Query(min_length=1),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_guard),
     db: Session = Depends(get_db),
 ):
     """
-    Guard manual-fallback lookup. Scoped to the caller's school so a guard
-    cannot enumerate another school's children.
+    The guard's manual-fallback lookup — guards and admins only.
+
+    A search endpoint IS the leak: even a zero-result query confirms whether a
+    child attends the school. Collectors must never reach this, which is why
+    the role guard is on the route rather than a filter inside it.
     """
     rows = db.execute(
         select(Student)
@@ -142,6 +146,8 @@ def student_guardians(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not may_view_student(db, viewer=user, student_id=student_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted for this child")
     rows = db.execute(
         select(Guardianship).where(Guardianship.student_id == student_id)
     ).scalars().all()
@@ -206,6 +212,8 @@ def create_user(
 def list_vehicles(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    if user.role == Role.driver:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted")
     rows = db.execute(
         select(Vehicle).where(Vehicle.school_id == user.school_id)
     ).scalars().all()

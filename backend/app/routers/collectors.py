@@ -36,7 +36,11 @@ from app.schemas import (
     StudentOut,
     TripOut,
 )
-from app.services.authorization import authorized_collectors, may_delegate
+from app.services.authorization import (
+    authorized_collectors,
+    may_delegate,
+    may_view_student,
+)
 
 router = APIRouter()
 
@@ -62,6 +66,8 @@ def list_authorizations(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not may_view_student(db, viewer=user, student_id=student_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted for this child")
     rows = db.execute(
         select(PickupAuthorization).where(PickupAuthorization.student_id == student_id)
     ).scalars().all()
@@ -160,6 +166,8 @@ def student_collectors(
     and nothing else, so a manual handover is constrained to exactly the same
     set as a QR scan.
     """
+    if not may_view_student(db, viewer=user, student_id=student_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted for this child")
     return [
         {"user": {"id": str(u.id), "name": u.name, "name_ur": u.name_ur,
                   "role": u.role.value, "phone": u.phone, "photo_url": u.photo_url},

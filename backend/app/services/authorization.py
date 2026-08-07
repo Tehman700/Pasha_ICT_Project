@@ -27,6 +27,7 @@ from app.models import (
     AuthorizationKind,
     Guardianship,
     PickupAuthorization,
+    Role,
     Student,
     User,
 )
@@ -167,3 +168,43 @@ def authorized_collectors(
         seen.add(user.id)
 
     return out
+
+
+# ── Visibility ─────────────────────────────────────────────────────────
+
+
+#: Roles that legitimately need to see student records across a school.
+#: A driver is deliberately absent. His only view of student data is
+#: /me/manifest — the children whose parents linked him, today.
+STAFF_ROLES = {Role.admin, Role.teacher, Role.guard}
+
+
+def may_view_student(db: Session, *, viewer: User, student_id: uuid.UUID) -> bool:
+    """
+    Can this user see this child's record?
+
+    Staff can, within their own school. A parent can, for their own children.
+    Nobody else can — and specifically not a collector, however many children
+    they are currently authorized to fetch.
+
+    Being authorized to COLLECT a child is not the same as being allowed to
+    READ their record. A driver needs a name and a face at the gate, which
+    /me/manifest gives him. He does not need the child's guardians, their
+    phone numbers, or the roster of everyone else in the class.
+    """
+    student = db.get(Student, student_id)
+    if student is None:
+        return False
+    if student.school_id != viewer.school_id:
+        return False
+    if viewer.role in STAFF_ROLES:
+        return True
+    return (
+        db.execute(
+            select(Guardianship).where(
+                Guardianship.student_id == student_id,
+                Guardianship.user_id == viewer.id,
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
