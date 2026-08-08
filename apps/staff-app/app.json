@@ -8,11 +8,6 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f7f7f4"
-    },
     "android": {
       "package": "com.rukhsat.staff",
       "adaptiveIcon": {
@@ -22,7 +17,10 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ],
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE_LOCATION",
@@ -50,6 +48,14 @@
         "expo-notifications",
         {
           "color": "#f54e00"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#f7f7f4"
         }
       ]
     ],
