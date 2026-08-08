@@ -1544,11 +1544,13 @@ paths:
       tags: [collectors]
       summary: Issue a same-day pass to someone with no account
       description: >
-        The only QR issued to a person with no account. The photo matters
-        because a pass sent over WhatsApp is a forwardable image, and without
-        one whoever receives it can collect a child. Issued without a photo it
-        still works, but the guard's screen says so and the audit entry is
-        flagged: degraded, not blind.
+        The only QR issued to a person with no account. There is deliberately
+        **no photo of the bearer**: a parent cannot reliably produce a picture
+        of her brother at the moment she needs to send him, and a field she
+        cannot fill becomes a screen she abandons. The name and phone she types
+        are what the guard confirms — the same two things he would ask for if
+        the app did not exist. What keeps a forwardable image safe is the burn
+        and the expiry, not a photograph.
 
 
         One pass covers as many of the parent's children as she names — the
@@ -1574,7 +1576,6 @@ paths:
               properties:
                 name: { type: string }
                 phone: { type: string }
-                photo_url: { type: string, nullable: true }
                 relation: { type: string, nullable: true }
                 also_student_ids:
                   type: array
@@ -1637,8 +1638,9 @@ paths:
           description: >
             Verdict, with `students` — each child's name, photo, and own
             `pickup_request_id` so the guard app records one handover per
-            child. Refusal codes: `expired`, `already_used`, `revoked`,
-            `malformed`.
+            child. `bearer` carries name and phone only, and `check` is the
+            line the guard acts on. Refusal codes: `expired`, `already_used`,
+            `revoked`, `malformed`.
 
   /qr-tokens/verify:
     post:

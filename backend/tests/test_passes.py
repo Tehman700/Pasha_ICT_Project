@@ -3,7 +3,12 @@ One-off pass tests.
 
 The threat this feature has to survive: the QR is sent over WhatsApp, so it is
 a forwardable image. Screenshot it, forward it, leave the phone unlocked — and
-without the photo, whoever holds that picture collects a child.
+whoever holds that picture turns up at the gate with it.
+
+There is no photo of the bearer, by decision. What keeps a copyable image safe
+is the burn (first scan kills it) and the expiry (it dies with the day), plus a
+guard confirming the name and phone he was given. These tests exist to hold
+those three properties in place.
 """
 
 import uuid
@@ -103,29 +108,47 @@ class TestIssuing:
         r = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877", "photo_url": "/p/k.jpg"},
+            json={"name": "Kamran Ali", "phone": "+923339998877"},
         )
         assert r.status_code == 201, r.text
         assert r.json()["token"]
-        assert r.json()["warning"] is None
 
-    def test_a_pass_without_a_photo_warns_and_is_flagged(self, client, db, family):
+    def test_issuing_is_audited(self, client, db, family):
         """
-        Allowed, but never silently. A code with no photo means the guard has
-        nothing to check the bearer against.
+        Who authorized a stranger to collect a child, and when. That question
+        gets asked once, and only when something has gone wrong.
         """
-        r = client.post(
+        client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
             json={"name": "Kamran Ali", "phone": "+923339998877"},
         )
-        assert r.status_code == 201
-        assert "anyone who receives this code" in r.json()["warning"].lower()
+        log = db.query(AuditLog).filter(AuditLog.action == "pass.issued").first()
+        assert log is not None
+        assert log.actor_user_id == family["parent"].id
+        assert log.payload["bearer"] == "Kamran Ali"
+        assert log.payload["phone"] == "+923339998877"
 
-        log = (
-            db.query(AuditLog).filter(AuditLog.action == "pass.issued").first()
+    def test_no_bearer_photo_is_stored(self, client, db, family):
+        """
+        A parent cannot reliably produce a photo of her brother at the moment
+        she needs to send him, so the field does not exist. Anything a client
+        sends is ignored rather than quietly persisted.
+        """
+        from app.models import User
+
+        client.post(
+            f"/v1/students/{family['child'].id}/temporary-pass",
+            headers=token(client, family["parent"]),
+            json={
+                "name": "Kamran Ali",
+                "phone": "+923339998877",
+                "photo_url": "/p/injected.jpg",
+            },
         )
-        assert log is not None and log.flagged is True
+        bearer = db.query(User).filter(User.phone == "+923339998877").one()
+        assert bearer.photo_url is None
+        assert bearer.selfie_url is None
 
     def test_a_stranger_cannot_issue_a_pass_for_someone_elses_child(
         self, client, family, make_user
@@ -134,7 +157,7 @@ class TestIssuing:
         r = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, stranger),
-            json={"name": "Someone", "phone": "+923330000001", "photo_url": "/p/x.jpg"},
+            json={"name": "Someone", "phone": "+923330000001"},
         )
         assert r.status_code == 403
 
@@ -148,7 +171,7 @@ class TestIssuing:
         client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877", "photo_url": "/p/k.jpg"},
+            json={"name": "Kamran Ali", "phone": "+923339998877"},
         )
         bearer = db.query(User).filter(User.phone == "+923339998877").one()
         assert bearer.is_active is False
@@ -157,7 +180,7 @@ class TestIssuing:
         issued = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877", "photo_url": "/p/k.jpg"},
+            json={"name": "Kamran Ali", "phone": "+923339998877"},
         ).json()
         auth = db.get(PickupAuthorization, uuid.UUID(issued["pass_id"]))
         # Never persists silently into tomorrow.
@@ -178,7 +201,6 @@ class TestManualExpiry:
             json={
                 "name": "Kamran Ali",
                 "phone": "+923339998877",
-                "photo_url": "/p/k.jpg",
                 **extra,
             },
         )
@@ -253,17 +275,17 @@ class TestManualExpiry:
 
 
 class TestVerifying:
-    def issue(self, client, family, photo="/p/k.jpg"):
-        return self.issue_full(client, family, photo)["token"]
+    def issue(self, client, family):
+        return self.issue_full(client, family)["token"]
 
-    def issue_full(self, client, family, photo="/p/k.jpg"):
+    def issue_full(self, client, family):
         return client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877", "photo_url": photo},
+            json={"name": "Kamran Ali", "phone": "+923339998877"},
         ).json()
 
-    def test_a_valid_pass_shows_both_photos_and_fires_the_speaker(self, client, family):
+    def test_a_valid_pass_names_the_bearer_and_fires_the_speaker(self, client, family):
         tok = self.issue(client, family)
         r = client.post(
             "/v1/passes/verify",
@@ -273,22 +295,17 @@ class TestVerifying:
         assert r.status_code == 200
         body = r.json()
         assert body["valid"] is True
+        # Name and phone are what the guard checks — there is no bearer photo.
         assert body["bearer"]["name"] == "Kamran Ali"
+        assert body["bearer"]["phone"] == "+923339998877"
+        assert "photo_url" not in body["bearer"]
+        # The CHILD's photo stays: it is the school's own record, and it is how
+        # the guard knows who is walking out of the gate.
         assert body["student"]["name"] == "Ali Raza"
+        assert "photo_url" in body["student"]
         # Automate the announcement; never automate the release.
         assert body["announce"] is True
-        assert body["photo_warning"] is None
-
-    def test_a_photoless_pass_tells_the_guard_what_to_do_instead(self, client, family):
-        # Degraded, not blind.
-        tok = self.issue(client, family, photo=None)
-        body = client.post(
-            "/v1/passes/verify",
-            headers=token(client, family["guard"]),
-            json={"token": tok},
-        ).json()
-        assert body["valid"] is True
-        assert "verify the name and phone" in body["photo_warning"].lower()
+        assert "name and phone" in body["check"].lower()
 
     def test_garbage_is_refused(self, client, family):
         body = client.post(
@@ -428,7 +445,6 @@ class TestSeveralChildrenOnOnePass:
             json={
                 "name": "Kamran Ali",
                 "phone": "+923339998877",
-                "photo_url": "/p/k.jpg",
                 "also_student_ids": [str(family["sibling"].id)],
                 **extra,
             },
@@ -520,7 +536,6 @@ class TestSeveralChildrenOnOnePass:
             json={
                 "name": "Kamran Ali",
                 "phone": "+923339998877",
-                "photo_url": "/p/k.jpg",
                 "also_student_ids": [str(outsider.id)],
             },
         )
@@ -538,7 +553,6 @@ class TestSeveralChildrenOnOnePass:
             json={
                 "name": "Kamran Ali",
                 "phone": "+923339998877",
-                "photo_url": "/p/k.jpg",
                 "also_student_ids": [str(family["child"].id)],
             },
         )

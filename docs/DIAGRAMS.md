@@ -371,7 +371,7 @@ delivery method requires it: a code sent as a WhatsApp image cannot rotate.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ISSUED: parent picks ONE OR MORE<br/>of her children, enters<br/>name, phone, photo,<br/>optional "valid until"
+    [*] --> ISSUED: parent picks ONE OR MORE<br/>of her children, enters<br/>name + phone,<br/>optional "valid until"
     ISSUED --> SENT: shared as an image<br/>(WhatsApp, screenshot,<br/>download — all fine)
     SENT --> SCANNED: guard scans at gate
 
@@ -395,7 +395,7 @@ stateDiagram-v2
         the handover — the scan is the
         only moment we know the code
         was presented. A guard who
-        then refuses on the photo has
+        then refuses on the name has
         still spent it, which is right:
         that code is now known to be
         in the wrong hands.
@@ -418,7 +418,7 @@ three rows to revoke when plans change.
 
 ```
 POST /students/{eldest_id}/temporary-pass
-{ "name": "Kamran Ali", "phone": "+92…", "photo_url": "…",
+{ "name": "Kamran Ali", "phone": "+92…",
   "also_student_ids": ["<sibling>", "<sibling>"] }
 ```
 
@@ -476,7 +476,7 @@ holding a code that was never presented.
 
 **The burn is on the scan, not the handover.** The scan is the only moment we
 are certain the code was presented. A guard who scans and then refuses on the
-photo has still spent it — correct, because that code is now known to be in the
+name has still spent it — correct, because that code is now known to be in the
 wrong hands.
 
 `may_collect` deliberately does **not** check `used_at`. The guard scans
@@ -493,17 +493,21 @@ with no signal. The burn needs server state a guard's phone cannot hold, so
 **the outsider path is the one flow that breaks when the gate loses signal.**
 The manual fallback covers it, which is exactly what that fallback exists for.
 
-### The photo is warned, not required
+### No photo of the bearer
 
-The docstring calls it mandatory; the schema is `photo_url: str | None = None`.
-A pass without one is accepted, `flagged=True` in the audit log, and returns an
-explicit warning to both parent and guard:
+Removed by decision, not left optional. A parent cannot reliably produce a
+photograph of her brother at the moment she needs to send him — and a field she
+cannot fill turns into a screen she abandons, which means she rings the school
+office instead and the system has bought nothing.
 
-> *"No photo. Anyone who receives this code can collect your child — the guard
-> will have nothing to check them against."*
+The guard confirms **name and phone**, which is exactly what he would ask for if
+the app did not exist. What keeps a copyable image safe is the burn and the
+expiry, not a photograph.
 
-Degraded, not blind. **Worth a deliberate decision before the demo** on whether
-this hardens to a required field.
+**The children's photos stay.** Those are the school's own records, already in
+the database, and they are how the guard knows who is walking out of the gate.
+The asymmetry is the point: the school has always had pictures of its students
+and has never had one of every parent's brother.
 
 ### It is not a parallel code path
 
@@ -516,23 +520,28 @@ the QR path allows and what the manual path allows.
 
 ### What actually carries the security
 
-Since the code is copyable by design, two things do the work:
+Since the code is copyable by design, three things do the work:
 
 **The burn.** Redemption is single-use, so a forwarded copy is dead once the
 original is scanned. Enforcing this needs server state — the guard's phone
 cannot know a pass was burned on another device — which is why verification is
 online-only and a duplicate is *prevented* rather than reconciled afterwards.
 
-**The photo.** Auto-releasing on a valid scan alone means whoever holds the
-picture gets the child. The speaker firing automatically is fine — the *child
-walking out* is still a human decision, made in the seconds while they cross the
-yard.
+**The expiry.** The window is the parent's to narrow, and closes at midnight
+whatever she picks. A screenshot taken in the afternoon is worthless by evening.
+
+**The guard.** The speaker firing automatically is fine; the *children walking
+out* is still a human decision, made in the seconds while they cross the yard.
+He confirms the name and phone the parent typed — the same check he would make
+if the app did not exist, and the reason removing the bearer photo does not
+leave the gate unguarded.
 
 **Reuses the existing crypto.** Same ES256 key, same school key pair, no new
 cryptography — the token just carries `typ: "pass"` so it can never be confused
-with a rotating trip token. Both endpoints exist. **What is still missing is the
-UI on both ends:** no parent screen to issue a pass, and the guard scanner does
-not yet route a `typ=pass` token to `/passes/verify`.
+with a rotating trip token. Both endpoints are complete. **What is still missing
+is the UI on both ends:** no parent screen to issue a pass (child picker, name,
+phone, optional expiry), and the guard scanner does not yet route a `typ=pass`
+token to `/passes/verify`.
 
 ---
 
@@ -726,7 +735,7 @@ sequenceDiagram
     participant SPK as Speaker
     participant TA as Teacher App
 
-    P->>API: issue pass<br/>Ahmed + Zara · name + phone<br/>+ photo · optional "valid until"
+    P->>API: issue pass<br/>Ahmed + Zara · name + phone<br/>· optional "valid until"
     API->>P: ONE QR token<br/>covering both children
     P->>W: share image
     W->>K: receives
@@ -740,9 +749,9 @@ sequenceDiagram
         API->>API: BURN — used_at on both rows,<br/>one guarded UPDATE
         API->>SPK: announce both
         SPK->>SPK: 🔊 "Ahmed, Zara — come to the gate"
-        API->>GA: bearer photo + BOTH children,<br/>each with its pickup_request_id
-        Note over GA: guard presses nothing.<br/>Children walk ~40 s.<br/>Guard checks the face.
-        alt face matches
+        API->>GA: bearer NAME + PHONE<br/>+ BOTH children with photos,<br/>each with its pickup_request_id
+        Note over GA: guard presses nothing.<br/>Children walk ~40 s.<br/>Guard confirms name + phone.
+        alt name and phone check out
             GA->>API: handover per child
             API->>P: "Ahmed handed to Kamran, 1:22"
             API->>P: "Zara handed to Kamran, 1:22"
@@ -929,7 +938,7 @@ erDiagram
     TEMP_PASS {
         uuid id PK "one AUTHORIZATION kind=one_time PER CHILD"
         string bearer "login-less USER, is_active=false, shared"
-        string photo_url "warned if absent, not rejected"
+        string bearer_photo "NONE — name + phone only"
         string qr_token "STATIC, ES256, typ=pass, aid[] = every child"
         timestamp expires_at "parent-set, else midnight Asia/Karachi"
         timestamp used_at "the burn — set on SCAN, all children at once"
@@ -1020,6 +1029,7 @@ changed back to the specified design:
 | One child per pass | **`also_student_ids`** — one pass, any number of her children |
 | Expiry midnight-only | **`expires_at`** parent-set, capped at midnight |
 | Burn = "child collected today" | **`used_at`** on the pass, set on scan |
+| Bearer photo, warned if absent | **removed** — name and phone are the check |
 
 The child-keyed burn was the one that mattered: a parent hedging between two
 relatives would have had the second code silently killed by the first
@@ -1039,7 +1049,6 @@ route that never reads the code.
 | **Geofence wakes closed app** | `blockedPermissions` still strips `ACCESS_BACKGROUND_LOCATION`; `POST /trips/start` is still *"'On my way'"* |
 | Pass UI, both ends | endpoints complete; no parent issue screen (child picker + expiry), scanner does not route `typ=pass` |
 | Offline path for pass verification | online-only; the one flow that breaks with no signal |
-| Photo required, not just warned | accepted without one, flagged in audit — decide before the demo |
 | `VEHICLE` as entity, driver as reassignable assignment | driver change breaks every authorization at once |
 | `UNCLAIMED` / `ESCALATED` states | no state for "nobody came" |
 | 2 km announce + 150 m gate rings | single `geofence_radius_m`, default 1000 |

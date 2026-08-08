@@ -11,11 +11,14 @@ mean three scans at the gate, three chances to show the wrong one, and three
 rows to revoke if plans change. The pass carries a list of children and the
 guard sees all of them on one screen.
 
-The photo is what makes the code safe to send. A QR on WhatsApp is a forwardable
-image: screenshot it, forward it, leave the phone unlocked in a shop, and
-whoever holds that picture can collect a child. With the photo, the guard is
-looking at a picture of the man in front of him while the children walk across
-the yard.
+**No photo of the bearer.** A parent cannot reliably produce a photo of her
+brother at the moment she needs to send him — and a field she cannot fill turns
+into a screen she abandons, which means she rings the school office instead and
+the system has bought nothing. The name and phone she types are what the guard
+checks against, the same two things he would ask for if the app did not exist.
+
+What actually keeps a forwardable image safe is the burn and the expiry below,
+not a photograph.
 
 Two limits, both per-pass:
 
@@ -69,11 +72,6 @@ TZ = timezone(timedelta(hours=5))  # Asia/Karachi
 class IssuePass(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     phone: str = Field(min_length=5, max_length=32)
-    #: Optional but strongly wanted. See the module docstring — this is what
-    #: stops a forwarded screenshot from collecting a child. Issued without one
-    #: the pass still works, but the audit entry is flagged and both the parent
-    #: and the guard are told. Degraded, not blind.
-    photo_url: str | None = None
     relation: str | None = None
 
     #: Additional children on the same pass. The child in the path is always
@@ -177,8 +175,6 @@ def issue_pass(
         phone=body.phone,
         password_hash=hash_password(secrets.token_urlsafe(32)),
         locale=user.locale,
-        photo_url=body.photo_url,
-        selfie_url=body.photo_url,
         is_active=False,
     )
     db.add(bearer)
@@ -241,14 +237,15 @@ def issue_pass(
                 "authorization_ids": [str(a.id) for a in auths],
                 "bearer": body.name,
                 "phone": body.phone,
-                "has_photo": bool(body.photo_url),
+                "relation": body.relation,
                 "expires_at": expires.isoformat(),
                 # A parent-set expiry is a deliberate act and worth being able
                 # to reconstruct later.
                 "expiry_set_by_parent": body.expires_at is not None,
             },
-            # A pass issued without a photo is the weak case, so surface it.
-            flagged=not body.photo_url,
+            # Not flagged. Every pass is now the same shape, so flagging them
+            # all would flag nothing — an admin review list where every row is
+            # marked is one nobody reads.
             created_at=utcnow(),
         )
     )
@@ -268,14 +265,8 @@ def issue_pass(
         "bearer": {
             "name": body.name,
             "phone": body.phone,
-            "photo_url": body.photo_url,
+            "relation": body.relation,
         },
-        "warning": (
-            None
-            if body.photo_url
-            else "No photo. Anyone who receives this code can collect your child — "
-            "the guard will have nothing to check them against."
-        ),
     }
 
 
@@ -421,19 +412,17 @@ def verify_pass(
         if student
         else None,
         "students": children,
+        # No bearer photo by design — a parent cannot reliably produce one of
+        # her brother at the moment she needs to send him. The name and phone
+        # are what the guard checks, which is what he would ask for anyway.
+        # The CHILDREN's photos above are the school's own records and stay:
+        # they are how he knows who is walking out of the gate.
         "bearer": {
             "name": bearer.name,
             "phone": bearer.phone,
-            "photo_url": bearer.photo_url,
         }
         if bearer
         else None,
-        # Degraded, not blind. The guard is told exactly what he has to do
-        # instead of a photo, rather than being left to guess.
-        "photo_warning": (
-            None
-            if bearer and bearer.photo_url
-            else "No photo on this pass — verify the name and phone number before releasing."
-        ),
+        "check": "Confirm the name and phone number before releasing.",
         "announce": True,
     }
