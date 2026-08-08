@@ -354,12 +354,12 @@ internet, and the driver is the highest-privilege actor in the system.
 proposal. A stored flag drifts: revoke the last link and a stale `ASSIGNED`
 leaves a driver visible to a school he no longer serves.
 
-### 3.4 One-off outsider pass — **SHIPPED** in `e031bca`
+### 3.4 One-off outsider pass — **SHIPPED**
 
 `backend/app/routers/passes.py`, `POST /students/{id}/temporary-pass` and
-`POST /passes/verify`. The diagram below is now description, not proposal.
-Three details differ from what was proposed — see *Where the shipped version
-differs* after the diagram.
+`POST /passes/verify`. Landed in `e031bca`; multi-child passes, parent-set
+expiry, and the per-pass burn were added afterwards. The diagram below is
+description, not proposal.
 
 **This is a STATIC QR, and deliberately so** — not a variant of the rotating
 trip token in `qr_tokens.py`.
@@ -371,91 +371,148 @@ delivery method requires it: a code sent as a WhatsApp image cannot rotate.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ISSUED: parent enters<br/>name, phone, photo<br/>→ login-less User<br/>+ one_time authorization
+    [*] --> ISSUED: parent picks ONE OR MORE<br/>of her children, enters<br/>name, phone, photo,<br/>optional "valid until"
     ISSUED --> SENT: shared as an image<br/>(WhatsApp, screenshot,<br/>download — all fine)
     SENT --> SCANNED: guard scans at gate
 
-    SCANNED --> VERIFIED: ES256 valid + typ=pass<br/>+ not revoked<br/>+ child not yet collected
+    SCANNED --> VERIFIED: ES256 valid + typ=pass<br/>+ not revoked + not expired<br/>+ used_at IS NULL
     SCANNED --> REJECTED: expired / already_used /<br/>malformed / revoked
 
-    VERIFIED --> ANNOUNCED: speaker fires<br/>automatically
-    ANNOUNCED --> RELEASED: guard matches face<br/>→ child leaves
+    VERIFIED --> BURNED: used_at = now<br/>ALL children, one UPDATE
+    BURNED --> ANNOUNCED: speaker fires<br/>automatically
+    ANNOUNCED --> RELEASED: guard matches face<br/>→ children leave
     ANNOUNCED --> BLOCKED: face does not match
 
-    RELEASED --> [*]: BURNS on use
+    RELEASED --> [*]
     REJECTED --> [*]
-    BLOCKED --> [*]: escalate to office
+    BLOCKED --> [*]: escalate to office<br/>(code stays burned)
 
-    SENT --> EXPIRED: midnight tonight,<br/>Asia/Karachi
+    SENT --> EXPIRED: parent's "valid until",<br/>else midnight tonight<br/>Asia/Karachi
     EXPIRED --> [*]
+
+    note right of BURNED
+        The burn is on the SCAN, not
+        the handover — the scan is the
+        only moment we know the code
+        was presented. A guard who
+        then refuses on the photo has
+        still spent it, which is right:
+        that code is now known to be
+        in the wrong hands.
+    end note
 
     note right of ANNOUNCED
         The gap between ANNOUNCED
         and RELEASED is ~40 seconds
-        while the child crosses the
+        while the children cross the
         yard. That gap is where the
         guard checks the face.
     end note
-
-    note right of RELEASED
-        Single use is what makes a
-        copyable image safe. A
-        forwarded screenshot is dead
-        the moment the original
-        is scanned.
-    end note
 ```
 
-### Where the shipped version differs
+### One pass, several children
 
-Three departures from the proposal, all defensible.
+A relative sent to fetch three siblings is **one errand**. Three codes for it
+would mean three scans at the gate, three chances to show the wrong one, and
+three rows to revoke when plans change.
 
-**1. Expiry is midnight tonight, full stop — no parent-set "valid until".**
-
-```python
-def _expires_at() -> datetime:
-    """Midnight tonight, school time. A pass never survives the day it was made."""
+```
+POST /students/{eldest_id}/temporary-pass
+{ "name": "Kamran Ali", "phone": "+92…", "photo_url": "…",
+  "also_student_ids": ["<sibling>", "<sibling>"] }
 ```
 
-The proposal had an optional field defaulting to 12 h. Tehman dropped the field.
-Fair: the pass is already scoped to one child, one person, one use, so lifetime
-was never what carried the security — and it removes a control from a screen a
-parent uses once a term. **The 12-hour default is gone; assume same-day only.**
+The path child is always included. Each named child is checked against
+`may_delegate` **separately**, and naming one the parent may not delegate fails
+the whole request — silently dropping that child would hand her a pass she
+believes covers three.
 
-**2. The burn is keyed on the child, not on the pass.** `verify_pass` looks for
-a `Handover` against today's `PickupRequest` for that student:
+Internally it is one login-less bearer and **one `one_time` authorization per
+child**, sharing an expiry. They are ordinary rows, so `may_collect`, the
+handover route, and the audit log need no knowledge that a pass exists. The
+guard sees every child on one screen, each with its own `pickup_request_id`, so
+three siblings produce three handover rows and three "handed over"
+notifications — exactly as three separate collections would.
 
-> *"This child has already been collected today."*
+### Expiry — parent-set, with a safe default
 
-Stronger than a per-pass flag. Two passes issued for the same child on the same
-day — a parent hedging between two relatives — cannot both redeem. A pass-level
-flag would have let the second one through.
+The parent knows what the system does not: *"my brother is coming between 1 and
+3."* Letting her say so shrinks the window in which a forwarded screenshot is
+worth anything.
 
-**3. Verification is online-only.** `/passes/verify` is a server call; there is
-no offline path. This is a real divergence from the rotating trip token, which
-`SECURITY.md` requires be verifiable at the gate with no signal. It is the right
-trade *because* of point 2 — the "already collected" check needs server state
-that a guard's phone cannot hold. But it means **the outsider path is the one
-flow that breaks when the gate loses signal.** The manual fallback covers it,
-which is exactly what that fallback exists for.
+| Case | Behaviour |
+|---|---|
+| Parent sets a time | Valid until then |
+| Parent sets nothing | **Midnight tonight**, Asia/Karachi |
+| Parent sets past midnight | **Capped**, and told so via `expiry_capped` |
+| Parent sets a time already gone | Falls back to the default |
 
-**The photo is mandatory in the docstring but `photo_url: str | None = None` in
-the schema.** A pass without one is accepted, `flagged=True` in the audit log,
-and returns an explicit warning to both parent and guard:
+Out-of-range values are capped rather than rejected. On a screen used once a
+term, a parent who fat-fingers next week should get a pass that works today, not
+a validation error to decode at the school gate. A pass born expired is a
+support call, not a security win.
+
+**Cap at midnight regardless.** A pass still live tomorrow is a real risk and no
+legitimate case needs one.
+
+> **Server clock note.** `_end_of_day()` derives from the current time *in
+> Karachi*, not `Date.today()`. The server runs UTC, so between midnight and 5am
+> local the UTC date is still yesterday — the original code returned a midnight
+> that had already passed, and every pass issued in those five hours was born
+> dead.
+
+### The burn — per pass, on the scan
+
+`used_at` on the authorization row. One `UPDATE` guarded by `used_at IS NULL`
+across every child on the pass, so two guards scanning the same forwarded code
+at the same instant cannot both be told yes — **the database decides, not the
+order two requests happen to arrive in.**
+
+Two properties fall out of keying it to the pass rather than to the child:
+
+**Two passes for one child stay independent.** A parent hedging between two
+relatives issues two codes; scanning one must not strand the other at the gate
+holding a code that was never presented.
+
+**The burn is on the scan, not the handover.** The scan is the only moment we
+are certain the code was presented. A guard who scans and then refuses on the
+photo has still spent it — correct, because that code is now known to be in the
+wrong hands.
+
+`may_collect` deliberately does **not** check `used_at`. The guard scans
+(burning it), then records the handover seconds later through that same
+function; treating a burned pass as dead would refuse the very collection the
+scan authorized. The burn stops the code being *presented* again, which is
+enforced at `/passes/verify` where scanning happens.
+
+### Still online-only
+
+`/passes/verify` is a server call with no offline path — a real divergence from
+the rotating trip token, which `SECURITY.md` requires be verifiable at the gate
+with no signal. The burn needs server state a guard's phone cannot hold, so
+**the outsider path is the one flow that breaks when the gate loses signal.**
+The manual fallback covers it, which is exactly what that fallback exists for.
+
+### The photo is warned, not required
+
+The docstring calls it mandatory; the schema is `photo_url: str | None = None`.
+A pass without one is accepted, `flagged=True` in the audit log, and returns an
+explicit warning to both parent and guard:
 
 > *"No photo. Anyone who receives this code can collect your child — the guard
 > will have nothing to check them against."*
 
-Degraded, not blind — the guard is told what to do instead of a photo rather
-than left to guess. Worth a deliberate decision on whether it should harden to a
-required field before the demo.
+Degraded, not blind. **Worth a deliberate decision before the demo** on whether
+this hardens to a required field.
 
-**The pass creates a real login-less `User` and an ordinary `one_time`
-authorization**, not a parallel code path. `is_active=False` means those
-credentials can never authenticate — the QR *is* the credential. So the outsider
-flows through the same `may_collect` check, the same handover route, and the
-same audit log as everyone else. A second authorization branch is precisely how
-a gap opens between what the QR path allows and what the manual path allows.
+### It is not a parallel code path
+
+The pass creates a real login-less `User` — `is_active=False`, so those
+credentials can never authenticate; the QR *is* the credential — and ordinary
+`one_time` authorizations. The outsider therefore flows through the same
+`may_collect` check, the same handover route, and the same audit log as everyone
+else. A second authorization branch is precisely how a gap opens between what
+the QR path allows and what the manual path allows.
 
 ### What actually carries the security
 
@@ -463,10 +520,8 @@ Since the code is copyable by design, two things do the work:
 
 **The burn.** Redemption is single-use, so a forwarded copy is dead once the
 original is scanned. Enforcing this needs server state — the guard's phone
-cannot know a pass was burned on another device. The shipped version verifies
-online and has no offline fallback (see point 3 above), so a duplicate is
-*prevented* rather than reconciled after the fact. Stricter than proposed, at
-the cost of needing signal.
+cannot know a pass was burned on another device — which is why verification is
+online-only and a duplicate is *prevented* rather than reconciled afterwards.
 
 **The photo.** Auto-releasing on a valid scan alone means whoever holds the
 picture gets the child. The speaker firing automatically is fine — the *child
@@ -671,28 +726,31 @@ sequenceDiagram
     participant SPK as Speaker
     participant TA as Teacher App
 
-    P->>API: issue pass<br/>name + phone + photo
-    API->>P: QR token (today, single-use)
+    P->>API: issue pass<br/>Ahmed + Zara · name + phone<br/>+ photo · optional "valid until"
+    API->>P: ONE QR token<br/>covering both children
     P->>W: share image
     W->>K: receives
-    API->>TA: "Ahmed — collected by Kamran today"
+    API->>TA: "Ahmed, Zara — collected by Kamran today"
 
     K->>GA: presents QR
     GA->>GA: scan
 
     alt valid
         GA->>API: verify
-        API->>SPK: announce Ahmed
-        SPK->>SPK: 🔊 "Ahmed, come to the gate"
-        API->>GA: show BOTH photos
-        Note over GA: guard presses nothing.<br/>Child walks ~40 s.<br/>Guard checks the face.
+        API->>API: BURN — used_at on both rows,<br/>one guarded UPDATE
+        API->>SPK: announce both
+        SPK->>SPK: 🔊 "Ahmed, Zara — come to the gate"
+        API->>GA: bearer photo + BOTH children,<br/>each with its pickup_request_id
+        Note over GA: guard presses nothing.<br/>Children walk ~40 s.<br/>Guard checks the face.
         alt face matches
-            GA->>API: released
+            GA->>API: handover per child
             API->>P: "Ahmed handed to Kamran, 1:22"
+            API->>P: "Zara handed to Kamran, 1:22"
         else no match
             GA->>API: blocked → office
+            Note over API: code stays burned —<br/>it is now known to be<br/>in the wrong hands
         end
-    else expired / used
+    else expired / already_used / revoked
         GA->>GA: red — fall back to name search
     end
 ```
@@ -869,12 +927,12 @@ erDiagram
         date active_until
     }
     TEMP_PASS {
-        uuid id PK "SHIPPED as AUTHORIZATION kind=one_time"
-        string bearer "login-less USER, is_active=false"
+        uuid id PK "one AUTHORIZATION kind=one_time PER CHILD"
+        string bearer "login-less USER, is_active=false, shared"
         string photo_url "warned if absent, not rejected"
-        string qr_token "STATIC, ES256, typ=pass"
-        timestamp expires_at "midnight tonight, Asia/Karachi"
-        string burn "derived — HANDOVER exists for the child today"
+        string qr_token "STATIC, ES256, typ=pass, aid[] = every child"
+        timestamp expires_at "parent-set, else midnight Asia/Karachi"
+        timestamp used_at "the burn — set on SCAN, all children at once"
     }
     OVERRIDE {
         uuid id PK
@@ -951,17 +1009,37 @@ the route rather than as a filter inside it, so there is no handler to reach.
 **Automated face matching removed** (`9594e8b`). See §3.3 — the parent verifies
 by eye. Agreed.
 
-**Pass expiry is midnight-only** (`e031bca`). The optional parent-set "valid
-until" was dropped. See §3.4 — reasonable, since lifetime was never what carried
-the security here.
+### Corrected after review
+
+`e031bca` shipped the pass scoped to a single child, with midnight-only expiry
+and the burn keyed to whether the child had been collected. All three are now
+changed back to the specified design:
+
+| Was | Now |
+|---|---|
+| One child per pass | **`also_student_ids`** — one pass, any number of her children |
+| Expiry midnight-only | **`expires_at`** parent-set, capped at midnight |
+| Burn = "child collected today" | **`used_at`** on the pass, set on scan |
+
+The child-keyed burn was the one that mattered: a parent hedging between two
+relatives would have had the second code silently killed by the first
+collection, stranding someone at the gate holding a pass that had never been
+scanned.
+
+Two bugs fixed on the way through. `_end_of_day()` used `Date.today()` on a UTC
+server, so every pass issued between midnight and 5am Karachi time was born
+already expired. And `authorized_collectors` — the guard's manual fallback list
+— did not filter on expiry, which would have let an expired pass through by a
+route that never reads the code.
 
 ### Still open
 
 | Element | Current `main` |
 |---|---|
 | **Geofence wakes closed app** | `blockedPermissions` still strips `ACCESS_BACKGROUND_LOCATION`; `POST /trips/start` is still *"'On my way'"* |
-| Pass UI, both ends | endpoints exist; no parent issue screen, scanner does not route `typ=pass` |
+| Pass UI, both ends | endpoints complete; no parent issue screen (child picker + expiry), scanner does not route `typ=pass` |
 | Offline path for pass verification | online-only; the one flow that breaks with no signal |
+| Photo required, not just warned | accepted without one, flagged in audit — decide before the demo |
 | `VEHICLE` as entity, driver as reassignable assignment | driver change breaks every authorization at once |
 | `UNCLAIMED` / `ESCALATED` states | no state for "nobody came" |
 | 2 km announce + 150 m gate rings | single `geofence_radius_m`, default 1000 |

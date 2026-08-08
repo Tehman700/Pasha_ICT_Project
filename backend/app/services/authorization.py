@@ -23,6 +23,7 @@ from datetime import date as Date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db import utcnow
 from app.models import (
     AuthorizationKind,
     Guardianship,
@@ -82,6 +83,7 @@ def may_collect(
         )
     ).scalars().all()
 
+    now = utcnow()
     for auth in rows:
         # Revocation is per-family. This driver may still hold live grants
         # from other families — that is intended, and is why the check is
@@ -92,6 +94,22 @@ def may_collect(
             continue
         if auth.valid_until is not None and auth.valid_until < on_date:
             continue
+        # One-off passes carry a precise moment; standing authorizations leave
+        # it NULL, so this costs them nothing. Checked here rather than only in
+        # the pass router because this is the function every handover path goes
+        # through — an expired pass refused at the scanner but accepted by the
+        # manual fallback is exactly the gap a shared check exists to close.
+        if auth.expires_at is not None and auth.expires_at <= now:
+            continue
+
+        # `used_at` is deliberately NOT checked.
+        #
+        # The burn is set when the guard scans, and the handover he records
+        # seconds later comes through here. Treating a burned pass as dead
+        # would refuse the very collection the scan authorized. The burn stops
+        # the code being *presented* a second time, which is enforced at
+        # /passes/verify where the scan happens; releasing a child still
+        # requires a guard looking at a face either way.
         return AuthorizationResult(
             True,
             "authorized",
@@ -158,10 +176,16 @@ def authorized_collectors(
     ).all()
 
     seen = {u.id for u in guardians}
+    now = utcnow()
     for user, auth in granted:
         if user.id in seen:
             continue
         if auth.valid_until is not None and auth.valid_until < on_date:
+            continue
+        # An expired pass-holder must not appear on the guard's manual list —
+        # that list is the fallback when scanning fails, and it would let an
+        # expired pass through by a route that never reads the code.
+        if auth.expires_at is not None and auth.expires_at <= now:
             continue
         kind = "one_time" if auth.kind == AuthorizationKind.one_time else "standing"
         out.append((user, kind))

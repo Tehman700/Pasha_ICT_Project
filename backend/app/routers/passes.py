@@ -1,21 +1,38 @@
 """
 One-off passes — the only QR issued to someone with no account.
 
-"My brother is collecting Ahmed today." He has no phone in the system, no
-geofence, no prior record. He is the one person who needs to *carry* something.
+"My brother is collecting Ahmed and Zara today." He has no phone in the system,
+no geofence, no prior record. He is the one person who needs to *carry*
+something.
 
-The photo is mandatory, and this is the part worth defending. A QR sent over
-WhatsApp is a forwardable image: screenshot it, forward it, leave the phone
-unlocked in a shop, and whoever holds that picture can collect a child. With
-the photo, the guard is looking at a picture of the man in front of him while
-the child walks across the yard. One field, no extra taps, and the child stops
-walking out on a forwarded screenshot.
+**One pass covers as many of the parent's children as she names.** A relative
+sent to fetch three siblings is one errand, and issuing three codes for it would
+mean three scans at the gate, three chances to show the wrong one, and three
+rows to revoke if plans change. The pass carries a list of children and the
+guard sees all of them on one screen.
 
-The pass creates a real (login-less) user and a `one_time` authorization rather
-than a parallel code path, so it flows through exactly the same `may_collect`
-check, handover route and audit log as everyone else. A second authorization
-branch is how a gap opens between what the QR path allows and what the manual
-path allows.
+The photo is what makes the code safe to send. A QR on WhatsApp is a forwardable
+image: screenshot it, forward it, leave the phone unlocked in a shop, and
+whoever holds that picture can collect a child. With the photo, the guard is
+looking at a picture of the man in front of him while the children walk across
+the yard.
+
+Two limits, both per-pass:
+
+**Expiry.** The parent may set an exact moment — she knows her brother is coming
+between 1 and 3, and we do not. Unset, it falls back to midnight tonight. A pass
+never survives the day it was made whatever she picks.
+
+**The burn.** First successful scan, and the code is dead. Keyed to the pass
+itself, not to the children on it: a parent hedging between two relatives may
+issue two passes for the same child, and burning by child would strand whichever
+relative arrived second holding a code that had never been scanned.
+
+The pass creates a real (login-less) user and one `one_time` authorization per
+child rather than a parallel code path, so it flows through exactly the same
+`may_collect` check, handover route and audit log as everyone else. A second
+authorization branch is how a gap opens between what the QR path allows and what
+the manual path allows.
 """
 
 from __future__ import annotations
@@ -27,7 +44,7 @@ from datetime import date as Date, datetime, time, timedelta, timezone
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.db import get_db, utcnow
@@ -52,16 +69,62 @@ TZ = timezone(timedelta(hours=5))  # Asia/Karachi
 class IssuePass(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     phone: str = Field(min_length=5, max_length=32)
-    #: Required. See the module docstring — this is what stops a forwarded
-    #: screenshot from collecting a child.
+    #: Optional but strongly wanted. See the module docstring — this is what
+    #: stops a forwarded screenshot from collecting a child. Issued without one
+    #: the pass still works, but the audit entry is flagged and both the parent
+    #: and the guard are told. Degraded, not blind.
     photo_url: str | None = None
     relation: str | None = None
 
+    #: Additional children on the same pass. The child in the path is always
+    #: included; these are the siblings. Every one is checked against
+    #: `may_delegate` separately — naming a child she does not have rights over
+    #: fails the whole request rather than silently dropping that child.
+    also_student_ids: list[uuid.UUID] = Field(default_factory=list)
 
-def _expires_at() -> datetime:
-    """Midnight tonight, school time. A pass never survives the day it was made."""
-    tomorrow = Date.today() + timedelta(days=1)
+    #: When the code stops working. Unset means midnight tonight.
+    #:
+    #: The parent knows the collection window and we do not, so let her narrow
+    #: it. Capped at midnight regardless: a pass still live tomorrow is a real
+    #: risk and no legitimate case needs one.
+    expires_at: datetime | None = None
+
+
+def _end_of_day() -> datetime:
+    """
+    Midnight tonight, school time. A pass never survives the day it was made.
+
+    Derived from the current time *in Karachi*, not `Date.today()`. The server
+    runs UTC, so between 7pm and midnight local the UTC date is still yesterday
+    — and a pass issued for an evening activity would have been born already
+    expired.
+    """
+    tomorrow = utcnow().astimezone(TZ).date() + timedelta(days=1)
     return datetime.combine(tomorrow, time(0, 0), tzinfo=TZ)
+
+
+def _resolve_expiry(requested: datetime | None) -> datetime:
+    """
+    The parent's chosen moment, bounded at both ends.
+
+    Rejecting an out-of-range value would be the wrong call for a screen used
+    once a term: a parent who fat-fingers tomorrow's date gets a pass that works
+    today rather than a validation error she has to decode at the school gate.
+    """
+    cap = _end_of_day()
+    if requested is None:
+        return cap
+    # A naive datetime from a client that dropped the offset is school time —
+    # the alternative is reading it as UTC and expiring a 1pm pass at 8am.
+    if requested.tzinfo is None:
+        requested = requested.replace(tzinfo=TZ)
+    if requested >= cap:
+        return cap
+    # Already-past expiry is a dead pass. Give the parent the default rather
+    # than a code that is born expired.
+    if requested <= utcnow():
+        return cap
+    return requested
 
 
 @router.post(
@@ -76,20 +139,33 @@ def issue_pass(
     db: Session = Depends(get_db),
 ):
     """
-    A parent issues a one-day pass to someone with no account.
+    A parent issues a same-day pass to someone with no account.
 
-    Returns a signed token to send on WhatsApp. Single use, expires at
-    midnight, and refused the moment the child has been collected.
+    Covers one child or several — the path child plus any siblings in
+    `also_student_ids`. Returns a signed token to send on WhatsApp. Single use,
+    expires at the parent's chosen moment or midnight, whichever is sooner.
     """
-    if not may_delegate(db, granter_id=user.id, student_id=student_id):
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "You may not issue a pass for this child"
-        )
+    # Deduplicate: the path child appearing again in the list is a natural
+    # client mistake and must not produce two authorizations for one child.
+    student_ids: list[uuid.UUID] = [student_id]
+    for sid in body.also_student_ids:
+        if sid not in student_ids:
+            student_ids.append(sid)
 
-    student = db.get(Student, student_id)
+    # Every child, not just the first. Checking only the path child would let a
+    # parent attach someone else's child to a pass for her own.
+    for sid in student_ids:
+        if not may_delegate(db, granter_id=user.id, student_id=sid):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "You may not issue a pass for one of these children",
+            )
+
+    students = [db.get(Student, sid) for sid in student_ids]
     school = db.get(School, user.school_id)
-    if student is None or school is None or not school.private_key_enc:
+    if any(s is None for s in students) or school is None or not school.private_key_enc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such student or signing key")
+    student = students[0]
 
     # A login-less account. `is_active=False` means these credentials can never
     # authenticate — the pass is the credential, not a password.
@@ -108,24 +184,40 @@ def issue_pass(
     db.add(bearer)
     db.flush()
 
+    # Server date, matching `may_collect` — both sides must read the same clock
+    # or a pass valid by one check is expired by the other. `expires_at` is the
+    # precise limit and is Karachi-derived; this is only the coarse day window.
     today = Date.today()
-    auth = PickupAuthorization(
-        id=uuid.uuid4(),
-        student_id=student_id,
-        collector_user_id=bearer.id,
-        granted_by_user_id=user.id,
-        kind=AuthorizationKind.one_time,
-        valid_from=today,
-        valid_until=today,
-    )
-    db.add(auth)
+    expires = _resolve_expiry(body.expires_at)
 
-    expires = _expires_at()
+    # One authorization per child, sharing one bearer and one expiry. They are
+    # ordinary `one_time` rows, so `may_collect` and the handover route need no
+    # knowledge that a pass exists.
+    auths = [
+        PickupAuthorization(
+            id=uuid.uuid4(),
+            student_id=sid,
+            collector_user_id=bearer.id,
+            granted_by_user_id=user.id,
+            kind=AuthorizationKind.one_time,
+            valid_from=today,
+            valid_until=today,
+            expires_at=expires,
+        )
+        for sid in student_ids
+    ]
+    for auth in auths:
+        db.add(auth)
+
+    # `pid` names the first row and `aid` carries the rest, so a scan can burn
+    # every child on the pass in one step. Sending only `pid` would leave the
+    # siblings' rows live after the code had been redeemed.
     token = jwt.encode(
         {
             "typ": "pass",
-            "pid": str(auth.id),
-            "sid": [str(student_id)],
+            "pid": str(auths[0].id),
+            "aid": [str(a.id) for a in auths],
+            "sid": [str(sid) for sid in student_ids],
             "gid": str(bearer.id),
             "sch": str(school.id),
             "iat": int(utcnow().timestamp()),
@@ -143,12 +235,17 @@ def issue_pass(
             actor_user_id=user.id,
             action="pass.issued",
             entity_type="pickup_authorization",
-            entity_id=auth.id,
+            entity_id=auths[0].id,
             payload={
-                "student": student.name,
+                "students": [s.name for s in students],
+                "authorization_ids": [str(a.id) for a in auths],
                 "bearer": body.name,
                 "phone": body.phone,
                 "has_photo": bool(body.photo_url),
+                "expires_at": expires.isoformat(),
+                # A parent-set expiry is a deliberate act and worth being able
+                # to reconstruct later.
+                "expiry_set_by_parent": body.expires_at is not None,
             },
             # A pass issued without a photo is the weak case, so surface it.
             flagged=not body.photo_url,
@@ -158,10 +255,16 @@ def issue_pass(
     db.commit()
 
     return {
-        "pass_id": str(auth.id),
+        "pass_id": str(auths[0].id),
         "token": token,
         "expires_at": expires.isoformat(),
+        # Whether the cap applied. A parent who asked for tomorrow should be
+        # told plainly that her pass ends at midnight, not left to discover it.
+        "expiry_capped": body.expires_at is not None and expires == _end_of_day(),
+        # Singular kept alongside the list: existing clients read `student`,
+        # and removing it would break them for no gain.
         "student": {"id": str(student.id), "name": student.name},
+        "students": [{"id": str(s.id), "name": s.name} for s in students],
         "bearer": {
             "name": body.name,
             "phone": body.phone,
@@ -183,12 +286,17 @@ def verify_pass(
     db: Session = Depends(get_db),
 ):
     """
-    Guard scans a one-off pass.
+    Guard scans a one-off pass. **Redeems it** — this call burns the code.
 
     On a valid scan the speaker fires automatically and the guard presses
-    nothing — the child starts walking while he checks the photo. That
+    nothing — the children start walking while he checks the photo. That
     ordering is the whole design: automate the announcement, never automate
     the release.
+
+    The burn lands here rather than on handover because the scan is the only
+    moment we are certain the code was presented. A guard who scans and then
+    refuses on the photo has still spent the pass, which is correct: that code
+    is now known to be in the wrong hands.
     """
     token = (body or {}).get("token", "")
     school = db.get(School, guard.school_id)
@@ -207,38 +315,104 @@ def verify_pass(
     if payload.get("typ") != "pass":
         return {"valid": False, "code": "malformed", "message": "This is not a pass code."}
 
-    auth = db.get(PickupAuthorization, uuid.UUID(payload["pid"]))
-    if auth is None or auth.revoked_at is not None:
+    # `aid` carries every child's row; `pid` alone is the single-child shape
+    # issued before multi-child passes existed, and those codes must keep
+    # working for the rest of the day they were made.
+    try:
+        auth_ids = [uuid.UUID(a) for a in payload.get("aid") or [payload["pid"]]]
+    except (KeyError, ValueError, TypeError):
+        return {"valid": False, "code": "malformed", "message": "This is not a pass code."}
+
+    auths = [db.get(PickupAuthorization, aid) for aid in auth_ids]
+    auths = [a for a in auths if a is not None]
+    if not auths:
         return {"valid": False, "code": "revoked", "message": "This pass has been cancelled."}
 
-    from app.models import Handover, PickupRequest
+    # The signature already proves this school minted it, but the ids inside a
+    # validly-signed token are still attacker-influenced. Confirm every child
+    # actually belongs to the scanning guard's school before burning anything.
+    if any(
+        (s := db.get(Student, a.student_id)) is None or s.school_id != guard.school_id
+        for a in auths
+    ):
+        return {"valid": False, "code": "malformed", "message": "This is not a pass code."}
 
-    req = db.execute(
-        select(PickupRequest).where(
-            PickupRequest.student_id == auth.student_id,
-            PickupRequest.date == Date.today(),
+    # Revoking any child on the pass kills the whole code. A parent who
+    # withdraws one sibling did not mean "still fetch the other" — and the
+    # guard has one QR in front of him, not one per child.
+    if any(a.revoked_at is not None for a in auths):
+        return {"valid": False, "code": "revoked", "message": "This pass has been cancelled."}
+
+    # Expiry, per pass. The signature carries the same moment in `exp` and jwt
+    # already enforced it, but a parent shortening a live pass writes only to
+    # the database — the issued token cannot be recalled from WhatsApp.
+    now = utcnow()
+    if any(a.expires_at is not None and a.expires_at <= now for a in auths):
+        return {"valid": False, "code": "expired", "message": "This pass has expired."}
+
+    # ── The burn ───────────────────────────────────────────────────────
+    #
+    # One UPDATE guarded by `used_at IS NULL`, so two guards scanning the same
+    # forwarded code at the same instant cannot both be told yes: the database
+    # decides, not the order two requests happen to arrive in.
+    burned = db.execute(
+        update(PickupAuthorization)
+        .where(
+            PickupAuthorization.id.in_([a.id for a in auths]),
+            PickupAuthorization.used_at.is_(None),
         )
-    ).scalar_one_or_none()
+        .values(used_at=now)
+    ).rowcount
 
-    if req is not None:
-        used = db.execute(
-            select(Handover).where(Handover.pickup_request_id == req.id)
-        ).scalar_one_or_none()
-        if used is not None:
-            # Burns on use. A forwarded screenshot arriving second gets nothing.
-            return {
-                "valid": False,
-                "code": "already_used",
-                "message": "This child has already been collected today.",
-            }
+    if not burned:
+        return {
+            "valid": False,
+            "code": "already_used",
+            "message": "This pass has already been used.",
+        }
+    db.commit()
 
+    auth = auths[0]
     bearer = db.get(User, auth.collector_user_id)
-    student = db.get(Student, auth.student_id)
+    students = [db.get(Student, a.student_id) for a in auths]
+    student = students[0]
+
+    # One pickup_request per child — the guard app posts a handover against
+    # each, so a pass covering three siblings produces three handover rows and
+    # three "handed over" notifications, exactly as three separate collections
+    # would.
+    from app.models import PickupRequest
+
+    today = Date.today()
+    requests = {
+        r.student_id: r
+        for r in db.execute(
+            select(PickupRequest).where(
+                PickupRequest.student_id.in_([a.student_id for a in auths]),
+                PickupRequest.date == today,
+            )
+        ).scalars()
+    }
+
+    children = [
+        {
+            "id": str(s.id),
+            "name": s.name,
+            "photo_url": s.photo_url,
+            "pickup_request_id": (
+                str(requests[s.id].id) if s.id in requests else None
+            ),
+        }
+        for s in students
+        if s is not None
+    ]
 
     return {
         "valid": True,
         "pass_id": str(auth.id),
-        "pickup_request_id": str(req.id) if req else None,
+        # Singular fields describe the first child and are kept so existing
+        # clients keep working; `students` is the real answer.
+        "pickup_request_id": children[0]["pickup_request_id"] if children else None,
         "student": {
             "id": str(student.id),
             "name": student.name,
@@ -246,6 +420,7 @@ def verify_pass(
         }
         if student
         else None,
+        "students": children,
         "bearer": {
             "name": bearer.name,
             "phone": bearer.phone,
