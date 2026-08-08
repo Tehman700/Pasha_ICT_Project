@@ -18,6 +18,51 @@ There are three ways to get a change onto a phone. Pick by what you changed.
 
 ---
 
+## What needs internet, and what does not
+
+This trips people up, because "connected by USB" sounds like "offline".
+
+| Piece | Needs | Notes |
+|---|---|---|
+| **Metro → phone** (the JS bundle) | the USB cable only | `adb reverse` forwards it; no Wi-Fi, no LAN, no firewall |
+| **Phone → API** (`api.tideover.site`) | **the phone's own internet** | mobile data or any Wi-Fi. It is a public HTTPS URL |
+| **Phone → push notifications** | the phone's own internet | Google's servers, same as any app |
+| **Laptop → EAS build/update** | the laptop's internet | not needed for local builds |
+
+So on the daily USB loop: **the phone still needs mobile data or Wi-Fi**, and it
+does **not** have to be the same network as the laptop. They can be on entirely
+different connections. The only thing the cable carries is your JavaScript.
+
+If the app loads but every screen is empty or errors, that is almost always the
+phone having no internet — not a Metro problem.
+
+**Two people, two laptops, two phones:** nothing is shared. Each person plugs
+their own phone into their own laptop and runs their own Metro. Both hit the
+same production API, so you will see each other's data — that is expected, and
+it is what makes a two-phone gate test work at all.
+
+### Phones other than ours
+
+Any Android 7.0+ phone works. Where the developer toggles hide:
+
+| Make | Where |
+|---|---|
+| Xiaomi / Redmi / POCO | Settings → About phone → **MIUI version** ×7. Also needs **Install via USB** *and* **USB debugging (Security settings)** |
+| Samsung | Settings → About phone → Software information → **Build number** ×7 |
+| Oppo / Realme / OnePlus | Settings → About device → **Version** → **Build number** ×7 |
+| Vivo | Settings → About phone → **Software version** ×7 |
+| Infinix / Tecno | Settings → About phone → **Build number** ×7 |
+| Stock / Pixel / Motorola | Settings → About phone → **Build number** ×7 |
+
+Xiaomi is the awkward one: if installs keep failing, Developer options → turn
+off **MIUI optimization**, then reboot.
+
+**No cable, or a phone that will not authorise?** Build the APK and send the
+file — WhatsApp, Drive, anything. `apps/<app>/android/app/build/outputs/apk/debug/app-debug.apk`.
+Tap to install on the phone. You lose hot-reload but everything else works.
+
+---
+
 ## 1. Daily development — USB, no Wi-Fi
 
 This is where you will spend almost all your time. The phone talks to Metro
@@ -206,14 +251,17 @@ adb shell pm clear com.rukhsat.parent
 
 ---
 
-## The end-to-end run
+## Testing
 
-Two phones, one parent and one staff:
+Step-by-step scripts for every role and flow are in
+[`TEST_PLAN.md`](./TEST_PLAN.md) — including the two-phone gate test and the
+5-phone run that nothing else substitutes for.
+
+The quickest smoke test, two phones:
 
 1. **Parent** → sign in → **On my way** → **Show pickup code**, brightness up
 2. **Guard** → sign in → allow camera → point at the parent's screen
-3. Verdict screen names the child → confirm handover
-4. **The parent's phone should get a notification naming the collector**
+3. Verdict names the child → confirm handover
+4. **The parent's phone gets a notification naming the collector**
 
-Step 4 is the last unverified hop in the system. Everything before it has been
-checked against production.
+Step 4 is the last unverified hop in the system.

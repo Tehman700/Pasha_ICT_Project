@@ -13,6 +13,7 @@ commands to get a change onto a phone. Then
 [`docs/MODULE_PLAN.md`](./docs/MODULE_PLAN.md) for module-by-module status.
 
 To run the apps on a device: [`docs/RUNNING_ON_PHONES.md`](./docs/RUNNING_ON_PHONES.md).
+To test them once running: [`docs/TEST_PLAN.md`](./docs/TEST_PLAN.md).
 
 ## If you're the project partner
 

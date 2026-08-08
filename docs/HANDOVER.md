@@ -177,6 +177,10 @@ Wipe a session for testing: `adb shell pm clear com.rukhsat.parent`
 
 ## What still needs a human
 
+Step-by-step scripts for all of this are in **`docs/TEST_PLAN.md`** — every
+flow, what to expect at each step, and what to send back when it fails.
+
+
 **1. The scanner on real hardware.** Parent shows a rotating QR, guard reads it
 through a real lens. Everything downstream is proven; this hop is not.
 
