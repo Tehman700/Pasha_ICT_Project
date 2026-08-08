@@ -165,19 +165,48 @@ def issue_pass(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such student or signing key")
     student = students[0]
 
-    # A login-less account. `is_active=False` means these credentials can never
-    # authenticate — the pass is the credential, not a password.
-    bearer = User(
-        id=uuid.uuid4(),
-        school_id=user.school_id,
-        role=Role.parent,
-        name=body.name,
-        phone=body.phone,
-        password_hash=hash_password(secrets.token_urlsafe(32)),
-        locale=user.locale,
-        is_active=False,
-    )
-    db.add(bearer)
+    # `users.phone` is globally unique, so the same relative fetched twice in a
+    # term must reuse his row rather than insert a second one. Without this the
+    # second pass dies on a UniqueViolation — a 500 to a parent who did nothing
+    # wrong, on the perfectly ordinary "my brother came again on Friday".
+    existing = db.execute(
+        select(User).where(User.phone == body.phone)
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        # Reuse ONLY a login-less bearer from this same school. A phone number
+        # matching a real account — a driver, a teacher, another parent — must
+        # never be adopted: issuing a pass would otherwise silently mint an
+        # authorization against a live identity the issuer does not control,
+        # and `is_active=False` would then lock that person out of their own
+        # account.
+        if (
+            existing.is_active
+            or existing.school_id != user.school_id
+            or existing.password_hash is None
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "That phone number already belongs to a registered account. "
+                "Add them as a collector instead of issuing a pass.",
+            )
+        bearer = existing
+        # People do change how they write their own name between passes.
+        bearer.name = body.name
+    else:
+        # A login-less account. `is_active=False` means these credentials can
+        # never authenticate — the pass is the credential, not a password.
+        bearer = User(
+            id=uuid.uuid4(),
+            school_id=user.school_id,
+            role=Role.parent,
+            name=body.name,
+            phone=body.phone,
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+            locale=user.locale,
+            is_active=False,
+        )
+        db.add(bearer)
     db.flush()
 
     # Server date, matching `may_collect` — both sides must read the same clock

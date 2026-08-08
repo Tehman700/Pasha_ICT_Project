@@ -176,6 +176,45 @@ class TestIssuing:
         bearer = db.query(User).filter(User.phone == "+923339998877").one()
         assert bearer.is_active is False
 
+    def test_the_same_relative_can_be_sent_twice(self, client, db, family):
+        """
+        `users.phone` is globally unique, so the second pass to the same person
+        must reuse his row. Inserting again is a UniqueViolation — a 500 to a
+        parent who did nothing but ask her brother to come again on Friday.
+        """
+        from app.models import User
+
+        for _ in range(2):
+            r = client.post(
+                f"/v1/students/{family['child'].id}/temporary-pass",
+                headers=token(client, family["parent"]),
+                json={"name": "Kamran Ali", "phone": "+923339998877"},
+            )
+            assert r.status_code == 201, r.text
+
+        assert db.query(User).filter(User.phone == "+923339998877").count() == 1
+
+    def test_a_pass_cannot_hijack_a_registered_account(self, client, db, family, make_user):
+        """
+        The reuse above must not adopt a real account. Issuing a pass against a
+        driver's phone would mint an authorization on a live identity the
+        issuer does not control — and `is_active=False` would lock him out of
+        his own login.
+        """
+        driver = make_user(Role.driver)
+
+        r = client.post(
+            f"/v1/students/{family['child'].id}/temporary-pass",
+            headers=token(client, family["parent"]),
+            json={"name": "Not The Driver", "phone": driver.phone},
+        )
+        assert r.status_code == 409
+        assert "registered account" in r.json()["detail"].lower()
+
+        db.refresh(driver)
+        assert driver.is_active is True
+        assert driver.name != "Not The Driver"
+
     def test_a_pass_expires_the_same_day(self, client, db, family):
         issued = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
