@@ -1,12 +1,12 @@
 # Module Plan — Dependency-Ordered Build Sequence
 
-> ## Status — updated 7 Aug 2026
+> ## Status — updated 8 Aug 2026
 >
 > **Live:** https://api.tideover.site · https://admin.tideover.site
 >
 > | | |
 > |---|---|
-> | Modules | **43 of 44** |
+> | Modules | **44 of 44** |
 > | Endpoints | 48 REST + 2 WebSocket |
 > | API contract | 51 paths, **zero undocumented endpoints** |
 > | Tests | **188 backend** + 22 frontend |
@@ -23,8 +23,11 @@
 > handover → audit log **→ the parent's phone is told who took her child**.
 > Plus one-off passes, manual fallback, and the nightly job.
 >
-> **Not built (1):**
-> - **M9.2** Urdu QA pass — strings exist in both languages; needs a device sweep
+> **All 44 modules are built.** M9.2 closed the last gap: 27 user-facing
+> strings existed only in English and are now bilingual, with `ur` typed as
+> `DeepMirror<Strings>` so a missing translation is a compile error. What
+> remains is not building — it is a human sweep of both languages on a real
+> device, and an end-to-end gate run with 5+ phones.
 >
 > **M0.5 Play Console** is in progress — the account is bought and awaiting
 > verification. Judges get a direct APK; the store listing is for afterwards.
@@ -32,16 +35,23 @@
 > **Push (M8.1/M8.2)** ships against Firebase project `rukhsat-87a43`, FCM
 > HTTP v1. Three notifications and no more: morning reminder, collector
 > arriving, handed over. There is deliberately no teacher push — voice
-> replaces it. Delivery to a real handset is unverifiable until M9.5 produces
-> a dev build, because Expo Go cannot receive FCM messages for another app's
-> Firebase project.
+> replaces it. The FCM transport is verified live against Google (OAuth
+> exchange from the service account returns a token on the production box).
+> Delivery to a handset needs an APK — Expo Go receives FCM for Expo's own
+> Firebase project, never for `rukhsat-87a43`, so it can never show a push
+> from this system no matter what is fixed.
 >
 > **Deferred by agreement:** vans as entities with drivers as reassignable
 > assignments. Correct, but a substitute driver will not occur during a demo.
 >
-> **Stubbed pending a dev build:** guard camera (`expo-camera`) — the code is
-> pasted instead of scanned, but everything after that point is the real
-> cryptographic path.
+> **Guard camera is live.** `expo-camera` now scans the QR directly; the
+> paste field remains below it, because a cracked lens must never be why a
+> child cannot go home.
+>
+> **Three ways to get a build**, in order of speed:
+> `eas update` (~1 min, JS only) · `npx expo run:android` over USB (~3 min,
+> after a 30-min first build) · `eas build` (~1 h, needed only for native
+> changes). See `docs/DEPLOYMENT.md`.
 
 This is the **build order**: what gets built first, what unblocks what, and when
 each module is done. It is ordered by *dependency*, not by calendar day.
