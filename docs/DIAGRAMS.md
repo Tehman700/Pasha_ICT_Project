@@ -1,7 +1,11 @@
 # Rukhsat — System Diagrams
 
-**Companion to `HANDOUT.md`.** These diagrams show the *proposed* system, not
-the one currently in `main`. Where the two differ, the difference is called out.
+**Companion to `HANDOUT.md`.** Started as a proposal; most of it has since
+shipped. Each section now says which it is — where the built system differs from
+what was proposed, the difference is called out rather than quietly edited away.
+
+**Current against `37c8487`, 8 Aug 2026.** All 44 modules are built. Only one
+element of the proposal remains genuinely open — see §7.
 
 Diagrams are Mermaid — they render natively on GitHub, no tooling needed.
 
@@ -11,8 +15,9 @@ Diagrams are Mermaid — they render natively on GitHub, no tooling needed.
 2. [Activity Diagram](#2-activity-diagram) — the afternoon, end to end
 3. [State Diagrams](#3-state-diagrams) — pickup, trip, driver, pass
 4. [System Architecture](#4-system-architecture) — components and how they connect
-5. [Sequence Diagrams](#5-sequence-diagrams) — the three collection paths
+5. [Sequence Diagrams](#5-sequence-diagrams) — collection paths and notifications
 6. [Data Model](#6-data-model) — entities and relationships
+7. [Status against `main`](#7-status-against-main) — what shipped, what is open
 
 ---
 
@@ -349,7 +354,12 @@ internet, and the driver is the highest-privilege actor in the system.
 proposal. A stored flag drifts: revoke the last link and a stale `ASSIGNED`
 leaves a driver visible to a school he no longer serves.
 
-### 3.4 One-off outsider pass
+### 3.4 One-off outsider pass — **SHIPPED** in `e031bca`
+
+`backend/app/routers/passes.py`, `POST /students/{id}/temporary-pass` and
+`POST /passes/verify`. The diagram below is now description, not proposal.
+Three details differ from what was proposed — see *Where the shipped version
+differs* after the diagram.
 
 **This is a STATIC QR, and deliberately so** — not a variant of the rotating
 trip token in `qr_tokens.py`.
@@ -361,12 +371,12 @@ delivery method requires it: a code sent as a WhatsApp image cannot rotate.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ISSUED: parent enters<br/>name, phone, photo<br/>+ optional "valid until"
+    [*] --> ISSUED: parent enters<br/>name, phone, photo<br/>→ login-less User<br/>+ one_time authorization
     ISSUED --> SENT: shared as an image<br/>(WhatsApp, screenshot,<br/>download — all fine)
     SENT --> SCANNED: guard scans at gate
 
-    SCANNED --> VERIFIED: signature valid<br/>+ not expired<br/>+ not already used
-    SCANNED --> REJECTED: expired / already used /<br/>bad signature / wrong school
+    SCANNED --> VERIFIED: ES256 valid + typ=pass<br/>+ not revoked<br/>+ child not yet collected
+    SCANNED --> REJECTED: expired / already_used /<br/>malformed / revoked
 
     VERIFIED --> ANNOUNCED: speaker fires<br/>automatically
     ANNOUNCED --> RELEASED: guard matches face<br/>→ child leaves
@@ -376,7 +386,7 @@ stateDiagram-v2
     REJECTED --> [*]
     BLOCKED --> [*]: escalate to office
 
-    SENT --> EXPIRED: parent's "valid until",<br/>else 12 h, capped at<br/>end of day
+    SENT --> EXPIRED: midnight tonight,<br/>Asia/Karachi
     EXPIRED --> [*]
 
     note right of ANNOUNCED
@@ -396,26 +406,56 @@ stateDiagram-v2
     end note
 ```
 
-### Expiry — optional, with a safe default
+### Where the shipped version differs
 
-The parent may set **"valid until"** when issuing the pass. She knows what we
-don't: *"my brother is coming sometime between 1 and 3."*
+Three departures from the proposal, all defensible.
 
-| Case | Behaviour |
-|---|---|
-| Parent sets a time | Valid until then |
-| Parent sets nothing | **12 hours**, capped at end of day |
-| Scanned | **Burns immediately**, regardless of remaining time |
+**1. Expiry is midnight tonight, full stop — no parent-set "valid until".**
 
-**Why a user-set lifetime is fine here but not on the rotating token.** On the
-trip token, 60 seconds *is* the security property — exposing it as a preference
-would let a parent recreate the static code the whole design exists to prevent.
-Here the lifetime is not what makes the pass safe. Three other things are:
-single-use, the photo, and the scope to one child. Given those, one hour versus
-four changes very little.
+```python
+def _expires_at() -> datetime:
+    """Midnight tonight, school time. A pass never survives the day it was made."""
+```
 
-**Cap at end of day regardless.** A pass still live tomorrow is a real risk and
-no legitimate case needs one.
+The proposal had an optional field defaulting to 12 h. Tehman dropped the field.
+Fair: the pass is already scoped to one child, one person, one use, so lifetime
+was never what carried the security — and it removes a control from a screen a
+parent uses once a term. **The 12-hour default is gone; assume same-day only.**
+
+**2. The burn is keyed on the child, not on the pass.** `verify_pass` looks for
+a `Handover` against today's `PickupRequest` for that student:
+
+> *"This child has already been collected today."*
+
+Stronger than a per-pass flag. Two passes issued for the same child on the same
+day — a parent hedging between two relatives — cannot both redeem. A pass-level
+flag would have let the second one through.
+
+**3. Verification is online-only.** `/passes/verify` is a server call; there is
+no offline path. This is a real divergence from the rotating trip token, which
+`SECURITY.md` requires be verifiable at the gate with no signal. It is the right
+trade *because* of point 2 — the "already collected" check needs server state
+that a guard's phone cannot hold. But it means **the outsider path is the one
+flow that breaks when the gate loses signal.** The manual fallback covers it,
+which is exactly what that fallback exists for.
+
+**The photo is mandatory in the docstring but `photo_url: str | None = None` in
+the schema.** A pass without one is accepted, `flagged=True` in the audit log,
+and returns an explicit warning to both parent and guard:
+
+> *"No photo. Anyone who receives this code can collect your child — the guard
+> will have nothing to check them against."*
+
+Degraded, not blind — the guard is told what to do instead of a photo rather
+than left to guess. Worth a deliberate decision on whether it should harden to a
+required field before the demo.
+
+**The pass creates a real login-less `User` and an ordinary `one_time`
+authorization**, not a parallel code path. `is_active=False` means those
+credentials can never authenticate — the QR *is* the credential. So the outsider
+flows through the same `may_collect` check, the same handover route, and the
+same audit log as everyone else. A second authorization branch is precisely how
+a gap opens between what the QR path allows and what the manual path allows.
 
 ### What actually carries the security
 
@@ -423,19 +463,21 @@ Since the code is copyable by design, two things do the work:
 
 **The burn.** Redemption is single-use, so a forwarded copy is dead once the
 original is scanned. Enforcing this needs server state — the guard's phone
-cannot know a pass was burned on another device. Verify online, fall back to
-signature-only offline, reconcile on sync: a duplicate then surfaces as a
-flagged event rather than being prevented, which is acceptable because the guard
-still checked the face.
+cannot know a pass was burned on another device. The shipped version verifies
+online and has no offline fallback (see point 3 above), so a duplicate is
+*prevented* rather than reconciled after the fact. Stricter than proposed, at
+the cost of needing signal.
 
 **The photo.** Auto-releasing on a valid scan alone means whoever holds the
 picture gets the child. The speaker firing automatically is fine — the *child
 walking out* is still a human decision, made in the seconds while they cross the
 yard.
 
-**Reuses the existing crypto.** Same ES256 key, same public key already on the
-guard's phone, same offline verification path. This needs a table, two
-endpoints, and a screen — not new cryptography.
+**Reuses the existing crypto.** Same ES256 key, same school key pair, no new
+cryptography — the token just carries `typ: "pass"` so it can never be confused
+with a rotating trip token. Both endpoints exist. **What is still missing is the
+UI on both ends:** no parent screen to issue a pass, and the guard scanner does
+not yet route a `typ=pass` token to `/passes/verify`.
 
 ---
 
@@ -462,10 +504,12 @@ graph TB
 
     subgraph APP[" APPLICATION — single EC2, systemd "]
         API["FastAPI<br/>REST + WebSocket"]
-        SCHED["APScheduler<br/>nightly gen · fallback<br/>· pass expiry"]
+        SCHED["APScheduler<br/>00:30 nightly gen<br/>10:00 reminders"]
         GEO["Geofence evaluator<br/>approach confirmation"]
         ETA["ETA engine<br/>haversine ÷ avg speed"]
         ANN["Announcement builder<br/>batch · Urdu-first"]
+        NOT["notify.py<br/>who + which language"]
+        PSH["push.py<br/>FCM transport<br/>never raises"]
     end
 
     subgraph DATA[" DATA "]
@@ -475,8 +519,9 @@ graph TB
     end
 
     subgraph EXT[" EXTERNAL "]
-        FCM["FCM<br/>push"]
+        FCM["FCM v1<br/>project rukhsat-87a43<br/>service account · no SDK"]
         OSM["OpenStreetMap<br/>free tiles"]
+        EAS["EAS Update<br/>OTA JS bundles"]
     end
 
     CA -.->|registers| GF
@@ -493,14 +538,22 @@ graph TB
     API --> GEO --> ETA
     ETA --> ANN
     ANN -->|audio manifest| SPK
+    ETA -->|same trigger| NOT
+    API -->|handover committed| NOT
+    SCHED -->|10:00 digest| NOT
     SCHED -->|fallback trigger| ANN
+    NOT --> PSH
+    PSH --> FCM
+    SCHED -.->|SET NX lock| RD
     API --> PG
     API --> RD
     RD -.->|WS fanout| SA
     API --> S3
-    API --> FCM
     FCM -.->|push| CA
+    FCM -.->|push| SA
     CA -.->|tiles| OSM
+    EAS -.->|JS bundle| CA
+    EAS -.->|JS bundle| SA
 
     style CLIENTS fill:#1a2332,stroke:#4a90d9,color:#fff
     style DEVICE fill:#2e2618,stroke:#c4801c,color:#fff
@@ -524,6 +577,25 @@ just the OS watching a circle.
 **No Routes API.** ETA is haversine ÷ rolling average speed. Routes bills per
 call and would be hit every 15s per active trip. `SYSTEM_PLAN.md` ruled this out
 correctly and it still holds.
+
+**Push is split in two on purpose** (`a866c99`). `push.py` is transport only —
+mint an OAuth token from the service account, POST to FCM v1, read the response.
+`notify.py` owns the domain: resolve a child's guardians, pick each one's
+language, compose the sentence. The split is what lets the three messages be
+tested without a network and the transport be swapped without touching copy.
+
+**No `firebase-admin` dependency.** It drags in grpcio and protobuf — a ~100 MB
+install on a box with 1.9 GB of RAM. All that is actually needed is a signed JWT,
+which pyjwt already does for the QR tokens, plus one HTTP POST.
+
+**Sending never raises.** A failed push must not fail the handover that
+triggered it — the child is already at the gate, and a notification is the least
+important thing happening. Same rule as `broadcast.py`.
+
+**The scheduler runs in both workers, so reminders take a Redis lock.**
+`SET NX` with a 12-hour TTL. If Redis is unreachable the job declines to run at
+all: a silent day of missing reminders is recoverable, a day of doubled ones
+teaches parents to ignore every future notification.
 
 **OSM instead of Google Maps** removes the international-card dependency, which
 was the riskiest non-technical item on the Day 0 list.
@@ -651,6 +723,88 @@ sequenceDiagram
     Note over API: Software must never be the<br/>reason a handover can't happen.
 ```
 
+### 5.4 Notifications — **SHIPPED** in `a866c99`
+
+Exactly three notifications exist, and deliberately no more. There is **no
+teacher arrival push**: voice replaces it, and adding it back would put a
+teacher's phone in her hand thirty times an afternoon.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant SCH as APScheduler
+    participant RD as Redis
+    participant N as notify.py
+    participant PS as push.py
+    participant FCM as FCM v1
+    participant P as Parent Phone
+
+    rect rgba(60,60,90,0.25)
+    Note over SCH,P: 1 — Reminder · 10:00 weekdays
+    SCH->>RD: SET NX reminder:{date}:{req}
+    alt claimed by this worker
+        RD-->>SCH: OK
+        SCH->>N: notify_reminder
+        N->>N: guardians_of(student)<br/>pick locale per guardian
+        N->>PS: send(collapse_key=reminder:{student})
+        PS->>FCM: POST messages:send
+        FCM->>P: "Zara is scheduled for pickup at 1:45 PM"
+    else another worker has it
+        RD-->>SCH: nil → skip
+    end
+    Note over RD: Redis down ⇒ do NOT send.<br/>Missing beats doubled.
+    end
+
+    rect rgba(60,90,60,0.25)
+    Note over SCH,P: 2 — Arrival · same trigger as the speaker
+    N->>N: group per guardian,<br/>not per child
+    N->>PS: send(collapse_key=arrival:{trip})
+    PS->>FCM: POST
+    FCM->>P: "Ahmed Khan is arriving to collect Zara and Ali"
+    Note over P: collapse_key REPLACES in tray.<br/>4 ETA updates ⇒ 1 notification.
+    end
+
+    rect rgba(90,60,60,0.25)
+    Note over N,P: 3 — Handover · strictly AFTER commit
+    N->>PS: send(NO collapse_key)
+    PS->>FCM: POST
+    FCM->>P: "Zara has been handed over to Ahmed Khan"
+    Note over N: Two children ⇒ two notifications.<br/>Collapsing would hide a release.
+    end
+
+    alt FCM says UNREGISTERED
+        FCM-->>PS: 404
+        PS-->>N: "unregistered"
+        N->>N: clear user.fcm_token
+    end
+```
+
+**Four decisions in that diagram worth keeping:**
+
+**The collector is named** in the arrival and handover messages. A lock screen
+reading *"Zara was handed to Ahmed Khan"* is legible to anyone holding the
+phone — a real cost. But a parent seeing a name they did not expect is the
+single most valuable alert this system produces, and suppressing it would trade
+a safety signal for a privacy nicety. The reminder, which carries no safety
+weight, stays vague.
+
+**Handover push fires strictly after the commit.** A notification for a handover
+that then rolls back is worse than one arriving a second late — the parent acts
+on it.
+
+**Arrival groups per guardian; handover does not.** A parent of three siblings
+on one van gets one arrival notification naming all three. But three handovers
+produce three notifications, because *"Zara and Ali were handed over"* reads as
+one event when it is two.
+
+**Dead tokens are cleared on the spot.** An uninstalled app leaves a token that
+fails on every future send; a term's worth turns each notification into a series
+of doomed round trips.
+
+Urdu and English are both written in `notify.py` itself, not deferred to a
+translation pass. Urdu keeps Latin digits for times — Nastaliq numerals on a
+lock screen are a legibility risk.
+
 ---
 
 ## 6. Data Model
@@ -715,13 +869,12 @@ erDiagram
         date active_until
     }
     TEMP_PASS {
-        uuid id PK
-        string holder_name
-        string holder_phone
-        string photo_url "REQUIRED"
-        string qr_token "STATIC, ES256"
-        timestamp expires_at "parent-set, else +12h, capped EOD"
-        timestamp used_at "single use — burns"
+        uuid id PK "SHIPPED as AUTHORIZATION kind=one_time"
+        string bearer "login-less USER, is_active=false"
+        string photo_url "warned if absent, not rejected"
+        string qr_token "STATIC, ES256, typ=pass"
+        timestamp expires_at "midnight tonight, Asia/Karachi"
+        string burn "derived — HANDOVER exists for the child today"
     }
     OVERRIDE {
         uuid id PK
@@ -763,7 +916,8 @@ Exact match, no transliteration problem.
 
 ## 7. Status against `main`
 
-Updated 7 Aug 2026, against `30ed934`. Most of the proposal has shipped.
+Updated 8 Aug 2026, against `37c8487`. `MODULE_PLAN.md` reads **44 of 44** —
+what remains is device testing and a store submission, not construction.
 
 ### Landed
 
@@ -779,6 +933,13 @@ Updated 7 Aug 2026, against `30ed934`. Most of the proposal has shipped.
 | OpenStreetMap via Leaflet, no Google key | `d09060b` |
 | Speaker chain complete — pairing, cached clips, live announce | `30ed934` |
 | Pre-recorded clips over TTS | `30ed934` |
+| **One-off outsider pass, both endpoints** (§3.4) | `e031bca` |
+| **Push notifications** — reminder, arrival, handover (§5.4) | `a866c99` |
+| Real login on both apps, keychain-backed tokens, role routing | `c02932d` |
+| EAS build profiles; guard camera off its stub | `15c6c8b` |
+| OTA updates — JS changes no longer cost a 90-minute build | `aadf565` |
+| Last 27 English-only strings now in both languages | `3fb329b` |
+| Expired token routes to login instead of a dead app | `9cdeb63` |
 
 `885ec5b` is worth noting: every student endpoint was reachable by any
 authenticated user, verified live in production — a driver's token returned the
@@ -790,25 +951,39 @@ the route rather than as a filter inside it, so there is no handler to reach.
 **Automated face matching removed** (`9594e8b`). See §3.3 — the parent verifies
 by eye. Agreed.
 
+**Pass expiry is midnight-only** (`e031bca`). The optional parent-set "valid
+until" was dropped. See §3.4 — reasonable, since lifetime was never what carried
+the security here.
+
 ### Still open
 
 | Element | Current `main` |
 |---|---|
 | **Geofence wakes closed app** | `blockedPermissions` still strips `ACCESS_BACKGROUND_LOCATION`; `POST /trips/start` is still *"'On my way'"* |
+| Pass UI, both ends | endpoints exist; no parent issue screen, scanner does not route `typ=pass` |
+| Offline path for pass verification | online-only; the one flow that breaks with no signal |
 | `VEHICLE` as entity, driver as reassignable assignment | driver change breaks every authorization at once |
 | `UNCLAIMED` / `ESCALATED` states | no state for "nobody came" |
 | 2 km announce + 150 m gate rings | single `geofence_radius_m`, default 1000 |
-| Static outsider pass (§3.4) | no `temp_passes` table, no endpoint |
 
 **Background location is the one real disagreement left.** Everything else is
 either shipped or unbuilt-but-uncontested.
 
-The case is now *stronger* than when the handout was written, because
-`expected_arrival` shipped. The schedule backbone exists — so the geofence
-becomes precision layered on something that already works, rather than a
-replacement for the trip model. That is a much smaller change than it was two
-days ago.
+The case keeps getting stronger. `expected_arrival` gave the schedule backbone;
+`a866c99` has now added the notification layer that a geofence trigger would
+feed. Both halves of the pipeline exist — trip start on one side, push and
+speaker on the other. What is missing is only the thing that fires it without a
+tap. That is a smaller change now than at any earlier point.
 
-**The outsider pass is the cleanest open piece.** ES256 signing, the guard
-scanner, and the speaker chain all exist. It needs a table, two endpoints, and a
-screen.
+### Two operational notes from this batch
+
+**Push is live on Firebase project `rukhsat-87a43`** with `google-services.json`
+committed in both apps. Absent credentials disable push cleanly rather than
+erroring, so local dev and CI still run — but it also means **a broken key file
+looks exactly like "no notifications" with nothing in the logs at warning level.**
+Check `push.enabled()` first when notifications go quiet.
+
+**OTA updates are configured** (`aadf565`, fingerprint runtime policy). JS-only
+changes ship without a rebuild — but a change touching native config, including
+**removing `blockedPermissions`, changes the fingerprint and requires a full
+build.** Worth knowing before the geofencing work starts.
