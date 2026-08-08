@@ -24,17 +24,64 @@
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
 import type { PickupApi } from "@pickup/shared";
 
 export type PushStatus =
   | "registered"
   | "denied"
-  | "unsupported" // simulator, or a build with no Firebase config
+  | "unsupported" // simulator, Expo Go, or a build with no Firebase config
   | "error";
 
 /** Matches the `channel_id` the backend sets on every message it sends. */
 export const CHANNEL_ID = "rukhsat-pickup";
+
+/**
+ * `expo-notifications` is loaded lazily, and this is not a style preference.
+ *
+ * Expo Go dropped Android remote-notification support in SDK 53, and the
+ * module throws the moment it is imported. Because `ui-native/index.ts`
+ * re-exports this file, a top-level import ran that throw during the first
+ * import of the app's root layout — before any UI existed, so the whole app
+ * showed a red error screen instead of a login form. Every screen died over a
+ * feature only two of them use.
+ *
+ * Deferring the require to the point of use keeps the app fully working in
+ * Expo Go: everything renders, and only push degrades to "unsupported". In a
+ * development build or a store APK the module resolves normally and push
+ * behaves exactly as before.
+ */
+function notifications(): typeof import("expo-notifications") | null {
+  // Expo Go is checked BEFORE the require, not inside a try/catch around it.
+  //
+  // `expo-notifications` throws from its own module initialiser under Expo Go
+  // (Android remote notifications were removed in SDK 53), and Metro surfaces
+  // that as an uncaught error rather than letting a surrounding catch handle
+  // it — so the app died on a red screen despite the try block. The only
+  // reliable fix is never to evaluate the module here at all.
+  //
+  // `appOwnership === "expo"` is set only by the Expo Go client; a development
+  // build or a store APK leaves it null. Read through a require of
+  // `expo-constants` inside the guard so a missing module cannot break the
+  // app either — the fallback is simply to attempt the notifications require.
+  try {
+    const C = require("expo-constants");
+    const constants = C?.default ?? C;
+    if (constants?.appOwnership === "expo") return null;
+    if (constants?.executionEnvironment === "storeClient") return null;
+  } catch {
+    // No expo-constants: fall through and let the guarded require decide.
+  }
+
+  try {
+    const N = require("expo-notifications");
+    if (!N || typeof N.getPermissionsAsync !== "function") return null;
+    return N;
+  } catch {
+    return null;
+  }
+}
+
+let handlerSet = false;
 
 /**
  * A notification arriving while the app is open should still be visible.
@@ -42,24 +89,34 @@ export const CHANNEL_ID = "rukhsat-pickup";
  * The default is to stay silent in the foreground, which is wrong here: a
  * parent watching the queue screen is exactly the person who needs to see
  * "handed over" the moment it happens.
+ *
+ * Called on first use rather than at module scope, for the reason above.
  */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+function ensureHandler(): void {
+  if (handlerSet) return;
+  const N = notifications();
+  if (!N) return;
+  N.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+  handlerSet = true;
+}
 
 async function ensureChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
+  const N = notifications();
+  if (!N) return;
   // Without an explicit channel, Android 8+ files everything under a default
   // channel the user cannot tune — so a parent who wants pickup alerts loud
   // and nothing else has no way to say so.
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+  await N.setNotificationChannelAsync(CHANNEL_ID, {
     name: "Pickup alerts",
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: N.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#f54e00",
   });
@@ -68,16 +125,22 @@ async function ensureChannel(): Promise<void> {
 export async function register(api: PickupApi): Promise<PushStatus> {
   if (!Device.isDevice) return "unsupported";
 
+  // Expo Go: the module is unavailable, so push simply does not exist here.
+  // Reported rather than thrown — the caller shows a status, not a crash.
+  const N = notifications();
+  if (!N) return "unsupported";
+
   try {
+    ensureHandler();
     await ensureChannel();
 
-    const existing = await Notifications.getPermissionsAsync();
+    const existing = await N.getPermissionsAsync();
     let granted = existing.granted;
 
     // Only prompt when the OS says we still can. Re-asking after a hard denial
     // resolves instantly to "denied" and just burns a launch.
     if (!granted && existing.canAskAgain) {
-      granted = (await Notifications.requestPermissionsAsync()).granted;
+      granted = (await N.requestPermissionsAsync()).granted;
     }
 
     if (!granted) {
@@ -86,7 +149,7 @@ export async function register(api: PickupApi): Promise<PushStatus> {
       return "denied";
     }
 
-    const token = await Notifications.getDevicePushTokenAsync();
+    const token = await N.getDevicePushTokenAsync();
     if (typeof token.data !== "string" || !token.data) return "unsupported";
 
     await api.updateMe({ fcm_token: token.data });
@@ -115,7 +178,13 @@ export function usePushTokenRotation(api: PickupApi): void {
   const seen = useRef<string | null>(null);
 
   useEffect(() => {
-    const sub = Notifications.addPushTokenListener((token) => {
+    // Mounted at the app root, so this hook runs on every launch — including
+    // in Expo Go, where the module does not exist. A no-op there keeps the
+    // root layout mounting rather than taking the whole app down.
+    const N = notifications();
+    if (!N) return;
+
+    const sub = N.addPushTokenListener((token) => {
       if (typeof token.data !== "string" || !token.data) return;
       if (seen.current === token.data) return;
       seen.current = token.data;

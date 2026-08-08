@@ -328,6 +328,69 @@ export interface LoginResponse {
   user: User;
 }
 
+// ── Self-registration ──────────────────────────────────────────────────
+//
+// Two paths, deliberately asymmetric. A parent is matched to children the
+// school already enrolled, by CNIC. A driver is matched to nobody: he lands in
+// the database linked to nothing and stays invisible until a parent picks him.
+// See `docs/SECURITY.md` — the school vets nobody, so liability sits with the
+// parent who granted access.
+
+export interface ParentRegistration {
+  name: string;
+  name_ur?: string | null;
+  phone: string;
+  password: string;
+  /** 13 digits. The match key — see `ParentRegistrationResult.matched_children`. */
+  cnic: string;
+  selfie_url?: string | null;
+  id_photo_url?: string | null;
+  school_id: Uuid;
+  locale?: string;
+}
+
+export interface ParentRegistrationResult {
+  user: User;
+  /**
+   * The children this CNIC matched. **An empty array is a normal outcome**,
+   * not an error: the school may hold the other parent's CNIC, and the fix is
+   * a phone call rather than a looser match. The screen must say so plainly
+   * instead of implying the account failed.
+   */
+  matched_children: { id: Uuid; name: string; class_id: Uuid }[];
+  message: string;
+}
+
+export interface DriverRegistration {
+  name: string;
+  name_ur?: string | null;
+  phone: string;
+  password: string;
+  cnic: string;
+  /**
+   * **Required by the server**, and camera-only in the app — a gallery upload
+   * can be any face off the internet, and the parent linking him is the one
+   * who will look at it. This is the highest-privilege actor in the system,
+   * so registering without a face is not an option the API offers.
+   */
+  selfie_url: string;
+  /** Required. His CNIC card, photographed. */
+  id_photo_url: string;
+  registration_no: string;
+  capacity?: number | null;
+  vehicle_photo_url?: string | null;
+  /** `HH:MM`. The schedule backbone — see the geofence note in `CLAUDE.md`. */
+  expected_arrival?: string | null;
+  school_id: Uuid;
+}
+
+export interface DriverRegistrationResult {
+  user: User;
+  /** Always `UNASSIGNED` at registration. Derived server-side, never stored. */
+  status: "UNASSIGNED" | "ASSIGNED";
+  message: string;
+}
+
 // ── Analytics ──────────────────────────────────────────────────────────
 
 export interface WaitTimeStats {

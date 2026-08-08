@@ -31,6 +31,16 @@ class Settings(BaseSettings):
     #: deploy at a different Firebase project without swapping the key.
     fcm_project_id: str = ""
 
+    # Media storage. Empty bucket = local disk under `backend/media`, which is
+    # what CI and a fresh clone get: uploads must work with no AWS account.
+    # Set S3_BUCKET and the flow switches to S3 with no other change.
+    s3_bucket: str = ""
+    s3_region: str = "ap-south-1"
+    #: How long a photo's download link stays valid. Short on purpose — these
+    #: are photographs of drivers and children, and a link that outlives the
+    #: screen it was rendered on is a link that leaks.
+    s3_url_ttl_seconds: int = 3600
+
     geofence_radius_m: int = 1000
     # The classroom announcement fires on ETA, not on the geofence ring —
     # 1–2 minutes is ~500-650m and varies with traffic.

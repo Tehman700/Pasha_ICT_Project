@@ -134,6 +134,22 @@ export default function LoginScreen() {
         </Card>
 
         <Spacer h={spacing.base} />
+        <Row>
+          <View style={{ flex: 1 }} />
+          <T variant="bodySm" color={colors.muted}>
+            {strings.register.noAccount}{" "}
+          </T>
+          <T
+            variant="bodySm"
+            color={colors.primary}
+            onPress={() => router.push("/register")}
+          >
+            {strings.register.createAccount}
+          </T>
+          <View style={{ flex: 1 }} />
+        </Row>
+
+        <Spacer h={spacing.base} />
         <T variant="caption" color={colors.mutedSoft} align="center">
           {USING_MOCK
             ? strings.errors.usingSampleData

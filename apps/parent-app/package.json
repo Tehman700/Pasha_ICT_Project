@@ -14,6 +14,7 @@
     "@pickup/ui-native": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "expo": "~57.0.10",
+    "expo-camera": "~57.0.3",
     "expo-constants": "~57.0.9",
     "expo-dev-client": "~57.0.10",
     "expo-device": "~57.0.1",

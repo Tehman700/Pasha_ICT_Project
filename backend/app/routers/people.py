@@ -46,6 +46,23 @@ def list_schools(user: User = Depends(get_current_user), db: Session = Depends(g
     return [SchoolOut.model_validate(r) for r in rows]
 
 
+@router.get("/schools/public", response_model=list[SchoolOut], tags=["schools"])
+def list_schools_public(db: Session = Depends(get_db)):
+    """
+    Schools a person can register against. **Deliberately unauthenticated.**
+
+    Self-registration needs a `school_id` before an account exists, so the
+    authenticated `/schools` above cannot serve it — that endpoint scopes to
+    the caller's own school and a registering user has none.
+
+    Nothing here is sensitive: a school's name and gate coordinates are
+    public facts, printed on the gate and findable on any map. No rosters, no
+    staff, no children — those all stay behind `get_current_user`.
+    """
+    rows = db.execute(select(School).order_by(School.name)).scalars().all()
+    return [SchoolOut.model_validate(r) for r in rows]
+
+
 @router.get(
     "/schools/{school_id}/public-key",
     tags=["qr"],

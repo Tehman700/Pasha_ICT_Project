@@ -36,11 +36,24 @@ import type {
   Uuid,
   Vehicle,
   WaitTimeStats,
+  DriverRegistration,
+  DriverRegistrationResult,
+  ParentRegistration,
+  ParentRegistrationResult,
 } from "../types/api";
 import * as fx from "./fixtures";
 
 export interface PickupApi {
   login(body: LoginRequest): Promise<LoginResponse>;
+
+  /**
+   * Self-registration. Neither call signs the user in: the result screen has
+   * something to say first — which children a parent's CNIC matched, or that
+   * a driver is registered but invisible until a parent links him.
+   */
+  registerParent(body: ParentRegistration): Promise<ParentRegistrationResult>;
+  registerDriver(body: DriverRegistration): Promise<DriverRegistrationResult>;
+
   me(): Promise<User>;
   /**
    * Registers the device push token and the language preference.
@@ -52,6 +65,10 @@ export interface PickupApi {
   updateMe(body: { fcm_token?: string | null; locale?: Locale }): Promise<User>;
 
   listSchools(): Promise<School[]>;
+  /** Unauthenticated — the registration screens run before a token exists. */
+  listSchoolsPublic(): Promise<School[]>;
+  /** Returns the storage KEY to persist, not a URL. See the http client. */
+  uploadPhoto(uri: string, purpose: string): Promise<{ key: string; url: string | null }>;
   listClasses(schoolId?: Uuid): Promise<ClassRoom[]>;
   listStudents(classId?: Uuid): Promise<Student[]>;
   searchStudents(query: string): Promise<Student[]>;
@@ -120,6 +137,36 @@ export const mockApi: PickupApi = {
     return delay({ access_token: "mock.jwt.token", expires_in: 3600, user });
   },
 
+  async registerParent(body) {
+    const user = { ...fx.users.find((u) => u.role === "parent")!, name: body.name };
+    // The unmatched case is reachable on fixtures too: a CNIC ending in 0000
+    // returns nothing, so the "phone the school" branch can be seen without a
+    // backend. That branch is the one most likely to ship untested.
+    const matched = body.cnic.replace(/\D/g, "").endsWith("0000")
+      ? []
+      : fx.students.slice(0, 2).map((s) => ({
+          id: s.id,
+          name: s.name,
+          class_id: s.class_id,
+        }));
+    return delay({
+      user,
+      matched_children: matched,
+      message: matched.length
+        ? "We found your children — please confirm."
+        : "No match. Please phone the school and they will link your account.",
+    });
+  },
+
+  async registerDriver(body) {
+    const user = { ...fx.users.find((u) => u.role === "driver")!, name: body.name };
+    return delay({
+      user,
+      status: "UNASSIGNED" as const,
+      message: "Registered. A parent must link you before you appear to a school.",
+    });
+  },
+
   async me() {
     return delay(fx.users.find((u) => u.role === "admin")!);
   },
@@ -131,6 +178,16 @@ export const mockApi: PickupApi = {
 
   async listSchools() {
     return delay([fx.school]);
+  },
+
+  async listSchoolsPublic() {
+    return delay([fx.school]);
+  },
+
+  async uploadPhoto(uri) {
+    // Echo the local file back: on fixtures the camera preview is the photo,
+    // which is enough to exercise the screen without a server.
+    return delay({ key: `mock/${Date.now()}.jpg`, url: uri });
   },
 
   async listClasses(schoolId) {

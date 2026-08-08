@@ -14,11 +14,15 @@ import type {
   AuditLogEntry,
   ClassRoom,
   ClassroomDevice,
+  DriverRegistration,
+  DriverRegistrationResult,
   Handover,
   IsoDate,
   LoginRequest,
   LoginResponse,
   NameAudio,
+  ParentRegistration,
+  ParentRegistrationResult,
   OnTimeStats,
   PickupAuthorization,
   PickupRequest,
@@ -101,9 +105,16 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
     }
 
     const token = await tokens.get();
+    // FormData must set its own Content-Type: the header carries a generated
+    // multipart boundary, and supplying `application/json` over the top gives
+    // the server a body it cannot split — a 422 that looks like a bad payload.
+    const isMultipart =
+      typeof FormData !== "undefined" && rest.body instanceof FormData;
     const headers: Record<string, string> = {
       Accept: "application/json",
-      ...(rest.body ? { "Content-Type": "application/json" } : {}),
+      ...(rest.body && !isMultipart
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...((rest.headers as Record<string, string>) ?? {}),
     };
@@ -180,6 +191,26 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
       return res;
     },
 
+    /**
+     * Self-registration. Both are deliberately unauthenticated — the whole
+     * point is that a person with no account can create one.
+     *
+     * Neither signs the user in. Registration and login stay separate so the
+     * result screen can show what actually happened (which children matched,
+     * or that a driver is waiting to be linked) before the app moves on.
+     */
+    registerParent: (body: ParentRegistration) =>
+      request<ParentRegistrationResult>("/auth/register/parent", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    registerDriver: (body: DriverRegistration) =>
+      request<DriverRegistrationResult>("/auth/register/driver", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
     me: () => get<User>("/users/me"),
 
     updateMe: (body) =>
@@ -189,6 +220,40 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
       }),
 
     listSchools: () => get<School[]>("/schools"),
+
+    /**
+     * For the registration screens only. `/schools` requires a token, which a
+     * person creating their first account does not have — calling it there
+     * fails with a 401 that looks like a network fault.
+     */
+    listSchoolsPublic: () => get<School[]>("/schools/public"),
+
+    /**
+     * Upload one photograph, returning the KEY to store — never a URL. The
+     * server signs a short-lived link at read time; persisting a signed URL
+     * would bake in an expiry and give photos that 403 the next day.
+     *
+     * Unauthenticated, because a driver registering has no account yet.
+     * `uri` is a local `file://` path from the camera.
+     */
+    async uploadPhoto(uri: string, purpose: string) {
+      const form = new FormData();
+      // React Native's FormData takes this shape rather than a Blob; the
+      // filename matters only for the extension the server sees.
+      form.append("file", {
+        uri,
+        name: `${purpose}.jpg`,
+        type: "image/jpeg",
+      } as unknown as Blob);
+
+      // No Content-Type header set by hand: fetch has to add the multipart
+      // boundary itself, and supplying the header without it makes the server
+      // reject a body it cannot split.
+      return request<{ key: string; url: string | null }>(
+        `/uploads/photo?purpose=${encodeURIComponent(purpose)}`,
+        { method: "POST", body: form as unknown as BodyInit },
+      );
+    },
     listClasses: (schoolId?: Uuid) => get<ClassRoom[]>("/classes", { school_id: schoolId }),
     listStudents: (classId?: Uuid) => get<Student[]>("/students", { class_id: classId }),
     searchStudents: (q: string) =>
