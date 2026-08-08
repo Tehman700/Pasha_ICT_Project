@@ -36,7 +36,7 @@ export default function LoginScreen() {
       // comes from the account, never from a toggle on this screen. The mock
       // client has no real accounts, so the gate only applies to the live API.
       if (!USING_MOCK && res.user.role !== "parent" && res.user.role !== "driver") {
-        setError("This app is for parents and drivers. Staff use the staff app.");
+        setError(strings.errors.wrongAppParent);
         return;
       }
       // Ask for notification permission here, not at launch: Android only lets
@@ -49,8 +49,8 @@ export default function LoginScreen() {
       const status = (err as { status?: number })?.status;
       setError(
         status === 401
-          ? "Incorrect phone number or password."
-          : "Could not reach the server. Check your connection.",
+          ? strings.errors.badCredentials
+          : strings.errors.network,
       );
     },
   });
@@ -82,7 +82,7 @@ export default function LoginScreen() {
         </T>
         <Spacer h={spacing.xs} />
         <T variant="bodyMd" color={colors.muted}>
-          Parents, relatives and drivers all sign in here.
+          {strings.auth.parentSubtitle}
         </T>
         <Spacer h={spacing.lg} />
 
@@ -136,8 +136,8 @@ export default function LoginScreen() {
         <Spacer h={spacing.base} />
         <T variant="caption" color={colors.mutedSoft} align="center">
           {USING_MOCK
-            ? "Running on sample data — any credentials continue."
-            : "Signed in against the live system."}
+            ? strings.errors.usingSampleData
+            : strings.errors.usingLiveSystem}
         </T>
       </MotiView>
     </Screen>

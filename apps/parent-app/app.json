@@ -34,6 +34,7 @@
       "bundler": "metro"
     },
     "plugins": [
+      "../../plugins/with-pinned-ndk",
       "expo-router",
       "expo-secure-store",
       [

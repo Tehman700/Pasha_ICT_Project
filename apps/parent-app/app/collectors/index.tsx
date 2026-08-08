@@ -85,7 +85,7 @@ export default function CollectorsScreen() {
                     </T>
                     <Spacer h={4} />
                     <T variant="caption" color={colors.muted}>
-                      {first.kind === "one_time" ? "One-time pass" : "Standing access"}
+                      {first.kind === "one_time" ? strings.parent.oneTimePass : strings.parent.standingAccess}
                     </T>
                   </View>
                   <Badge tone={isDriver ? "primary" : "neutral"}>

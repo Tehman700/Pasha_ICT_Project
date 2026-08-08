@@ -47,14 +47,14 @@ export default function StaffLoginScreen() {
       if (USING_MOCK) return router.replace("/teacher");
       if (role === "teacher") return router.replace("/teacher");
       if (role === "guard" || role === "admin") return router.replace("/guard/scanner");
-      setError("This app is for teachers and guards. Parents use the Rukhsat app.");
+      setError(strings.errors.wrongAppStaff);
     },
     onError: (err) => {
       const status = (err as { status?: number })?.status;
       setError(
         status === 401
-          ? "Incorrect phone number or password."
-          : "Could not reach the server. Check your connection.",
+          ? strings.errors.badCredentials
+          : strings.errors.network,
       );
     },
   });
@@ -86,7 +86,7 @@ export default function StaffLoginScreen() {
         </T>
         <Spacer h={spacing.xs} />
         <T variant="bodyMd" color={colors.muted}>
-          Teachers and gate guards. Your role decides what you see.
+          {strings.auth.staffSubtitle}
         </T>
         <Spacer h={spacing.lg} />
 
@@ -141,7 +141,7 @@ export default function StaffLoginScreen() {
           <>
             <Spacer h={spacing.lg} />
             <T variant="caption" color={colors.mutedSoft}>
-              Running on sample data — pick a role to look around.
+              {strings.errors.usingSampleData}
             </T>
             <Spacer h={spacing.sm} />
             <Row gap={spacing.xs}>
@@ -159,7 +159,7 @@ export default function StaffLoginScreen() {
           <>
             <Spacer h={spacing.base} />
             <T variant="caption" color={colors.mutedSoft} align="center">
-              Signed in against the live system.
+              {strings.errors.usingLiveSystem}
             </T>
           </>
         )}

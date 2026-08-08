@@ -46,7 +46,7 @@ export default function ExceptionScreen() {
       <ScreenHeader title={strings.parent.exception} />
       <PageTitle
         title={strings.parent.exception}
-        subtitle="Applies to today only. Your weekly schedule is unchanged."
+        subtitle={strings.parent.todayOnlyNote}
       />
 
       {children.isLoading ? (

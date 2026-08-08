@@ -154,13 +154,13 @@ export default function ScannerScreen() {
           <View style={{ position: "absolute", bottom: spacing.sm, alignItems: "center" }}>
             <T variant="caption" color={colors.inverted.textMuted}>
               {permission?.canAskAgain === false
-                ? "Camera blocked in Settings — use the code below"
-                : "Camera off — tap to enable, or use the code below"}
+                ? strings.staff.cameraBlocked
+                : strings.staff.cameraOff}
             </T>
             {permission?.canAskAgain !== false ? (
               <>
                 <Spacer h={spacing.xs} />
-                <Button label="Enable camera" onPress={() => void requestPermission()} />
+                <Button label={strings.staff.enableCamera} onPress={() => void requestPermission()} />
               </>
             ) : null}
           </View>
@@ -172,7 +172,7 @@ export default function ScannerScreen() {
       <Input
         value={code}
         onChangeText={setCode}
-        placeholder="Paste pickup code"
+        placeholder={strings.staff.pasteCode}
         autoCapitalize="none"
         autoCorrect={false}
         multiline
@@ -199,8 +199,7 @@ export default function ScannerScreen() {
         <>
           <Spacer h={spacing.sm} />
           <T variant="caption" color={colors.inverted.errorOnInk}>
-            Could not reach the server. Use the manual handover below — never
-            turn a family away because the software could not check.
+            {strings.staff.scanOfflineNote}
           </T>
         </>
       ) : null}

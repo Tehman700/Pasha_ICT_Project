@@ -64,7 +64,7 @@ export default function AddCollectorScreen() {
     },
     onError: () => {
       setFound(null);
-      setError("No driver registered with that number. Check it with him.");
+      setError(strings.parent.driverNotFound);
     },
   });
 
@@ -112,8 +112,8 @@ export default function AddCollectorScreen() {
       {mode === "driver" ? (
         <>
           <Field
-            label="Driver's phone number"
-            hint="The number he registered with. Ask him for it."
+            label={strings.parent.driverPhone}
+            hint={strings.parent.driverPhoneNote}
           >
             <Input
               value={phone}
@@ -220,12 +220,12 @@ export default function AddCollectorScreen() {
         </>
       ) : (
         <Card>
-          <Field label="Name">
-            <Input value={name} onChangeText={setName} placeholder="Rukhsana Bibi" />
+          <Field label={strings.parent.relativeName}>
+            <Input value={name} onChangeText={setName} placeholder={strings.parent.relativeNamePlaceholder} />
           </Field>
           <Field
             label={strings.auth.phone}
-            hint="They sign in with this number and get their own pickup code."
+            hint={strings.parent.relativeNote}
           >
             <Input
               value={relativePhone}
