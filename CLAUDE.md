@@ -6,8 +6,13 @@ A 1-week competition build by two developers, both using Claude Code.
 
 The competition requires a **live deployed system**, not a recorded demo.
 
+**All 44 modules are built and deployed.** What remains is testing on real
+devices and a store submission — not construction. Don't propose new modules
+or "finish" existing ones without checking `docs/HANDOVER.md` first.
+
 **Before making non-trivial changes, read:**
-- `docs/MODULE_PLAN.md` — the build order and what's done; **start here**
+- `docs/HANDOVER.md` — current state, recent fixes, build commands; **start here**
+- `docs/MODULE_PLAN.md` — the build order and what's done
 - `docs/PROJECT_CONTEXT.md` — what's being built and every decision made so far
 - `docs/api/openapi.yaml` — the contract between backend and all frontends
 - `docs/SECURITY.md` — rules that must not be silently changed

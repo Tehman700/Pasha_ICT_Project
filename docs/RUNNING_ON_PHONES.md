@@ -1,164 +1,219 @@
-# Running the apps on your phone
+# Running the apps on a phone
 
-All four surfaces run today with **no backend** — every screen is wired to a
-typed mock layer. You need no AWS account, no database, and no Play Store
-build to look at any of this.
+Both apps run against **live production** (`api.tideover.site`). There is no
+staging. Sign in with a seeded account — see the table at the bottom.
 
-**Good news for right now: you do not need a dev build.** Every dependency in
-both mobile apps ships inside Expo Go for SDK 57, so scanning a QR code is
-enough. (The two places that need a dev build later are noted at the bottom.)
+There are three ways to get a change onto a phone. Pick by what you changed.
 
----
+| Changed | How | Time |
+|---|---|---|
+| `.tsx`, strings, styling, logic, API calls | save the file | ~1 s |
+| Same, onto an already-installed APK | `eas update` | ~1 min |
+| Native module, `app.json`, permissions, SDK | `expo run:android` over USB | ~4 min |
+| Same, for a judge or the Play Store | `eas build` | ~1 h |
 
-## One-time setup
-
-```bash
-# from the repo root
-pnpm install
-```
-
-Install **Expo Go** on each Android phone — Play Store → "Expo Go".
-
-Your phone and your computer must be on the **same Wi-Fi network**. Phone
-hotspot works; university/office networks with client isolation often do not
-(see Troubleshooting).
+> The EAS hour is **queue time on the free tier**, not build time, and it does
+> not get shorter with practice. That is the whole reason OTA and the local
+> toolchain exist.
 
 ---
 
-## Parent app
+## 1. Daily development — USB, no Wi-Fi
 
-```bash
-pnpm dev:parent
+This is where you will spend almost all your time. The phone talks to Metro
+**through the cable**, so router isolation, firewalls and LAN addresses stop
+mattering entirely.
+
+One-time, per phone:
+
+- Settings → About phone → tap **Build number** seven times
+- Developer options → **USB debugging** ON
+- Developer options → **Install via USB** ON
+  *(Xiaomi/Redmi also needs **USB debugging (Security settings)** — installs
+  fail silently without it)*
+- Plug in, accept **Allow USB debugging?**, tick *always allow*
+- If the phone only charges: pull down the shade, tap the USB notification,
+  choose **File transfer**
+
+Then, each session:
+
+```powershell
+adb devices                              # confirm the phone is listed
+adb reverse tcp:8081 tcp:8081
+cd apps/parent-app
+npx expo start --dev-client
 ```
 
-A QR code appears in the terminal. Open **Expo Go → Scan QR code** and point it
-at the terminal. First load takes 20–40 seconds while Metro bundles; after that
-saves hot-reload in about a second.
+Staff app is identical on 8082:
 
-**What to walk through**
-
-1. **Sign in** — any phone number and password continue.
-2. **Today's pickup** — Tariq Raza's two children, Ali (Nursery) and Zara
-   (Prep A). Note both are being collected by *Ahmed Khan's van*, not by the
-   parent. That is one trip covering a sibling group.
-3. **Weekly schedule** — the van collects Monday–Thursday, the father on Friday.
-   That is the per-weekday collector column doing its job.
-4. **Who can collect my children** → **Add someone** — the two paths:
-   *school-approved drivers* (vetted list) and *a relative or helper* (added
-   directly by you). Then pick which children.
-5. **On my way** → **Show pickup code** — the QR rotates every 60 seconds with a
-   countdown bar, and shows how many pre-fetched tokens remain.
-6. **اردو** in the top-right of any screen — the whole app switches to Urdu.
-
-## Staff app
-
-```bash
-pnpm dev:staff        # runs on port 8082 so both can run at once
+```powershell
+adb -s <device-id> reverse tcp:8082 tcp:8082
+cd apps/staff-app
+npx expo start --dev-client --port 8082
 ```
 
-Two roles behind one login. The skeleton lets you pick a role on the login
-screen; the real app routes automatically from your account, and a guard can
-never reach teacher screens.
+Edit any file, save, and the phone updates in about a second.
 
-**Teacher**
-- Prep list for Nursery, built from today's bookings — *not* queue order.
-- Live queue, scoped to this teacher's class only.
-- Mark children at the gate.
+**Two phones connected?** Every `adb` command needs `-s <device-id>`, or it
+errors about multiple devices. `adb devices -l` lists the ids.
 
-**Guard** — note this whole tree is **ink-inverted**, because it is read in
-direct afternoon sun at a gate.
-- **Simulate valid scan** → verdict screen with child photo beside collector
-  photo. A green tick is not the handover; the guard still confirms visually.
-- **Simulate van scan** → six children confirmed one at a time as they board.
-- **Simulate expired code** → red verdict, which routes straight to manual.
-- **Manual handover** → search a child, pick from their *authorized* collectors
-  only, give a reason. Deliberately given equal visual weight to scanning.
+**If the dev client asks for a URL**, type `http://localhost:8081` (or `:8082`
+for staff). That is the phone's own port, forwarded down the cable.
 
-## Admin dashboard + classroom display
+---
+
+## 2. Pushing to an installed APK — `eas update`
+
+For a teammate or a judge who already has the app:
 
 ```bash
-pnpm dev:admin
+cd apps/parent-app
+npx eas update --branch preview -m "fixed Urdu on the queue screen"
 ```
 
-- Dashboard: <http://localhost:3000>
-- Classroom display: <http://localhost:3000/display/cls-nur>
+They get it on next launch. Works for anything that is only JavaScript.
 
-**To view these on a tablet or phone**, find your computer's LAN address and
-use that instead of `localhost`:
+**It will not work for native changes** — the runtime version is on the
+`fingerprint` policy, so an update that assumes a native module the installed
+APK lacks simply is not served. That is deliberate: the alternative is the app
+crashing on launch with a blank screen and nothing to explain it.
+
+---
+
+## 3. Building an APK
+
+### Locally, over USB (fast)
+
+```powershell
+cd apps/parent-app
+npx expo run:android
+```
+
+Builds and installs in one step. **First run ~30 min** (Gradle downloads
+everything), then **~4 min**. Add `--variant release` for a fast,
+judge-ready build that embeds the JS bundle.
+
+### On EAS (for distribution)
 
 ```bash
-# Windows
-ipconfig | findstr /i "IPv4"
-# macOS / Linux
-ipconfig getifaddr en0 || hostname -I
+cd apps/parent-app
+npx eas build --platform android --profile preview
 ```
 
-Then browse to `http://<that-ip>:3000` from the device.
+Produces a download link and QR. Needed for Play Store submission, and for
+anyone who cannot plug into your laptop.
 
-The classroom display is built as a **web route on purpose** — pairing a
-display becomes "open a URL" instead of "install an APK and pair it", and it
-gets GSAP and the Web Audio API, neither of which exists in React Native. Put
-the tablet's browser in full-screen/kiosk mode and it is done.
+---
+
+## Toolchain setup (local builds only)
+
+Skip this if you only use Expo Go or EAS.
+
+```powershell
+winget install Microsoft.OpenJDK.17
+```
+
+Android SDK — command-line tools only, no Android Studio needed. Unpack to
+`C:\Android\Sdk\cmdline-tools\latest`, then:
+
+```powershell
+sdkmanager --licenses
+sdkmanager platform-tools "platforms;android-36" "build-tools;36.0.0"
+```
+
+Set `JAVA_HOME`, `ANDROID_HOME=C:\Android\Sdk`, and put
+`%ANDROID_HOME%\platform-tools` on PATH. **Open a new terminal afterwards** —
+environment variables do not reach terminals that were already running.
+
+### The NDK — download it manually
+
+Gradle wants NDK `27.1.12297006`. Do **not** let `sdkmanager` fetch it: it has
+no resume, so a dropped connection restarts a 745MB download from zero. Four
+attempts failed here before switching to:
+
+```bash
+curl -L --retry 20 --retry-all-errors -C - \
+  -o ndk.zip https://dl.google.com/android/repository/android-ndk-r27b-windows.zip
+```
+
+Extract to `C:\Android\Sdk\ndk\27.1.12297006`, then **check `source.properties`
+exists in it**. A partial extract leaves a folder Gradle happily treats as a
+complete install, and the resulting error names a package you never asked for.
 
 ---
 
 ## Troubleshooting
 
-**QR scan does nothing / stuck on "Downloading"** — phone and computer are not
-reaching each other. Use a tunnel:
+**White screen, app does not crash.**
+A native module is declared in `app.json` but missing from `package.json`.
+Check logcat: GPU frames drawn, zero `ReactNativeJS` lines, and a
+`ClassNotFoundException` somewhere above. This exact bug shipped once via
+`expo-splash-screen`.
 
-```bash
-pnpm --filter @pickup/parent-app start --tunnel
+```powershell
+adb logcat -d | Select-String "ClassNotFoundException|ReactNativeJS"
 ```
 
-Slower, but it works through client isolation, VPNs, and guest Wi-Fi.
+**`Unable to delete file ... classes.jar`.**
+Both apps compile the shared `expo-modules-core` into the same folder under
+`node_modules`, so they cannot build at the same time.
 
-**"Port 8081 already in use"** — you have another Metro running. `pnpm
-dev:staff` already uses 8082; for anything else pass `--port`.
+```powershell
+.\android\gradlew.bat --stop
+```
 
-**Changes not appearing** — shake the phone → *Reload*. If Metro looks confused
-after a dependency change, restart with `--clear`.
+**`Failed to install the following SDK components: ndk;<some other version>`.**
+`expo-updates` does not declare an `ndkVersion`, so AGP uses its own default.
+`plugins/with-pinned-ndk.js` fixes this and is already wired into both apps —
+if you see it, the plugin was dropped from `app.json`.
 
-**Windows Firewall prompt on first run** — allow Node on **private** networks,
-or the phone cannot reach Metro.
+**`INSTALL_FAILED_USER_RESTRICTED`.**
+Xiaomi. Turn on **Install via USB** and **USB debugging (Security settings)**.
+If it persists, Developer options → turn off **MIUI optimization**, reboot.
 
-**Metro cannot find `@pickup/shared`** — the workspace uses hoisted node_modules
-(`.npmrc` sets `node-linker=hoisted`) because Metro cannot follow pnpm's
-symlinks. If you ever see this, run `pnpm install` from the repo root, not from
-inside an app.
+**Metro unreachable / stuck "Downloading".**
+You are on Wi-Fi instead of USB. Use `adb reverse`, or as a last resort
+`npx expo start --tunnel` (slower, works on any network).
+
+**Running Metro from WSL does not work.**
+WSL2 sits behind its own virtual network. Your phone cannot reach it. Run
+Metro from PowerShell; keep WSL for `ssh`, `scp` and `eas`.
+
+**Notifications never arrive in Expo Go.**
+Expected, permanently. Expo Go receives FCM for Expo's own Firebase project,
+never for `rukhsat-87a43`. Push can only be tested from an APK.
 
 ---
 
-## What still needs a dev build (later, not now)
+## Test accounts
 
-Two things are stubbed precisely so the skeleton runs in Expo Go:
+Password for all: `rukhsat123`
 
-| Stub | Needs | Module |
+| Role | Phone | Lands on |
 |---|---|---|
-| Guard camera preview | `expo-camera` on a dev build | M7.3 |
-| Parent map view | `react-native-maps` + a Google Maps SDK key | M4.5 |
+| Parent | `+923331000001` | Children, On my way, rotating QR |
+| Driver | `+923215000011` | Trip screen, OSM map |
+| Teacher | `+923004445566` | Live class queue |
+| Guard | `+923007778899` | Scanner + manual fallback |
+| Admin | `+923001112233` | https://admin.tideover.site |
 
-When you get there:
+Wipe a stored session — the token is in the device keychain and survives
+reinstalls of the JS bundle:
 
-```bash
-npm install -g eas-cli
-eas build --platform android --profile development
+```powershell
+adb shell pm clear com.rukhsat.parent
 ```
-
-That build URL doubles as the direct-APK download link for testers, which is
-the competition distribution plan — Play closed testing cannot unlock in time.
 
 ---
 
-## Verifying the build yourself
+## The end-to-end run
 
-```bash
-pnpm verify     # typecheck, migration round-trip, 73 tests, admin build
-```
+Two phones, one parent and one staff:
 
-To confirm the mobile apps compile all the way to a phone bundle:
+1. **Parent** → sign in → **On my way** → **Show pickup code**, brightness up
+2. **Guard** → sign in → allow camera → point at the parent's screen
+3. Verdict screen names the child → confirm handover
+4. **The parent's phone should get a notification naming the collector**
 
-```bash
-cd apps/parent-app && npx expo export --platform android
-cd apps/staff-app  && npx expo export --platform android
-```
+Step 4 is the last unverified hop in the system. Everything before it has been
+checked against production.
