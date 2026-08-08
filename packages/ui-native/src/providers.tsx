@@ -78,23 +78,43 @@ const ApiContext = createContext<PickupApi>(mockApi);
  * On a physical phone `localhost` is the PHONE, not your laptop. Use the
  * production URL or your machine's LAN address.
  */
-function resolveApi(): PickupApi {
+function resolveApi(onUnauthorized?: () => void): PickupApi {
   const url = process.env.EXPO_PUBLIC_API_URL;
   const forceMock = process.env.EXPO_PUBLIC_USE_MOCK_API === "true";
   if (!url || forceMock) return mockApi;
-  return createHttpApi({ baseUrl: url, tokens: secureTokenStore() });
+  return createHttpApi({
+    baseUrl: url,
+    tokens: secureTokenStore(),
+    onUnauthorized,
+  });
 }
-
-const defaultApi = resolveApi();
 
 export function AppProviders({
   children,
-  api = defaultApi,
+  api,
+  onUnauthorized,
 }: {
   children: React.ReactNode;
   api?: PickupApi;
+  /**
+   * Called when the server rejects the stored token — normally because it
+   * expired, since tokens last 24h and the keychain keeps them across
+   * launches. Each app passes its own login route.
+   *
+   * Without this the app clears the dead token and then simply stays where
+   * it was, with every screen failing and no route back to a login form. A
+   * collector standing at the gate would have to know to hunt for Sign out
+   * in the profile tab.
+   */
+  onUnauthorized?: () => void;
 }) {
   const [locale, setLocale] = useState<Locale>("en");
+
+  // Built once, holding the callback. `api` still wins so tests and the
+  // storybook-ish screens can inject a fake.
+  const [resolved] = useState(() => resolveApi(onUnauthorized));
+  const activeApi = api ?? resolved;
+
   const [client] = useState(
     () =>
       new QueryClient({
@@ -130,7 +150,7 @@ export function AppProviders({
 
   return (
     <QueryClientProvider client={client}>
-      <ApiContext.Provider value={api}>
+      <ApiContext.Provider value={activeApi}>
         <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
       </ApiContext.Provider>
     </QueryClientProvider>
