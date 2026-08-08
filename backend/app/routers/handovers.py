@@ -33,7 +33,7 @@ from app.models import (
     User,
 )
 from app.schemas import HandoverIn, HandoverOut
-from app.services import broadcast
+from app.services import broadcast, notify
 from app.services.authorization import may_collect
 
 router = APIRouter()
@@ -210,7 +210,28 @@ def create_handover(
     db.commit()
     db.refresh(handover)
     broadcast.queue_changed(school_id=guard.school_id, reason="handover")
+    _notify_guardians(db, handover)
     return HandoverOut.model_validate(handover)
+
+
+def _notify_guardians(db: Session, handover: Handover) -> None:
+    """
+    Push "your child was handed to X" — strictly after the commit.
+
+    After, not before: a notification that a handover happened must never be
+    sent for a handover that then rolls back. The parent acting on a false
+    alarm is worse than a real one arriving a second late.
+    """
+    req = db.get(PickupRequest, handover.pickup_request_id)
+    collector = db.get(User, handover.collector_user_id)
+    if req is None or collector is None:
+        return
+    notify.notify_handover(
+        db,
+        student_id=req.student_id,
+        collector=collector,
+        handover_id=handover.id,
+    )
 
 
 @router.post("/handovers/sync", tags=["handovers"])
@@ -232,9 +253,13 @@ def sync_handovers(
         # whole session would discard the items already accepted in this batch.
         savepoint = db.begin_nested()
         try:
-            _record(db, guard=guard, body=item)
+            handover = _record(db, guard=guard, body=item)
             savepoint.commit()
             db.commit()
+            # A replayed item raises HandoverRefused above and never reaches
+            # here, so reconnecting after an hour offline cannot re-notify a
+            # parent about a handover she was already told about.
+            _notify_guardians(db, handover)
             results.append(
                 {
                     "pickup_request_id": str(item.pickup_request_id),

@@ -2,34 +2,62 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { MotiView } from "moti";
+import { useMutation } from "@tanstack/react-query";
 import {
   Button,
   Card,
   Field,
   Input,
-  Label,
   Row,
   Screen,
   Spacer,
   T,
+  USING_MOCK,
   colors,
   motion,
+  register as registerForPush,
   spacing,
+  useApi,
   useLocale,
 } from "@pickup/ui-native";
 
 /**
  * Staff login.
  *
- * In production the role comes from `/users/me` after authentication and the
- * app routes accordingly — the user never picks. The role switch below exists
- * only so the skeleton can demonstrate both trees without a backend.
+ * One app, two roles — and the role comes from `/users/me`, never from a
+ * toggle on this screen. A device flag would mean a guard's phone could be
+ * flipped to teacher mode and read every class roster.
  */
 export default function StaffLoginScreen() {
+  const api = useApi();
   const router = useRouter();
   const { strings, locale, toggle } = useLocale();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const login = useMutation({
+    mutationFn: () => api.login({ phone: phone.trim(), password }),
+    onSuccess: (res) => {
+      const role = res.user.role;
+      // Staff get no pickup notifications — voice replaces the teacher push
+      // entirely. This registers the device anyway so an admin broadcast has
+      // somewhere to land, and so the token is fresh if that ever ships.
+      void registerForPush(api);
+      if (USING_MOCK) return router.replace("/teacher");
+      if (role === "teacher") return router.replace("/teacher");
+      if (role === "guard" || role === "admin") return router.replace("/guard/scanner");
+      setError(strings.errors.wrongAppStaff);
+    },
+    onError: (err) => {
+      const status = (err as { status?: number })?.status;
+      setError(
+        status === 401
+          ? strings.errors.badCredentials
+          : strings.errors.network,
+      );
+    },
+  });
 
   return (
     <Screen>
@@ -58,7 +86,7 @@ export default function StaffLoginScreen() {
         </T>
         <Spacer h={spacing.xs} />
         <T variant="bodyMd" color={colors.muted}>
-          Teachers and gate guards sign in here.
+          {strings.auth.staffSubtitle}
         </T>
         <Spacer h={spacing.lg} />
 
@@ -66,42 +94,75 @@ export default function StaffLoginScreen() {
           <Field label={strings.auth.phone}>
             <Input
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(v) => {
+                setPhone(v);
+                setError(null);
+              }}
               placeholder="+92 300 4445566"
               keyboardType="phone-pad"
               autoCapitalize="none"
+              autoCorrect={false}
             />
           </Field>
           <Field label={strings.auth.password}>
             <Input
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                setError(null);
+              }}
               placeholder="••••••••"
               secureTextEntry
             />
           </Field>
+
+          {error ? (
+            <>
+              <T variant="bodySm" color={colors.error}>
+                {error}
+              </T>
+              <Spacer h={spacing.sm} />
+            </>
+          ) : null}
+
+          <Button
+            label={login.isPending ? strings.common.loading : strings.auth.signInCta}
+            variant="primary"
+            full
+            disabled={login.isPending || phone.trim() === "" || password === ""}
+            onPress={() => {
+              setError(null);
+              login.mutate();
+            }}
+          />
         </Card>
 
-        <Spacer h={spacing.lg} />
-        <Label>Skeleton only — pick a role to continue</Label>
-        <Spacer h={spacing.sm} />
-        <Row gap={spacing.xs}>
-          <Button
-            label={strings.role.teacher}
-            variant="primary"
-            onPress={() => router.replace("/teacher")}
-          />
-          <Button
-            label={strings.role.guard}
-            variant="ink"
-            onPress={() => router.replace("/guard/scanner")}
-          />
-        </Row>
-        <Spacer h={spacing.sm} />
-        <T variant="caption" color={colors.mutedSoft}>
-          In the real app the role comes from your account — a guard never sees
-          teacher screens and a teacher never sees the scanner.
-        </T>
+        {USING_MOCK ? (
+          <>
+            <Spacer h={spacing.lg} />
+            <T variant="caption" color={colors.mutedSoft}>
+              {strings.errors.usingSampleData}
+            </T>
+            <Spacer h={spacing.sm} />
+            <Row gap={spacing.xs}>
+              <Button
+                label={strings.role.teacher}
+                onPress={() => router.replace("/teacher")}
+              />
+              <Button
+                label={strings.role.guard}
+                onPress={() => router.replace("/guard/scanner")}
+              />
+            </Row>
+          </>
+        ) : (
+          <>
+            <Spacer h={spacing.base} />
+            <T variant="caption" color={colors.mutedSoft} align="center">
+              {strings.errors.usingLiveSystem}
+            </T>
+          </>
+        )}
       </MotiView>
     </Screen>
   );

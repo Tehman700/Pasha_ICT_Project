@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "408788112547",
+    "project_id": "rukhsat-87a43",
+    "storage_bucket": "rukhsat-87a43.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408788112547:android:bc0e12a5edcfcb85c65b16",
+        "android_client_info": {
+          "package_name": "com.rukhsat.parent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8M6NSiEpGENi5940P8ucT_DVhCM4tSlE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408788112547:android:0939821c68922e30c65b16",
+        "android_client_info": {
+          "package_name": "com.rukhsat.staff"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8M6NSiEpGENi5940P8ucT_DVhCM4tSlE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

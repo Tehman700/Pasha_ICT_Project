@@ -150,7 +150,7 @@ export default function TodayScreen() {
 
       <Divider />
 
-      <Label>Quick actions</Label>
+      <Label>{strings.parent.quickActions}</Label>
       <Spacer h={spacing.sm} />
       <Row gap={spacing.xs} style={{ flexWrap: "wrap" }}>
         <Button label={strings.parent.mySchedule} onPress={() => router.push("/schedule")} />

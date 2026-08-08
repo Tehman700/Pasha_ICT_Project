@@ -1,26 +1,57 @@
 # Module Plan — Dependency-Ordered Build Sequence
 
-> ## Status — updated 6 Aug 2026
+> ## Status — updated 8 Aug 2026
 >
-> **Done:** M0.2 (design system) · M1.4a (all 37 screens, mocked)
+> **Live:** https://api.tideover.site · https://admin.tideover.site
 >
-> All four surfaces exist and are clickable end to end against a typed mock
-> layer. Nothing talks to a server yet, by design — swapping in the real
-> backend is M1.4b and changes one call site, not 37 screens.
+> | | |
+> |---|---|
+> | Modules | **44 of 44** |
+> | Endpoints | 48 REST + 2 WebSocket |
+> | API contract | 51 paths, **zero undocumented endpoints** |
+> | Tests | **188 backend** + 22 frontend |
+> | Screens | 37 (12 parent · 9 staff · 16 admin/display) |
 >
-> | Surface | Screens | Runs with |
-> |---|---|---|
-> | `apps/admin-web` | 14 | `pnpm dev:admin` |
-> | classroom display (in admin-web) | 2 | `/display/[classId]`, kiosk browser |
-> | `apps/parent-app` | 12 | `pnpm dev:parent` + Expo Go |
-> | `apps/staff-app` | 9 | `pnpm dev:staff` + Expo Go |
+> `pnpm verify` runs typecheck across 5 packages, a migration round-trip,
+> a reseed, all tests, and the admin build.
 >
-> Verified by `pnpm verify`: 5 packages typecheck, 22 contract tests pass,
-> admin-web builds 16 routes, both mobile apps produce Android bundles.
-> See `docs/RUNNING_ON_PHONES.md` to view them on a device.
+> **What works end to end, verified against production:**
+> driver self-registers → invisible to the school → parent links him by phone →
+> he appears → trip starts → location streams → ETA drops → **announcement
+> fires once per class at ~120s and does not repeat** → teacher stages →
+> guard scans a real ES256 token → per-child authorization re-checked →
+> handover → audit log **→ the parent's phone is told who took her child**.
+> Plus one-off passes, manual fallback, and the nightly job.
 >
-> **Everything below this line is still outstanding**, except where marked.
-> The next module on the critical path is **M0.3 — the API contract**.
+> **All 44 modules are built.** M9.2 closed the last gap: 27 user-facing
+> strings existed only in English and are now bilingual, with `ur` typed as
+> `DeepMirror<Strings>` so a missing translation is a compile error. What
+> remains is not building — it is a human sweep of both languages on a real
+> device, and an end-to-end gate run with 5+ phones.
+>
+> **M0.5 Play Console** is in progress — the account is bought and awaiting
+> verification. Judges get a direct APK; the store listing is for afterwards.
+>
+> **Push (M8.1/M8.2)** ships against Firebase project `rukhsat-87a43`, FCM
+> HTTP v1. Three notifications and no more: morning reminder, collector
+> arriving, handed over. There is deliberately no teacher push — voice
+> replaces it. The FCM transport is verified live against Google (OAuth
+> exchange from the service account returns a token on the production box).
+> Delivery to a handset needs an APK — Expo Go receives FCM for Expo's own
+> Firebase project, never for `rukhsat-87a43`, so it can never show a push
+> from this system no matter what is fixed.
+>
+> **Deferred by agreement:** vans as entities with drivers as reassignable
+> assignments. Correct, but a substitute driver will not occur during a demo.
+>
+> **Guard camera is live.** `expo-camera` now scans the QR directly; the
+> paste field remains below it, because a cracked lens must never be why a
+> child cannot go home.
+>
+> **Three ways to get a build**, in order of speed:
+> `eas update` (~1 min, JS only) · `npx expo run:android` over USB (~3 min,
+> after a 30-min first build) · `eas build` (~1 h, needed only for native
+> changes). See `docs/DEPLOYMENT.md`.
 
 This is the **build order**: what gets built first, what unblocks what, and when
 each module is done. It is ordered by *dependency*, not by calendar day.
@@ -443,14 +474,41 @@ Queue locally, sync on reconnect, idempotent by `jti`.
 
 # Phase 8 — Push Notifications
 
-### M8.1 — FCM registration
-`users.fcm_token` exists in the schema but nothing can set it — **push cannot
-work at all until this ships.**
+### M8.1 — FCM registration  ✅ DONE
+`PATCH /users/me` takes the token; `usePushTokenRotation` keeps it fresh when
+FCM rotates it (which happens on restore, clear-data, and at Google's
+discretion — an app that registers only at first launch goes silently
+undeliverable weeks later). Permission is requested **after login**, never at
+launch: Android 13+ lets you ask once, and a stranger on the login screen has
+no reason to say yes. A denial clears the token server-side rather than
+leaving the backend pushing at a phone that will never display anything.
+
+The device FCM token is registered, **not** the Expo push token — the backend
+talks to FCM v1 directly with a service account, and an `ExponentPushToken[…]`
+fails there in a way indistinguishable from a revoked permission.
 - **Depends on:** M1.2
 
-### M8.2 — Parent notifications
-Pickup reminder, geofence arrival, handover complete. Explicit consent; handle
-denial gracefully. **No teacher arrival push — voice replaces it.** No SMS.
+### M8.2 — Parent notifications  ✅ DONE
+Morning reminder, collector arriving, handed over. **No teacher arrival push —
+voice replaces it.** No SMS.
+
+`services/push.py` is the transport (OAuth from the service account via pyjwt,
+no `firebase-admin` — grpcio alone is ~100MB on a 1.9GB box). `services/notify.py`
+owns the domain: who to tell, in whose language.
+
+Four decisions worth not re-litigating:
+- **The collector is named** in the arrival and handover messages. A lock
+  screen reading "Zara was handed to Ahmed Khan" is legible to anyone holding
+  the phone — but a parent seeing a name she did not expect is the most
+  valuable alert this system produces.
+- **Handovers never collapse.** Two children released must leave two
+  notifications; collapsing would hide a release. Arrivals *do* collapse, so a
+  moving ETA leaves one entry rather than four.
+- **A dead token is cleared** on FCM's `UNREGISTERED`, but not on a mere
+  failure — a network blip is not an uninstall.
+- **The reminder job claims a Redis key before sending.** Two uvicorn workers
+  each run their own scheduler, and a push cannot be un-sent, so losing Redis
+  means send nothing rather than send twice.
 - **Depends on:** M8.1, M4.4
 
 ---

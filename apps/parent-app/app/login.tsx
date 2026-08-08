@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { MotiView } from "moti";
+import { useMutation } from "@tanstack/react-query";
 import {
   Button,
   Card,
@@ -11,17 +12,48 @@ import {
   Screen,
   Spacer,
   T,
+  USING_MOCK,
   colors,
   motion,
+  register as registerForPush,
   spacing,
+  useApi,
   useLocale,
 } from "@pickup/ui-native";
 
 export default function LoginScreen() {
+  const api = useApi();
   const router = useRouter();
   const { strings, locale, toggle } = useLocale();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const login = useMutation({
+    mutationFn: () => api.login({ phone: phone.trim(), password }),
+    onSuccess: (res) => {
+      // A teacher or guard signing in here would see a parent's screens. Role
+      // comes from the account, never from a toggle on this screen. The mock
+      // client has no real accounts, so the gate only applies to the live API.
+      if (!USING_MOCK && res.user.role !== "parent" && res.user.role !== "driver") {
+        setError(strings.errors.wrongAppParent);
+        return;
+      }
+      // Ask for notification permission here, not at launch: Android only lets
+      // you ask once, and a stranger on the login screen has no reason to say
+      // yes. Fire and forget — a refusal must not hold up the sign-in.
+      void registerForPush(api);
+      router.replace("/");
+    },
+    onError: (err) => {
+      const status = (err as { status?: number })?.status;
+      setError(
+        status === 401
+          ? strings.errors.badCredentials
+          : strings.errors.network,
+      );
+    },
+  });
 
   return (
     <Screen>
@@ -50,7 +82,7 @@ export default function LoginScreen() {
         </T>
         <Spacer h={spacing.xs} />
         <T variant="bodyMd" color={colors.muted}>
-          Parents, relatives and drivers all sign in here.
+          {strings.auth.parentSubtitle}
         </T>
         <Spacer h={spacing.lg} />
 
@@ -58,32 +90,54 @@ export default function LoginScreen() {
           <Field label={strings.auth.phone}>
             <Input
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(v) => {
+                setPhone(v);
+                setError(null);
+              }}
               placeholder="+92 333 1000001"
               keyboardType="phone-pad"
               autoCapitalize="none"
+              autoCorrect={false}
             />
           </Field>
           <Field label={strings.auth.password}>
             <Input
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                setError(null);
+              }}
               placeholder="••••••••"
               secureTextEntry
             />
           </Field>
-          <Spacer h={spacing.xs} />
+
+          {error ? (
+            <>
+              <T variant="bodySm" color={colors.error}>
+                {error}
+              </T>
+              <Spacer h={spacing.sm} />
+            </>
+          ) : null}
+
           <Button
-            label={strings.auth.signInCta}
+            label={login.isPending ? strings.common.loading : strings.auth.signInCta}
             variant="primary"
             full
-            onPress={() => router.replace("/")}
+            disabled={login.isPending || phone.trim() === "" || password === ""}
+            onPress={() => {
+              setError(null);
+              login.mutate();
+            }}
           />
         </Card>
 
         <Spacer h={spacing.base} />
         <T variant="caption" color={colors.mutedSoft} align="center">
-          Skeleton build — any credentials continue.
+          {USING_MOCK
+            ? strings.errors.usingSampleData
+            : strings.errors.usingLiveSystem}
         </T>
       </MotiView>
     </Screen>

@@ -37,7 +37,7 @@ from app.models import (
     User,
 )
 from app.schemas import LocationPing, TripOut
-from app.services import broadcast
+from app.services import broadcast, notify
 from app.services.eta import Fix, estimate, should_announce
 
 router = APIRouter()
@@ -293,6 +293,15 @@ def _announce_arrival(
             collector_name=user.name,
             students=students,
             eta_seconds=eta,
+        )
+        # The parent hears about it on her phone at the same moment the room
+        # hears it aloud. Guarded by the same (class_id, trip_id) row, so this
+        # cannot repeat on the next ping either.
+        notify.notify_arrival(
+            db,
+            student_ids=[uuid.UUID(s["student_id"]) for s in students],
+            collector=user,
+            trip_id=trip.id,
         )
         spoken.append(str(class_id))
 

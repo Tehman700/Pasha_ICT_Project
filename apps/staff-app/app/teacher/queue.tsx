@@ -45,7 +45,7 @@ export default function TeacherQueueScreen() {
       <StaffHeader role="teacher" back />
       <PageTitle
         title={strings.queue.title}
-        subtitle="Your class only, ordered by live arrival time."
+        subtitle={strings.staff.classQueueNote}
       />
 
       {queue.isLoading ? (

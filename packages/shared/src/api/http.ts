@@ -182,6 +182,12 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
 
     me: () => get<User>("/users/me"),
 
+    updateMe: (body) =>
+      request<User>("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+
     listSchools: () => get<School[]>("/schools"),
     listClasses: (schoolId?: Uuid) => get<ClassRoom[]>("/classes", { school_id: schoolId }),
     listStudents: (classId?: Uuid) => get<Student[]>("/students", { class_id: classId }),

@@ -70,7 +70,7 @@ export default function ManualSearchScreen() {
       <Input
         value={q}
         onChangeText={setQ}
-        placeholder="Ali, Sara, Hamza…"
+        placeholder={strings.staff.childNamesPlaceholder}
         autoFocus
         style={{
           backgroundColor: colors.inverted.canvasSoft,

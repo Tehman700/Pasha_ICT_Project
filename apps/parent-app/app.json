@@ -8,11 +8,6 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f7f7f4"
-    },
     "android": {
       "package": "com.rukhsat.parent",
       "adaptiveIcon": {
@@ -22,13 +17,52 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE_LOCATION"
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
-    "web": { "favicon": "./assets/favicon.png", "bundler": "metro" },
-    "plugins": ["expo-router"]
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "../../plugins/with-pinned-ndk",
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#f54e00"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#f7f7f4"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f9f78bd2-a8a4-4189-8a00-8dd236ae3852"
+      }
+    },
+    "owner": "tehman600",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f9f78bd2-a8a4-4189-8a00-8dd236ae3852"
+    },
+    "ios": {}
   }
 }

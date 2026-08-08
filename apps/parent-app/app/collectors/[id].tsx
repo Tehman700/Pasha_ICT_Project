@@ -70,8 +70,8 @@ export default function CollectorDetailScreen() {
         title={first?.collector_name ?? "—"}
         subtitle={
           first?.collector_role === "driver"
-            ? "School-registered driver. Vetted before appearing in your list."
-            : "Added by you. Not vetted by the school."
+            ? strings.parent.vettedDriver
+            : strings.parent.addedByYou
         }
       />
 

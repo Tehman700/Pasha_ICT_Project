@@ -8,11 +8,6 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f7f7f4"
-    },
     "android": {
       "package": "com.rukhsat.staff",
       "adaptiveIcon": {
@@ -22,21 +17,61 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ],
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE_LOCATION"
-      ]
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
-    "web": { "favicon": "./assets/favicon.png", "bundler": "metro" },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
     "plugins": [
+      "../../plugins/with-pinned-ndk",
       "expo-router",
       [
         "expo-camera",
         {
-          "cameraPermission": "The guard app uses the camera only to scan pickup codes at the gate."
+          "cameraPermission": "The guard app uses the camera only to scan pickup codes at the gate.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#f54e00"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#f7f7f4"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "37936b34-dd23-44ca-b4cb-72a533ece8f2"
+      }
+    },
+    "owner": "tehman600",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/37936b34-dd23-44ca-b4cb-72a533ece8f2"
+    },
+    "ios": {}
   }
 }

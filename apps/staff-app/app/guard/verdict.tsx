@@ -205,7 +205,7 @@ export default function VerdictScreen() {
               <T variant="caption" color={colors.inverted.textMuted}>
                 {remaining.length > 0
                   ? `${remaining.length} ${strings.staff.remaining}`
-                  : "The trip only completes when every child has been handed over."}
+                  : strings.staff.tripCompletesNote}
               </T>
             </>
           ) : null}
@@ -223,8 +223,8 @@ export default function VerdictScreen() {
         <>
           <T variant="bodyMd" color={colors.inverted.textMuted} align="center">
             {result?.code === "not_yet_valid"
-              ? "Their phone is showing an old code. Ask them to look again."
-              : "Ask for a fresh code, or complete this handover manually. Never turn a family away because the software said no."}
+              ? strings.staff.oldCodeNote
+              : strings.staff.deniedNote}
           </T>
           <Spacer h={spacing.lg} />
           <Button

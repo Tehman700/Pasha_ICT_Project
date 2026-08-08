@@ -1,14 +1,21 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AppProviders, colors } from "@pickup/ui-native";
+import { AppProviders, colors, useApi, usePushTokenRotation } from "@pickup/ui-native";
+
+/** Inside the providers, so it can reach the API client. */
+function PushTokenWatcher() {
+  usePushTokenRotation(useApi());
+  return null;
+}
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AppProviders>
+        <AppProviders onUnauthorized={() => router.replace("/login")}>
+          <PushTokenWatcher />
           <StatusBar style="dark" />
           <Stack
             screenOptions={{

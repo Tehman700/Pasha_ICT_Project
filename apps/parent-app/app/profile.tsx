@@ -59,7 +59,7 @@ export default function ProfileScreen() {
 
       <Divider />
 
-      <Label>My children</Label>
+      <Label>{strings.parent.myChildren}</Label>
       <Spacer h={spacing.sm} />
       <Row gap={6} style={{ flexWrap: "wrap" }}>
         {children.data?.map((c) => (
