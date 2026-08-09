@@ -337,12 +337,23 @@ export const en = {
     step4Title: "The guard scans, offline",
     step4Body:
       "A rotating, signed QR verified against a cached key — no signal required. A manual fallback exists for the day the phone doesn't.",
-    statsTitle: "What's actually running",
-    statsSubtitle: "Every number here is real, pulled from the current build.",
-    statModules: "modules built",
-    statEndpoints: "API endpoints",
-    statTests: "automated tests",
-    statScreens: "screens across three apps",
+    problemTitle: "The problem every school gate has",
+    problemSubtitle: "None of this is hypothetical — it's the state of pickup at most schools today.",
+    problem1Title: "Anyone can say they're picking up a child",
+    problem1Body:
+      "At most gates, a name and a confident voice is the whole check. There's no record of who a family actually authorised, and no way to verify a stranger on the spot.",
+    problem1Solution:
+      "A parent grants access by phone number, once. The gate checks a signed, rotating code against exactly that list — nothing else gets a child released.",
+    problem2Title: "Parents find out too late, or never",
+    problem2Body:
+      "If the wrong person collects a child, or the right person is late, a parent usually hears about it secondhand — if at all. There's no record to check.",
+    problem2Solution:
+      "Every handover is logged with who, when, and how. The parent's phone is told the moment it happens — not asked to trust that it did.",
+    problem3Title: "The one day the phone doesn't work",
+    problem3Body:
+      "A dead battery, no signal, a forgotten app — and a rigid digital system has no answer except turning a real family away at the gate.",
+    problem3Solution:
+      "Codes verify offline against a cached key. And when even that fails, a manual handover is one tap away — logged and flagged, never blocked.",
     demoTitle: "Try it yourself",
     demoSubtitle:
       "A separate demo school, untouched by anything else running on this system. Log in as the admin below, or use the parent and driver numbers in the mobile apps.",
@@ -351,8 +362,42 @@ export const en = {
     demoDriverLabel: "Driver — collects both, in the app",
     demoPasswordNote: "Password for every demo account:",
     demoLoginCta: "Login as the demo admin",
+    stackTitle: "Built with",
+    stackSubtitle: "No shortcuts on the parts that matter for a child-safety system.",
+    originTitle: "Where this comes from",
+    originBody:
+      "This isn't a hypothetical problem we picked for a competition. Both of us have stood at the gate of a Montessori or primary school in Pakistan — Bahria schools among them — waiting in the same chaotic pickup line every parent and sibling here knows. A guard working from memory, a queue with no order, no way to know if the right person showed up. Rukhsat is the system we wished existed on those afternoons.",
+    faqTitle: "Questions worth asking",
+    faqSubtitle: "The ones we'd ask, if we were reviewing this.",
+    faqQ1: "How does this handle many families and users at once?",
+    faqA1:
+      "Every school, family and collector is scoped by ID in the database — a driver's dashboard only ever sees the children explicitly authorised to him, never a school-wide list. The live queue is ordered by real-time ETA, not by who logged in first, so it holds up under real dismissal-time load, not just a demo with three accounts.",
+    faqQ2: "How does a driver actually pick up a child?",
+    faqA2:
+      "A driver self-registers but stays invisible to the school and every family until a parent looks him up by phone number and grants access — there is no browsable list of drivers or children, because the search itself would be the privacy leak. Once linked, he taps \"On my way,\" his live ETA streams to the school, and he shows a rotating QR code at the gate that the guard verifies offline.",
+    faqQ3: "What about a relative or a one-time pickup?",
+    faqA3:
+      "The same authorization a driver gets can be granted to anyone — a grandmother, an uncle — directly by the parent, no school involvement needed. For a single day, a parent can issue a one-time pass instead: it expires automatically and burns on first use, so a screenshot forwarded after the fact is worthless.",
+    faqQ4: "Can a code be faked or reused?",
+    faqA4:
+      "Each code is signed with ES256 (elliptic-curve cryptography) and rotates roughly every 60 seconds. The guard's device holds only the public key — enough to verify a signature, useless for forging one — so even a stolen guard tablet can't mint a valid code for any child.",
+    faqQ5: "What if the guard's phone has no signal at the gate?",
+    faqA5:
+      "Verification never depends on a live connection — the guard's app checks the signature against a key it already has, entirely offline. And if a phone dies altogether, a manual handover is built in as a first-class flow: logged, flagged for review, and always available. Software is never the reason a real handover can't happen.",
+    faqQ6: "Why doesn't the app track location in the background?",
+    faqA6:
+      "Location only streams while a collector has the app open and has explicitly tapped \"On my way\" — never in the background, and it stops automatically after 90 minutes or on handover. It's a deliberate constraint, not a missing feature: a school pickup app has no business asking for always-on location.",
+    faqQ7: "Who can see a child's personal information?",
+    faqA7:
+      "Being authorized to collect a child and being allowed to view their record are two different permissions, checked separately every time. A driver's app shows him a name and a photo for gate verification — nothing else about the child or the family is reachable from his account.",
+    faqQ8: "Is this actually running, or a mockup?",
+    faqA8:
+      "Live and deployed — this dashboard, the API behind it, and both mobile apps all run in production, not a local demo. The database, the push notifications, the QR verification are the real thing end to end, not simulated for this page.",
     foundersTitle: "Built by two people, in one week",
     founderRole: "Co-Founder",
+    supervisorTitle: "Supervised by",
+    supervisorRole: "Project Supervisor",
+    viewLinkedIn: "View LinkedIn profile",
     footerTagline: "A school pickup queue and verification system.",
     footerNote:
       "Submitted to the Google Play Store; store review is in progress. The APKs below install directly today.",
@@ -725,12 +770,23 @@ export const ur: DeepMirror<Strings> = {
     step4Title: "گارڈ آف لائن اسکین کرتا ہے",
     step4Body:
       "ایک گھومتا، دستخط شدہ QR کوڈ جو محفوظ شدہ کلید سے تصدیق ہوتا ہے — سگنل کی ضرورت نہیں۔ اس دن کے لیے ایک دستی طریقہ بھی موجود ہے جب فون کام نہ کرے۔",
-    statsTitle: "واقعی کیا چل رہا ہے",
-    statsSubtitle: "یہاں ہر عدد حقیقی ہے، موجودہ نظام سے لیا گیا۔",
-    statModules: "ماڈیول مکمل",
-    statEndpoints: "API اینڈ پوائنٹس",
-    statTests: "خودکار ٹیسٹ",
-    statScreens: "تین ایپس میں اسکرینیں",
+    problemTitle: "ہر اسکول گیٹ کا مسئلہ",
+    problemSubtitle: "یہ کوئی فرضی بات نہیں — آج زیادہ تر اسکولوں میں پک اپ کی یہی حالت ہے۔",
+    problem1Title: "کوئی بھی کہہ سکتا ہے کہ وہ بچہ لینے آیا ہے",
+    problem1Body:
+      "زیادہ تر گیٹس پر صرف نام اور پراعتماد لہجہ ہی پوری جانچ ہے۔ کوئی ریکارڈ نہیں کہ خاندان نے اصل میں کسے اجازت دی، اور اجنبی کی موقع پر تصدیق کا کوئی طریقہ نہیں۔",
+    problem1Solution:
+      "والدین ایک بار فون نمبر سے رسائی دیتے ہیں۔ گیٹ ایک دستخط شدہ، گھومتے کوڈ کو بالکل اسی فہرست کے خلاف جانچتا ہے — کچھ اور بچہ حوالے نہیں کر سکتا۔",
+    problem2Title: "والدین کو دیر سے پتا چلتا ہے، یا کبھی نہیں",
+    problem2Body:
+      "اگر غلط شخص بچہ لے جائے، یا صحیح شخص دیر سے آئے، والدین کو عام طور پر بعد میں پتا چلتا ہے — اگر پتا چلے تو۔ جانچنے کے لیے کوئی ریکارڈ نہیں۔",
+    problem2Solution:
+      "ہر حوالگی کس نے، کب اور کیسے کے ساتھ محفوظ ہوتی ہے۔ والدین کے فون کو اسی لمحے بتایا جاتا ہے — یہ امید نہیں کی جاتی کہ وہ بھروسہ کریں۔",
+    problem3Title: "وہ دن جب فون کام نہ کرے",
+    problem3Body:
+      "بیٹری ختم، سگنل نہیں، ایپ بھول جانا — اور ایک سخت ڈیجیٹل نظام کے پاس اصلی خاندان کو گیٹ سے واپس بھیجنے کے سوا کوئی جواب نہیں۔",
+    problem3Solution:
+      "کوڈز محفوظ شدہ کلید کے خلاف آف لائن تصدیق ہوتے ہیں۔ اور جب یہ بھی ناکام ہو، دستی حوالگی ایک ٹیپ کی دوری پر ہے — محفوظ اور نشان زد، کبھی روکی نہیں جاتی۔",
     demoTitle: "خود آزمائیں",
     demoSubtitle:
       "ایک الگ نمائشی اسکول، جو اس نظام میں چل رہی کسی اور چیز کو متاثر نہیں کرتا۔ نیچے دیے گئے ایڈمن سے لاگ ان کریں، یا موبائل ایپس میں والدین اور ڈرائیور کے نمبر استعمال کریں۔",
@@ -739,8 +795,42 @@ export const ur: DeepMirror<Strings> = {
     demoDriverLabel: "ڈرائیور — ایپ میں دونوں کو لے جاتا ہے",
     demoPasswordNote: "ہر نمائشی اکاؤنٹ کا پاس ورڈ:",
     demoLoginCta: "نمائشی ایڈمن کے طور پر لاگ ان کریں",
+    stackTitle: "جن اوزاروں سے بنایا گیا",
+    stackSubtitle: "بچوں کی حفاظت کے نظام کے اہم حصوں میں کوئی سمجھوتہ نہیں۔",
+    originTitle: "یہ خیال کہاں سے آیا",
+    originBody:
+      "یہ کوئی فرضی مسئلہ نہیں جو ہم نے مقابلے کے لیے چنا۔ ہم دونوں پاکستان میں کسی مونٹیسری یا پرائمری اسکول کے گیٹ پر کھڑے ہو چکے ہیں — بحریہ اسکولز سمیت — اسی افراتفری بھری پک اپ لائن میں انتظار کرتے ہوئے جسے یہاں ہر والدین اور بہن بھائی جانتا ہے۔ ایک گارڈ جو یاد داشت پر کام کر رہا ہو، بغیر ترتیب کی قطار، یہ جاننے کا کوئی طریقہ نہیں کہ صحیح شخص آیا یا نہیں۔ رخصت وہی نظام ہے جو ہم ان دوپہروں میں چاہتے تھے۔",
+    faqTitle: "پوچھنے کے قابل سوالات",
+    faqSubtitle: "وہی سوالات جو ہم خود پوچھتے، اگر ہم اس کا جائزہ لے رہے ہوتے۔",
+    faqQ1: "یہ بیک وقت کئی خاندانوں اور صارفین کو کیسے سنبھالتا ہے؟",
+    faqA1:
+      "ہر اسکول، خاندان اور لینے والا ڈیٹا بیس میں ID سے محدود ہے — ڈرائیور کا ڈیش بورڈ صرف انہی بچوں کو دکھاتا ہے جن کی واضح اجازت اسے دی گئی ہو، کبھی پورے اسکول کی فہرست نہیں۔ لائیو قطار اصل وقت کے اندازے سے ترتیب پاتی ہے، نہ کہ کون پہلے لاگ ان ہوا — اس لیے یہ اصل رخصتی وقت کے دباؤ میں بھی چلتی ہے، صرف تین اکاؤنٹس والے نمائشی ورژن میں نہیں۔",
+    faqQ2: "ڈرائیور دراصل بچے کو کیسے لیتا ہے؟",
+    faqA2:
+      "ڈرائیور خود رجسٹر کرتا ہے لیکن اسکول اور ہر خاندان کے لیے اس وقت تک پوشیدہ رہتا ہے جب تک کوئی والدین اسے فون نمبر سے تلاش کر کے اجازت نہ دیں — ڈرائیوروں یا بچوں کی کوئی قابل تلاش فہرست نہیں، کیونکہ تلاش خود ہی رازداری کا رساو ہوتی۔ جڑنے کے بعد وہ \"میں آ رہا ہوں\" دباتا ہے، اس کا لائیو اندازہ وقت اسکول تک پہنچتا ہے، اور وہ گیٹ پر ایک گھومتا QR کوڈ دکھاتا ہے جسے گارڈ آف لائن تصدیق کرتا ہے۔",
+    faqQ3: "کسی رشتہ دار یا ایک بار کی پک اپ کا کیا طریقہ ہے؟",
+    faqA3:
+      "جو اجازت ڈرائیور کو ملتی ہے وہی کسی کو بھی دی جا سکتی ہے — دادی، چچا — براہ راست والدین کی طرف سے، اسکول کی شمولیت کے بغیر۔ ایک دن کے لیے، والدین ایک بار کا پاس جاری کر سکتے ہیں: یہ خود بخود ختم ہو جاتا ہے اور پہلے استعمال پر جل جاتا ہے، اس لیے بعد میں بھیجی گئی اسکرین شاٹ بیکار ہوتی ہے۔",
+    faqQ4: "کیا کوئی کوڈ جعلی بنایا یا دوبارہ استعمال ہو سکتا ہے؟",
+    faqA4:
+      "ہر کوڈ ES256 (elliptic-curve cryptography) سے دستخط شدہ ہے اور تقریباً ہر 60 سیکنڈ میں بدلتا ہے۔ گارڈ کے آلے کے پاس صرف عوامی کلید ہے — دستخط جانچنے کے لیے کافی، جعلی بنانے کے لیے بیکار — اس لیے چوری شدہ گارڈ ٹیبلٹ بھی کسی بچے کے لیے درست کوڈ نہیں بنا سکتا۔",
+    faqQ5: "اگر گیٹ پر گارڈ کے فون میں سگنل نہ ہو تو؟",
+    faqA5:
+      "تصدیق کبھی بھی لائیو کنکشن پر منحصر نہیں — گارڈ کی ایپ دستخط کو اپنی موجودہ کلید کے خلاف مکمل آف لائن جانچتی ہے۔ اور اگر فون بالکل بند ہو جائے، دستی حوالگی ایک بنیادی طریقہ ہے: محفوظ، جائزے کے لیے نشان زد، اور ہمیشہ دستیاب۔ سافٹ ویئر کبھی وجہ نہیں بنتا کہ اصل حوالگی نہ ہو سکے۔",
+    faqQ6: "ایپ بیک گراونڈ میں مقام کیوں نہیں ٹریک کرتی؟",
+    faqA6:
+      "مقام صرف اس وقت بھیجا جاتا ہے جب لینے والے کی ایپ کھلی ہو اور اس نے واضح طور پر \"میں آ رہا ہوں\" دبایا ہو — کبھی بیک گراونڈ میں نہیں، اور 90 منٹ بعد یا حوالگی پر خود بخود بند ہو جاتا ہے۔ یہ جان بوجھ کر رکھی گئی حد ہے، کوئی کمی نہیں: اسکول پک اپ ایپ کو ہمیشہ آن رہنے والے مقام کی ضرورت نہیں۔",
+    faqQ7: "بچے کی ذاتی معلومات کون دیکھ سکتا ہے؟",
+    faqA7:
+      "بچے کو لینے کی اجازت ہونا اور اس کا ریکارڈ دیکھنے کی اجازت ہونا دو الگ اجازتیں ہیں، ہر بار الگ سے جانچی جاتی ہیں۔ ڈرائیور کی ایپ اسے گیٹ کی تصدیق کے لیے صرف نام اور تصویر دکھاتی ہے — بچے یا خاندان کے بارے میں کچھ اور اس کے اکاؤنٹ سے قابل رسائی نہیں۔",
+    faqQ8: "کیا یہ واقعی چل رہا ہے، یا صرف نمونہ ہے؟",
+    faqA8:
+      "لائیو اور تعینات — یہ ڈیش بورڈ، اس کے پیچھے کا API، اور دونوں موبائل ایپس سب پروڈکشن میں چلتے ہیں، مقامی نمائش نہیں۔ ڈیٹا بیس، پش نوٹیفیکیشنز، QR تصدیق سب اصلی ہیں، اس صفحے کے لیے نقل نہیں۔",
     foundersTitle: "دو افراد نے ایک ہفتے میں بنایا",
     founderRole: "شریک بانی",
+    supervisorTitle: "زیرِ نگرانی",
+    supervisorRole: "پروجیکٹ سپروائزر",
+    viewLinkedIn: "لنکڈ اِن پروفائل دیکھیں",
     footerTagline: "اسکول پک اپ قطار اور تصدیقی نظام۔",
     footerNote:
       "گوگل پلے اسٹور پر جمع کرایا گیا؛ اسٹور کا جائزہ جاری ہے۔ نیچے دی گئی APKs آج ہی براہ راست انسٹال ہوتی ہیں۔",

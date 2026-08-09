@@ -9,6 +9,7 @@ import { Footer } from "@/components/landing/Footer";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { QrCode } from "@/components/landing/QrCode";
+import { AppIcon } from "@/components/brand/Logo";
 
 // API_URL carries the "/v1" API-contract suffix; the APKs live at the
 // server's origin, served by a plain static mount — see backend/app/main.py.
@@ -20,12 +21,12 @@ const APKS = {
 };
 
 function AppCard({
-  icon,
+  variant,
   name,
   tagline,
   href,
 }: {
-  icon: string;
+  variant: "parent" | "staff";
   name: string;
   tagline: string;
   href: string;
@@ -36,14 +37,7 @@ function AppCard({
   return (
     <Card data-app-card className="flex flex-col tablet:flex-row gap-6">
       <div className="flex items-center gap-4 tablet:flex-col tablet:items-start tablet:w-40 shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={icon}
-          alt=""
-          width={64}
-          height={64}
-          className="rounded-2xl border border-hairline shrink-0"
-        />
+        <AppIcon variant={variant} size={64} />
         <div className="tablet:mt-2">
           <p className="type-title-sm text-ink">{name}</p>
           <p className="type-caption text-muted">{tagline}</p>
@@ -81,13 +75,13 @@ export default function AppsPage() {
 
         <div ref={revealRef} className="space-y-5 mb-14">
           <AppCard
-            icon="/apps/parent-icon.png"
+            variant="parent"
             name={a.parentAppName}
             tagline={a.parentAppTagline}
             href={APKS.parent}
           />
           <AppCard
-            icon="/apps/staff-icon.png"
+            variant="staff"
             name={a.staffAppName}
             tagline={a.staffAppTagline}
             href={APKS.staff}

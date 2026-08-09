@@ -131,39 +131,113 @@ export function useScrollReveal<T extends HTMLElement>(
 }
 
 /**
- * Counts up to a number once it scrolls into view.
+ * Slide-in from one side as an element crosses into view, once.
  *
- * Used for the stats strip — 44 modules, 188 tests and so on are real
- * figures pulled from MODULE_PLAN.md, not marketing copy, and counting up
- * to a real number reads as evidence rather than decoration.
+ * The "Apple feature list" pattern: alternating left/right entrances give a
+ * long page of otherwise-identical cards a sense of direction as you scroll,
+ * rather than everything fading in the same way every time.
  */
-export function useCountUp(target: number, opts: { duration?: number } = {}) {
-  const ref = useRef<HTMLSpanElement | null>(null);
+export function useScrollRevealX<T extends HTMLElement>(
+  side: "left" | "right",
+  options: { distance?: number } = {},
+) {
+  const ref = useRef<T | null>(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || reducedMotion()) return;
 
-    if (reducedMotion()) {
-      el.textContent = String(target);
-      return;
-    }
-
-    const counter = { value: 0 };
+    const dist = options.distance ?? 60;
     const ctx = gsap.context(() => {
-      gsap.to(counter, {
-        value: target,
-        duration: opts.duration ?? 1.4,
-        ease: "power2.out",
-        scrollTrigger: { trigger: el, start: "top 90%", once: true },
-        onUpdate: () => {
-          el.textContent = String(Math.round(counter.value));
+      gsap.fromTo(
+        el,
+        { opacity: 0, x: side === "left" ? -dist : dist },
+        {
+          opacity: 1,
+          x: 0,
+          duration: motion.duration.slow,
+          ease: motion.ease.entrance,
+          scrollTrigger: { trigger: el, start: "top 82%", once: true },
         },
-      });
-    });
+      );
+    }, el);
 
     return () => ctx.revert();
-  }, [target, opts.duration]);
+  }, [side, options.distance]);
+
+  return ref;
+}
+
+/**
+ * Pins a section and scrubs a horizontal track sideways as the page scrolls
+ * vertically — the mechanism behind Apple's "swipe through features by
+ * scrolling down" sections. `trackSelector` is the row of panels to
+ * translate; the pinning container is the ref itself.
+ *
+ * Falls back to normal (unpinned, vertically-stacked) flow under reduced
+ * motion or on narrow screens, where a sideways-scrolling pin fights a
+ * thumb that only scrolls vertically.
+ */
+export function useHorizontalPinScroll<T extends HTMLElement>(
+  trackSelector: string,
+  deps: React.DependencyList = [],
+) {
+  const ref = useRef<T | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    const track = el?.querySelector<HTMLElement>(trackSelector);
+    if (!el || !track) return;
+    if (reducedMotion() || window.innerWidth < 1024) return;
+
+    const ctx = gsap.context(() => {
+      const distance = track.scrollWidth - el.clientWidth;
+      if (distance <= 0) return;
+
+      gsap.to(track, {
+        x: -distance,
+        ease: "none",
+        scrollTrigger: {
+          trigger: el,
+          start: "top top",
+          end: () => `+=${distance}`,
+          scrub: 0.4,
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+    }, el);
+
+    return () => ctx.revert();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return ref;
+}
+
+/** Gentle vertical drift as an element scrolls through the viewport. */
+export function useParallax<T extends HTMLElement>(strength = 40) {
+  const ref = useRef<T | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reducedMotion()) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        el,
+        { y: -strength },
+        {
+          y: strength,
+          ease: "none",
+          scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", scrub: true },
+        },
+      );
+    }, el);
+
+    return () => ctx.revert();
+  }, [strength]);
 
   return ref;
 }
