@@ -26,3 +26,7 @@ python-multipart
 pytest
 pytest-asyncio
 httpx
+
+# S3 media storage. Only the S3 client is used; the bucket is private and
+# objects are served through short-lived presigned URLs.
+boto3==1.43.67

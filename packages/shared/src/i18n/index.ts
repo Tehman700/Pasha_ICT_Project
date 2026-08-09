@@ -56,6 +56,77 @@ export const en = {
     subtitle: "Administrator access",
     parentSubtitle: "Parents, relatives and drivers all sign in here.",
     staffSubtitle: "Teachers and gate guards. Your role decides what you see.",
+    phoneRequired: "Enter your phone number.",
+    passwordRequired: "Enter your password.",
+  },
+  register: {
+    // Entry
+    noAccount: "Don't have an account?",
+    createAccount: "Create account",
+    haveAccount: "Already have an account?",
+    chooseRole: "Who are you?",
+    iAmParent: "I am a parent",
+    iAmParentHint: "Your children are already enrolled at the school.",
+    iAmDriver: "I drive a van",
+    iAmDriverHint: "Parents will add you themselves. The school is not involved.",
+
+    // Shared fields
+    fullName: "Full name",
+    fullNameUr: "Name in Urdu (optional)",
+    cnic: "CNIC number",
+    cnicHint: "13 digits, as printed on your card",
+    confirmPassword: "Confirm password",
+    school: "School",
+    selectSchool: "Select your school",
+    submit: "Create account",
+    submitting: "Creating your account…",
+
+    // Parent result
+    parentTitle: "Parent registration",
+    parentIntro:
+      "We match you to your children using your CNIC — the same number the school has on file.",
+    foundChildren: "We found your children",
+    foundChildrenBody: "Check the names below are right, then sign in.",
+    noMatchTitle: "Your account is ready",
+    // Deliberately not phrased as a failure. The account exists; only the link
+    // is missing, and the school fixes it in one phone call.
+    noMatchBody:
+      "We could not match any children to this CNIC yet. The school may have another guardian's number on file. Phone the school and they will link your account — you can sign in now either way.",
+
+    // Driver
+    driverTitle: "Driver registration",
+    driverIntro:
+      "Register once. Parents find you by phone number and add you themselves.",
+    vehicleNumber: "Vehicle registration number",
+    vehicleNumberHint: "For example LEA-1234",
+    capacity: "Seats",
+    expectedArrival: "Usual arrival time at school",
+    expectedArrivalHint:
+      "The time you normally reach the gate. This is what tells the school you are coming, even on a day your phone loses signal.",
+    selfie: "Your photo",
+    selfieHint: "Taken with the camera now — parents check this before adding you.",
+    idCard: "Your CNIC card",
+    idCardHint: "Photograph the front of the card, with the number readable.",
+    takePhoto: "Take photo",
+    retakePhoto: "Retake",
+    photosRequired: "Both photos are needed before you can register.",
+    cameraNeeded: "Camera access",
+    cameraNeededBody:
+      "Both photos must be taken now with the camera. A picture chosen from the gallery could be anyone.",
+    allowCamera: "Allow camera",
+    driverDoneTitle: "You are registered",
+    driverDoneBody:
+      "You are not attached to any school yet. A parent must add you before any child appears on your list. Give them the phone number you registered with.",
+
+    // Errors
+    phoneTaken: "That phone number is already registered. Sign in instead.",
+    cnicInvalid: "A CNIC is 13 digits.",
+    passwordShort: "Use at least 8 characters.",
+    passwordMismatch: "The two passwords do not match.",
+    nameShort: "Enter your full name.",
+    vehicleRequired: "Enter your vehicle registration number.",
+    schoolRequired: "Choose your school.",
+    failed: "Could not create your account. Please try again.",
   },
   errors: {
     badCredentials: "Incorrect phone number or password.",
@@ -297,6 +368,70 @@ export const ur: DeepMirror<Strings> = {
     subtitle: "منتظم رسائی",
     parentSubtitle: "والدین، رشتہ دار اور ڈرائیور سب یہاں سائن ان کرتے ہیں۔",
     staffSubtitle: "اساتذہ اور گیٹ گارڈ۔ آپ کا کردار طے کرتا ہے کہ آپ کو کیا نظر آئے گا۔",
+    phoneRequired: "اپنا فون نمبر درج کریں۔",
+    passwordRequired: "اپنا پاس ورڈ درج کریں۔",
+  },
+  register: {
+    noAccount: "اکاؤنٹ نہیں ہے؟",
+    createAccount: "اکاؤنٹ بنائیں",
+    haveAccount: "پہلے سے اکاؤنٹ ہے؟",
+    chooseRole: "آپ کون ہیں؟",
+    iAmParent: "میں والد/والدہ ہوں",
+    iAmParentHint: "آپ کے بچے پہلے سے اسکول میں داخل ہیں۔",
+    iAmDriver: "میں وین چلاتا ہوں",
+    iAmDriverHint: "والدین خود آپ کو شامل کریں گے۔ اسکول کا اس میں کوئی کردار نہیں۔",
+
+    fullName: "پورا نام",
+    fullNameUr: "اردو میں نام (اختیاری)",
+    cnic: "شناختی کارڈ نمبر",
+    cnicHint: "13 ہندسے، جیسے کارڈ پر لکھے ہیں",
+    confirmPassword: "پاس ورڈ دوبارہ لکھیں",
+    school: "اسکول",
+    selectSchool: "اپنا اسکول منتخب کریں",
+    submit: "اکاؤنٹ بنائیں",
+    submitting: "آپ کا اکاؤنٹ بن رہا ہے…",
+
+    parentTitle: "والدین کی رجسٹریشن",
+    parentIntro:
+      "ہم آپ کے شناختی کارڈ نمبر سے آپ کے بچوں کو تلاش کرتے ہیں — وہی نمبر جو اسکول کے پاس درج ہے۔",
+    foundChildren: "ہمیں آپ کے بچے مل گئے",
+    foundChildrenBody: "نیچے دیے گئے نام دیکھ لیں، پھر سائن ان کریں۔",
+    noMatchTitle: "آپ کا اکاؤنٹ تیار ہے",
+    noMatchBody:
+      "اس شناختی کارڈ سے ابھی کوئی بچہ نہیں ملا۔ ہو سکتا ہے اسکول کے پاس دوسرے سرپرست کا نمبر درج ہو۔ اسکول کو فون کریں، وہ آپ کا اکاؤنٹ جوڑ دیں گے — آپ ابھی بھی سائن ان کر سکتے ہیں۔",
+
+    driverTitle: "ڈرائیور کی رجسٹریشن",
+    driverIntro:
+      "ایک بار رجسٹر کریں۔ والدین آپ کو فون نمبر سے تلاش کر کے خود شامل کریں گے۔",
+    vehicleNumber: "گاڑی کا رجسٹریشن نمبر",
+    vehicleNumberHint: "مثال کے طور پر LEA-1234",
+    capacity: "نشستیں",
+    expectedArrival: "اسکول پہنچنے کا معمول کا وقت",
+    expectedArrivalHint:
+      "وہ وقت جب آپ عام طور پر گیٹ پر پہنچتے ہیں۔ اسی سے اسکول کو پتہ چلتا ہے کہ آپ آ رہے ہیں، چاہے کسی دن فون کے سگنل نہ ہوں۔",
+    selfie: "آپ کی تصویر",
+    selfieHint: "ابھی کیمرے سے لی جائے — والدین آپ کو شامل کرنے سے پہلے یہ دیکھتے ہیں۔",
+    idCard: "آپ کا شناختی کارڈ",
+    idCardHint: "کارڈ کے سامنے والے رخ کی تصویر لیں، نمبر صاف پڑھا جا سکے۔",
+    takePhoto: "تصویر لیں",
+    retakePhoto: "دوبارہ لیں",
+    photosRequired: "رجسٹریشن سے پہلے دونوں تصاویر ضروری ہیں۔",
+    cameraNeeded: "کیمرے کی اجازت",
+    cameraNeededBody:
+      "دونوں تصاویر ابھی کیمرے سے لینی ہوں گی۔ گیلری سے چنی گئی تصویر کسی کی بھی ہو سکتی ہے۔",
+    allowCamera: "کیمرے کی اجازت دیں",
+    driverDoneTitle: "آپ رجسٹر ہو گئے ہیں",
+    driverDoneBody:
+      "ابھی آپ کسی اسکول سے منسلک نہیں ہیں۔ کسی بچے کے آپ کی فہرست میں آنے سے پہلے والدین کا آپ کو شامل کرنا ضروری ہے۔ انہیں وہی فون نمبر دیں جس سے آپ نے رجسٹر کیا ہے۔",
+
+    phoneTaken: "یہ فون نمبر پہلے سے رجسٹرڈ ہے۔ سائن ان کریں۔",
+    cnicInvalid: "شناختی کارڈ نمبر 13 ہندسوں کا ہوتا ہے۔",
+    passwordShort: "کم از کم 8 حروف استعمال کریں۔",
+    passwordMismatch: "دونوں پاس ورڈ ایک جیسے نہیں ہیں۔",
+    nameShort: "اپنا پورا نام لکھیں۔",
+    vehicleRequired: "گاڑی کا رجسٹریشن نمبر لکھیں۔",
+    schoolRequired: "اپنا اسکول منتخب کریں۔",
+    failed: "اکاؤنٹ نہیں بن سکا۔ دوبارہ کوشش کریں۔",
   },
   errors: {
     badCredentials: "فون نمبر یا پاس ورڈ درست نہیں ہے۔",

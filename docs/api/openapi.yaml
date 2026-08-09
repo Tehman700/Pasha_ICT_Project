@@ -497,6 +497,26 @@ paths:
         '422': { $ref: '#/components/responses/ValidationError' }
 
   # ── schools ─────────────────────────────────────────────────────────
+  /schools/public:
+    get:
+      tags: [schools]
+      security: []
+      summary: Schools available to register against
+      description: >
+        Unauthenticated on purpose. Self-registration needs a school_id before
+        an account exists, so the authenticated /schools cannot serve it — that
+        one scopes to the caller's own school and a registering user has none.
+        Only names and gate coordinates, which are public facts printed on the
+        gate. No rosters, no staff, no children.
+      responses:
+        '200':
+          description: Every school, by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/School' }
+
   /schools:
     get:
       tags: [schools]
@@ -1542,14 +1562,28 @@ paths:
   /students/{student_id}/temporary-pass:
     post:
       tags: [collectors]
-      summary: Issue a one-day pass to someone with no account
+      summary: Issue a same-day pass to someone with no account
       description: >
-        The only QR issued to a person with no account. The photo matters
-        because a pass sent over WhatsApp is a forwardable image, and without
-        one whoever receives it can collect a child. Issued without a photo it
-        still works, but the guard's screen says so and the audit entry is
-        flagged: degraded, not blind. Single use, expires at midnight, and
-        burns the moment the child is collected.
+        The only QR issued to a person with no account. There is deliberately
+        **no photo of the bearer**: a parent cannot reliably produce a picture
+        of her brother at the moment she needs to send him, and a field she
+        cannot fill becomes a screen she abandons. The name and phone she types
+        are what the guard confirms — the same two things he would ask for if
+        the app did not exist. What keeps a forwardable image safe is the burn
+        and the expiry, not a photograph.
+
+
+        One pass covers as many of the parent's children as she names — the
+        path child plus any siblings in `also_student_ids`. A relative sent to
+        fetch three children is one errand, and three codes for it would mean
+        three scans at the gate. Every named child is checked separately; naming
+        one she may not delegate fails the whole request rather than silently
+        dropping that child.
+
+
+        Single use, burned by the first scan rather than by the child being
+        collected. Expires at `expires_at` if the parent sets one, otherwise
+        midnight tonight, and is capped at midnight either way.
       parameters:
         - { name: student_id, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
@@ -1562,20 +1596,54 @@ paths:
               properties:
                 name: { type: string }
                 phone: { type: string }
-                photo_url: { type: string, nullable: true }
                 relation: { type: string, nullable: true }
+                also_student_ids:
+                  type: array
+                  description: >
+                    Siblings to include on the same pass. The path child is
+                    always included and need not be repeated.
+                  items: { type: string, format: uuid }
+                expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: >
+                    The moment the code stops working. The parent knows the
+                    collection window and the system does not. Values past
+                    midnight are capped rather than rejected, and the response
+                    reports it as `expiry_capped`. A value already in the past
+                    falls back to the default — a pass born expired is a
+                    support call, not a security win.
       responses:
-        '201': { description: Pass issued, with a signed token to send on WhatsApp }
+        '201':
+          description: >
+            Pass issued, with a signed token to send on WhatsApp, the resolved
+            `expires_at`, `expiry_capped`, and `students` — every child on the
+            pass. `student` remains as the first of them for existing clients.
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /passes/verify:
     post:
       tags: [qr]
-      summary: Guard scans a one-off pass
+      summary: Guard scans a one-off pass — this call REDEEMS it
       description: >
         On a valid scan the speaker fires automatically and the guard presses
-        nothing, so the child starts walking while he checks the photo.
+        nothing, so the children start walking while he checks the photo.
         Automate the announcement; never automate the release.
+
+
+        **This call burns the pass**, every child on it, in one atomic update —
+        so two guards scanning the same forwarded code at the same instant
+        cannot both be told yes. The burn lands on the scan rather than on
+        handover because the scan is the only moment we are certain the code
+        was presented: a guard who scans and then refuses on the photo has
+        still spent it, which is correct, because that code is now known to be
+        in the wrong hands.
+
+
+        A burned pass still satisfies `may_collect`, so the handover the guard
+        records seconds later succeeds. The burn stops the code being presented
+        again; it does not retract the authorization the scan just confirmed.
       requestBody:
         required: true
         content:
@@ -1586,7 +1654,13 @@ paths:
               properties:
                 token: { type: string }
       responses:
-        '200': { description: Verdict, with both photos and a warning when no photo exists }
+        '200':
+          description: >
+            Verdict, with `students` — each child's name, photo, and own
+            `pickup_request_id` so the guard app records one handover per
+            child. `bearer` carries name and phone only, and `check` is the
+            line the guard acts on. Refusal codes: `expired`, `already_used`,
+            `revoked`, `malformed`.
 
   /qr-tokens/verify:
     post:

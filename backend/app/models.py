@@ -261,6 +261,25 @@ class PickupAuthorization(Base, TimestampMixin):
     valid_until: Mapped[Optional[Date]] = mapped_column(SADate)
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
+    #: One-off passes only: the exact moment the code stops working.
+    #:
+    #: `valid_until` is a DATE, which cannot express "until 3pm" — and a parent
+    #: issuing a pass knows something we do not: *"my brother is coming between
+    #: 1 and 3."* Letting her say so shrinks the window in which a forwarded
+    #: screenshot is worth anything. Left unset it defaults to midnight tonight,
+    #: which is what `valid_until` already implies, so standing authorizations
+    #: are unaffected and leave this NULL.
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    #: One-off passes only: burned on first successful scan.
+    #:
+    #: The pass is the unit of single-use, not the child. A parent hedging
+    #: between two relatives may issue two passes for the same child, and
+    #: whichever is scanned first is the one that burns — the other stays live
+    #: for its holder. Keying the burn to the child instead would silently kill
+    #: the second pass and strand a relative at the gate.
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
     __table_args__ = (
         # The authorization check runs on every handover — index it.
         Index("ix_auth_student_collector", "student_id", "collector_user_id"),

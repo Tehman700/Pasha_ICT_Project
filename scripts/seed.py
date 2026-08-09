@@ -143,7 +143,14 @@ def seed(db) -> None:
     db.add(school)
     db.flush()
 
-    def mk_user(role: Role, name: str, name_ur: str | None, phone: str, locale: str) -> User:
+    def mk_user(
+        role: Role,
+        name: str,
+        name_ur: str | None,
+        phone: str,
+        locale: str,
+        cnic: str | None = None,
+    ) -> User:
         u = User(
             id=uuid.uuid4(),
             school_id=school.id,
@@ -153,6 +160,7 @@ def seed(db) -> None:
             phone=phone,
             password_hash=pw,
             locale=locale,
+            cnic=cnic,
         )
         db.add(u)
         return u
@@ -180,6 +188,20 @@ def seed(db) -> None:
     db.flush()
 
     # Parents. Deliberate sibling groups, not random pairing.
+    #
+    # Each carries a CNIC, and every child below repeats their parent's number
+    # in `guardian_cnic`. That pair is what self-registration matches on: a
+    # parent who types this number is linked to their children automatically,
+    # with no admin step. Without it the whole registration path is unreachable
+    # in a demo — which is exactly how it went unexercised until now.
+    parent_cnic = {
+        "p1": "3520112345671",
+        "p2": "3520112345672",
+        "p3": "3520112345673",
+        "p4": "3520112345674",
+        "p5": "3520112345675",
+        "p6": "3520112345676",
+    }
     parents = {}
     for key, name, name_ur, phone, locale in [
         ("p1", "Tariq Raza", "طارق رضا", "+923331000001", "en"),
@@ -189,7 +211,9 @@ def seed(db) -> None:
         ("p5", "Junaid Hassan", "جنید حسن", "+923331000005", "en"),
         ("p6", "Farah Iqbal", "فرح اقبال", "+923331000006", "ur"),
     ]:
-        parents[key] = mk_user(Role.parent, name, name_ur, phone, locale)
+        parents[key] = mk_user(
+            Role.parent, name, name_ur, phone, locale, cnic=parent_cnic[key]
+        )
 
     # A relative added directly by a parent — the non-vetted path.
     granny = mk_user(
@@ -235,6 +259,10 @@ def seed(db) -> None:
         s = Student(
             id=uuid.uuid4(), school_id=school.id, class_id=classes[cls_key].id,
             name=name, name_ur=name_ur,
+            # The school records the guardian's CNIC at enrolment. This is the
+            # only thing linking a self-registered parent to their children —
+            # see `backend/app/routers/registration.py`.
+            guardian_cnic=parent_cnic[parent_key],
         )
         db.add(s)
         students[key] = s

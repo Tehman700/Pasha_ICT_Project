@@ -125,13 +125,43 @@ export default function LoginScreen() {
             label={login.isPending ? strings.common.loading : strings.auth.signInCta}
             variant="primary"
             full
-            disabled={login.isPending || phone.trim() === "" || password === ""}
+            // Only disabled while a sign-in is actually in flight. A button
+            // that greys itself out because a field is empty gives the user
+            // nothing to react to — the tap does nothing and no message
+            // appears, which reads as a broken app rather than a missing
+            // field. The registration screens validate on press for exactly
+            // this reason; this one now matches them.
+            disabled={login.isPending}
             onPress={() => {
+              if (phone.trim() === "") {
+                setError(strings.auth.phoneRequired);
+                return;
+              }
+              if (password === "") {
+                setError(strings.auth.passwordRequired);
+                return;
+              }
               setError(null);
               login.mutate();
             }}
           />
         </Card>
+
+        <Spacer h={spacing.base} />
+        <Row>
+          <View style={{ flex: 1 }} />
+          <T variant="bodySm" color={colors.muted}>
+            {strings.register.noAccount}{" "}
+          </T>
+          <T
+            variant="bodySm"
+            color={colors.primary}
+            onPress={() => router.push("/register")}
+          >
+            {strings.register.createAccount}
+          </T>
+          <View style={{ flex: 1 }} />
+        </Row>
 
         <Spacer h={spacing.base} />
         <T variant="caption" color={colors.mutedSoft} align="center">
