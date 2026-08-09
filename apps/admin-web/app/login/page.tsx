@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Input";
 import { Wordmark } from "@/components/brand/Logo";
+import { DEMO_ADMIN_PHONE, DEMO_PASSWORD } from "@/lib/demo";
 
 function LoginForm() {
   const router = useRouter();
@@ -103,6 +104,26 @@ function LoginForm() {
               </Button>
             </form>
           </Card>
+
+          {/* Fills the fields; does not submit. The judge still presses Sign
+              in themselves — this saves typing a phone number and a
+              password, not the act of signing in. */}
+          <div className="mt-4 border border-dashed border-hairline-strong rounded-lg p-4">
+            <p className="type-body-sm text-ink mb-0.5">{strings.landing.demoApplyTitle}</p>
+            <p className="type-caption text-muted mb-3">{strings.landing.demoApplyBody}</p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                setPhone(DEMO_ADMIN_PHONE);
+                setPassword(DEMO_PASSWORD);
+                setError(null);
+              }}
+            >
+              {strings.landing.demoApplyCta}
+            </Button>
+          </div>
 
           <p className="type-caption text-muted-soft mt-6 text-center">
             {USE_MOCK ? "Running on fixtures — any credentials continue." : "Signed in against the live API."}
