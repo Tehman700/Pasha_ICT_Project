@@ -118,24 +118,31 @@ export function GuidedTour({
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Dim everything except the highlighted element, via a 4-rect mask. */}
+      {/*
+        Dim everything except the highlighted element with one box-shadow,
+        not a clip-path "donut". `polygon()` has no concept of two separate
+        loops — an outer rectangle and an inner one in the same point list
+        get silently connected by a stray edge between them, which painted
+        as a visible diagonal seam across the screen. A shadow with a huge
+        spread has no such problem: it can only ever paint outside its own
+        box, so the box itself is a clean hole by construction, corners
+        included, no seam possible.
+      */}
+      <div className="fixed inset-0 pointer-events-auto" onClick={next} />
       {box ? (
-        <>
-          <div className="absolute inset-0 bg-ink/45 pointer-events-auto" onClick={next} style={{ clipPath: cutout(box) }} />
-          <div
-            className="absolute border-2 border-primary rounded-md transition-[top,left,width,height] duration-300"
-            style={{
-              top: box.top - 6,
-              left: box.left - 6,
-              width: box.width + 12,
-              height: box.height + 12,
-              boxShadow: "0 0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent)",
-            }}
-          />
-        </>
-      ) : (
-        <div className="absolute inset-0 bg-ink/45 pointer-events-auto" onClick={next} />
-      )}
+        <div
+          className="absolute rounded-md pointer-events-none transition-[top,left,width,height] duration-300"
+          style={{
+            top: box.top - 6,
+            left: box.left - 6,
+            width: box.width + 12,
+            height: box.height + 12,
+            boxShadow:
+              "0 0 0 9999px color-mix(in srgb, var(--color-ink) 45%, transparent), " +
+              "0 0 0 3px var(--color-primary)",
+          }}
+        />
+      ) : null}
 
       {box ? (
         <svg
@@ -186,12 +193,6 @@ export function useRestartTour() {
     if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event("rukhsat:tour:restart"));
   };
-}
-
-function cutout(box: DOMRect): string {
-  const pad = 6;
-  const t = box.top - pad, l = box.left - pad, r = box.right + pad, b = box.bottom + pad;
-  return `polygon(evenodd, 0 0, 0 100%, 100% 100%, 100% 0, ${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px)`;
 }
 
 function arrowStyle(box: DOMRect, side: "right" | "bottom"): React.CSSProperties {
