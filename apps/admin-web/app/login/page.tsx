@@ -1,21 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApi, USE_MOCK } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { useFadeIn } from "@/lib/gsap";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Input";
+import { Wordmark } from "@/components/brand/Logo";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const api = useApi();
   const { strings, locale, toggle } = useLocale();
   const cardRef = useFadeIn<HTMLDivElement>();
+  const params = useSearchParams();
 
-  const [phone, setPhone] = useState("");
+  // The landing page's demo link passes the demo admin's number so a judge
+  // doesn't have to retype it — never the password, that stays on-screen
+  // where it was already shown, not in a URL that ends up in browser history.
+  const [phone, setPhone] = useState(params.get("phone") ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,19 +33,13 @@ export default function LoginPage() {
     try {
       const res = await api.login({ phone: phone.trim(), password });
       if (res.user.role !== "admin") {
-        // The dashboard is admin-only. Staff use the mobile app; letting a
-        // teacher in here would show them every class's data.
-        setError("This dashboard is for administrators.");
+        setError(strings.errors.wrongAppAdmin);
         return;
       }
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       const status = (err as { status?: number })?.status;
-      setError(
-        status === 401
-          ? "Incorrect phone number or password."
-          : "Could not reach the server. Check your connection.",
-      );
+      setError(status === 401 ? strings.errors.badCredentials : strings.errors.network);
     } finally {
       setBusy(false);
     }
@@ -48,10 +48,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="h-16 flex items-center justify-between px-6 tablet:px-10">
-        <span className="type-title-md text-ink">
-          {strings.common.appName}
-          <span className="text-primary">.</span>
-        </span>
+        <Link href="/">
+          <Wordmark />
+        </Link>
         <button
           onClick={toggle}
           className="type-body-sm text-body hover:text-ink border border-hairline-strong rounded-md h-9 px-3 bg-surface-card transition-colors"
@@ -106,12 +105,26 @@ export default function LoginPage() {
           </Card>
 
           <p className="type-caption text-muted-soft mt-6 text-center">
-            {USE_MOCK
-              ? "Running on fixtures — any credentials continue."
-              : "Signed in against the live API."}
+            {USE_MOCK ? "Running on fixtures — any credentials continue." : "Signed in against the live API."}
+          </p>
+
+          <p className="type-caption text-center mt-3">
+            <Link href="/#demo" className="text-body hover:text-ink underline underline-offset-4">
+              {strings.landing.demoTitle}
+            </Link>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  // useSearchParams needs a Suspense boundary in the App Router, even though
+  // the fallback is never visible — this whole page renders client-side.
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

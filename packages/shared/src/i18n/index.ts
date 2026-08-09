@@ -133,6 +133,7 @@ export const en = {
     network: "Could not reach the server. Check your connection.",
     wrongAppParent: "This app is for parents and drivers. Staff use the staff app.",
     wrongAppStaff: "This app is for teachers and guards. Parents use the Rukhsat app.",
+    wrongAppAdmin: "This dashboard is for administrators.",
     usingSampleData: "Running on sample data — any credentials continue.",
     usingLiveSystem: "Signed in against the live system.",
   },
@@ -311,6 +312,90 @@ export const en = {
     classQueueNote: "Your class only, ordered by live arrival time.",
     childNamesPlaceholder: "Ali, Sara, Hamza…",
   },
+  landing: {
+    navApps: "Get the apps",
+    navLogin: "Login",
+    navRegister: "Register",
+    heroEyebrow: "Live system, not a mockup",
+    heroTitle: "The gate knows who's collecting your child.",
+    heroSubtitle:
+      "A rotating, offline-verified QR code, a driver a parent chose and can revoke, and a manual fallback that never turns a family away. Built and deployed in one week.",
+    heroCtaPrimary: "Explore the live dashboard",
+    heroCtaSecondary: "Get the apps",
+    howItWorksTitle: "How a pickup actually works",
+    howItWorksSubtitle:
+      "Four steps, the same four steps every time — this is the whole product.",
+    step1Title: "A parent adds a collector",
+    step1Body:
+      "By phone number only. No search, no browsable list of children — the search itself would be the leak.",
+    step2Title: "The collector taps \"On my way\"",
+    step2Body:
+      "Live ETA streams to the school. No background tracking — foreground only, on an explicit tap.",
+    step3Title: "The classroom hears it, once",
+    step3Body:
+      "A voice announcement fires at about two minutes out and never repeats for the same trip.",
+    step4Title: "The guard scans, offline",
+    step4Body:
+      "A rotating, signed QR verified against a cached key — no signal required. A manual fallback exists for the day the phone doesn't.",
+    statsTitle: "What's actually running",
+    statsSubtitle: "Every number here is real, pulled from the current build.",
+    statModules: "modules built",
+    statEndpoints: "API endpoints",
+    statTests: "automated tests",
+    statScreens: "screens across three apps",
+    demoTitle: "Try it yourself",
+    demoSubtitle:
+      "A separate demo school, untouched by anything else running on this system. Log in as the admin below, or use the parent and driver numbers in the mobile apps.",
+    demoAdminLabel: "Admin — the dashboard you're about to see",
+    demoParentLabel: "Parent — two children, in the app",
+    demoDriverLabel: "Driver — collects both, in the app",
+    demoPasswordNote: "Password for every demo account:",
+    demoLoginCta: "Login as the demo admin",
+    foundersTitle: "Built by two people, in one week",
+    founderRole: "Co-Founder",
+    footerTagline: "A school pickup queue and verification system.",
+    footerNote:
+      "Submitted to the Google Play Store; store review is in progress. The APKs below install directly today.",
+  },
+  apps: {
+    title: "Get the apps",
+    subtitle:
+      "Install directly — no Play Store account needed to try this today.",
+    parentAppName: "Rukhsat",
+    parentAppTagline: "For parents, relatives and drivers",
+    staffAppName: "Rukhsat Staff",
+    staffAppTagline: "For teachers and gate guards",
+    downloadButton: "Download APK",
+    scanToInstall: "Or scan to open on your phone",
+    installTitle: "Installing on Android",
+    installStep1: "Download the APK on the phone itself, or scan the QR code above.",
+    installStep2:
+      "Android will warn about installing from outside the Play Store — tap Settings, then allow this source.",
+    installStep3: "Open the downloaded file and tap Install.",
+    installStep4: "Open the app and sign in with a demo account from the previous page.",
+    playStoreNote:
+      "Also submitted to the Google Play Store. Store verification usually takes a few days — the direct APK works right now, on any Android phone.",
+    backToDemo: "Back to the demo",
+  },
+  tour: {
+    step1Title: "This is the live queue",
+    step1Body:
+      "Every child currently being collected, ordered by arrival time — not by who booked first.",
+    step2Title: "Students",
+    step2Body:
+      "The school's roster. A child's guardian CNIC lives here — it's how a parent's self-registration matches to their children.",
+    step3Title: "Drivers",
+    step3Body:
+      "Registered but invisible until a parent links them by phone number. The school vets nobody; liability sits with the parent who grants access.",
+    step4Title: "Classroom displays",
+    step4Body:
+      "Wall-mounted tablets that speak an arrival aloud. A display that goes silent is flagged here — there is no other alert.",
+    step5Title: "Audit log",
+    step5Body:
+      "Every handover, especially manual ones. This is what you'd hand a parent who asks \"who took my child, and when.\"",
+    step6Title: "Take this tour again anytime",
+    step6Body: "This button reopens it from wherever you are in the dashboard.",
+  },
 } as const;
 
 export type Strings = typeof en;
@@ -438,6 +523,7 @@ export const ur: DeepMirror<Strings> = {
     network: "سرور سے رابطہ نہیں ہو سکا۔ اپنا انٹرنیٹ کنکشن دیکھیں۔",
     wrongAppParent: "یہ ایپ والدین اور ڈرائیوروں کے لیے ہے۔ عملہ اسٹاف ایپ استعمال کرے۔",
     wrongAppStaff: "یہ ایپ اساتذہ اور گارڈز کے لیے ہے۔ والدین رخصت ایپ استعمال کریں۔",
+    wrongAppAdmin: "یہ ڈیش بورڈ منتظمین کے لیے ہے۔",
     usingSampleData: "نمونہ ڈیٹا پر چل رہا ہے — کوئی بھی تفصیلات کام کریں گی۔",
     usingLiveSystem: "لائیو سسٹم سے سائن ان ہیں۔",
   },
@@ -614,6 +700,88 @@ export const ur: DeepMirror<Strings> = {
       "نیا کوڈ مانگیں، یا یہ حوالگی دستی مکمل کریں۔ سافٹ ویئر کے انکار پر کسی خاندان کو واپس نہ بھیجیں۔",
     classQueueNote: "صرف آپ کی جماعت، آمد کے وقت کے مطابق ترتیب میں۔",
     childNamesPlaceholder: "علی، سارہ، حمزہ…",
+  },
+  landing: {
+    navApps: "ایپس حاصل کریں",
+    navLogin: "لاگ ان",
+    navRegister: "رجسٹر",
+    heroEyebrow: "لائیو سسٹم، نمائشی نہیں",
+    heroTitle: "گیٹ کو معلوم ہے کہ آپ کے بچے کو کون لے جا رہا ہے۔",
+    heroSubtitle:
+      "ایک گھومتا، آف لائن تصدیق شدہ QR کوڈ، ایک ڈرائیور جسے والدین نے چنا اور واپس لے سکتے ہیں، اور ایک دستی طریقہ جو کبھی کسی خاندان کو واپس نہیں بھیجتا۔ ایک ہفتے میں بنایا اور چلایا گیا۔",
+    heroCtaPrimary: "لائیو ڈیش بورڈ دیکھیں",
+    heroCtaSecondary: "ایپس حاصل کریں",
+    howItWorksTitle: "پک اپ اصل میں کیسے کام کرتا ہے",
+    howItWorksSubtitle: "چار مراحل، ہر بار وہی چار مراحل — یہی پورا نظام ہے۔",
+    step1Title: "والدین کوئی لینے والا شامل کرتے ہیں",
+    step1Body:
+      "صرف فون نمبر سے۔ نہ کوئی تلاش، نہ بچوں کی فہرست — تلاش خود ہی رساو ہوتی۔",
+    step2Title: "لینے والا \"میں آ رہا ہوں\" دباتا ہے",
+    step2Body:
+      "لائیو اندازہ وقت اسکول تک پہنچتا ہے۔ کوئی بیک گراونڈ ٹریکنگ نہیں — صرف اسکرین کھلی ہونے پر۔",
+    step3Title: "کلاس روم ایک بار سنتا ہے",
+    step3Body:
+      "تقریباً دو منٹ کی دوری پر ایک آواز کا اعلان ہوتا ہے اور اسی سفر کے لیے دوبارہ نہیں دہرایا جاتا۔",
+    step4Title: "گارڈ آف لائن اسکین کرتا ہے",
+    step4Body:
+      "ایک گھومتا، دستخط شدہ QR کوڈ جو محفوظ شدہ کلید سے تصدیق ہوتا ہے — سگنل کی ضرورت نہیں۔ اس دن کے لیے ایک دستی طریقہ بھی موجود ہے جب فون کام نہ کرے۔",
+    statsTitle: "واقعی کیا چل رہا ہے",
+    statsSubtitle: "یہاں ہر عدد حقیقی ہے، موجودہ نظام سے لیا گیا۔",
+    statModules: "ماڈیول مکمل",
+    statEndpoints: "API اینڈ پوائنٹس",
+    statTests: "خودکار ٹیسٹ",
+    statScreens: "تین ایپس میں اسکرینیں",
+    demoTitle: "خود آزمائیں",
+    demoSubtitle:
+      "ایک الگ نمائشی اسکول، جو اس نظام میں چل رہی کسی اور چیز کو متاثر نہیں کرتا۔ نیچے دیے گئے ایڈمن سے لاگ ان کریں، یا موبائل ایپس میں والدین اور ڈرائیور کے نمبر استعمال کریں۔",
+    demoAdminLabel: "ایڈمن — جو ڈیش بورڈ آپ دیکھنے والے ہیں",
+    demoParentLabel: "والدین — ایپ میں دو بچے",
+    demoDriverLabel: "ڈرائیور — ایپ میں دونوں کو لے جاتا ہے",
+    demoPasswordNote: "ہر نمائشی اکاؤنٹ کا پاس ورڈ:",
+    demoLoginCta: "نمائشی ایڈمن کے طور پر لاگ ان کریں",
+    foundersTitle: "دو افراد نے ایک ہفتے میں بنایا",
+    founderRole: "شریک بانی",
+    footerTagline: "اسکول پک اپ قطار اور تصدیقی نظام۔",
+    footerNote:
+      "گوگل پلے اسٹور پر جمع کرایا گیا؛ اسٹور کا جائزہ جاری ہے۔ نیچے دی گئی APKs آج ہی براہ راست انسٹال ہوتی ہیں۔",
+  },
+  apps: {
+    title: "ایپس حاصل کریں",
+    subtitle: "براہ راست انسٹال کریں — آج آزمانے کے لیے پلے اسٹور اکاؤنٹ درکار نہیں۔",
+    parentAppName: "رخصت",
+    parentAppTagline: "والدین، رشتہ داروں اور ڈرائیوروں کے لیے",
+    staffAppName: "رخصت اسٹاف",
+    staffAppTagline: "اساتذہ اور گیٹ گارڈز کے لیے",
+    downloadButton: "APK ڈاؤن لوڈ کریں",
+    scanToInstall: "یا فون پر کھولنے کے لیے اسکین کریں",
+    installTitle: "اینڈرائیڈ پر انسٹال کرنا",
+    installStep1: "فون پر ہی APK ڈاؤن لوڈ کریں، یا اوپر دیا گیا QR کوڈ اسکین کریں۔",
+    installStep2:
+      "اینڈرائیڈ پلے اسٹور سے باہر انسٹال کرنے پر خبردار کرے گا — سیٹنگز پر جائیں اور اس ذریعے کی اجازت دیں۔",
+    installStep3: "ڈاؤن لوڈ شدہ فائل کھولیں اور انسٹال دبائیں۔",
+    installStep4: "ایپ کھولیں اور پچھلے صفحے سے کسی نمائشی اکاؤنٹ سے سائن ان کریں۔",
+    playStoreNote:
+      "گوگل پلے اسٹور پر بھی جمع کرایا گیا۔ اسٹور کی تصدیق میں عام طور پر چند دن لگتے ہیں — براہ راست APK ابھی، کسی بھی اینڈرائیڈ فون پر کام کرتی ہے۔",
+    backToDemo: "نمائش پر واپس جائیں",
+  },
+  tour: {
+    step1Title: "یہ لائیو قطار ہے",
+    step1Body:
+      "ہر وہ بچہ جسے فی الحال لیا جا رہا ہے، آمد کے وقت کے مطابق ترتیب میں — نہ کہ کس نے پہلے بکنگ کی۔",
+    step2Title: "طلبہ",
+    step2Body:
+      "اسکول کی فہرست۔ بچے کے سرپرست کا شناختی کارڈ نمبر یہاں ہے — اسی سے والدین کی خود رجسٹریشن ان کے بچوں سے ملتی ہے۔",
+    step3Title: "ڈرائیورز",
+    step3Body:
+      "رجسٹرڈ لیکن اس وقت تک پوشیدہ جب تک کوئی والدین انہیں فون نمبر سے نہ جوڑیں۔ اسکول کسی کی جانچ نہیں کرتا؛ ذمہ داری اس والدین پر ہے جس نے اجازت دی۔",
+    step4Title: "کلاس روم ڈسپلے",
+    step4Body:
+      "دیوار پر لگے ٹیبلٹ جو آمد کا اعلان بولتے ہیں۔ خاموش ڈسپلے یہاں نشان زد ہوتا ہے — کوئی اور انتباہ نہیں۔",
+    step5Title: "آڈٹ لاگ",
+    step5Body:
+      "ہر حوالگی، خاص طور پر دستی۔ یہی وہ چیز ہے جو آپ اس والدین کو دکھائیں گے جو پوچھے \"میرا بچہ کس نے، کب لیا۔\"",
+    step6Title: "یہ ٹور دوبارہ کبھی بھی دیکھیں",
+    step6Body: "یہ بٹن آپ ڈیش بورڈ میں جہاں بھی ہوں، اسے دوبارہ کھول دیتا ہے۔",
   },
 };
 

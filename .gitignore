@@ -50,3 +50,11 @@ alembic/versions/__pycache__/
 # nothing while growing the repo with every demo.
 backend/media/name-audio/*
 !backend/media/name-audio/.gitkeep
+
+# Built APKs. 50-100MB binaries that get rebuilt from source on every real
+# change — committing one is a permanent, ever-growing entry in git history
+# for a file nobody should ever diff. Uploaded directly to the server's
+# downloads/ instead; deploy-backend.sh's `git reset --hard` never touches an
+# untracked directory, so this survives every deploy.
+backend/downloads/*
+!backend/downloads/.gitkeep

@@ -6,6 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { Badge } from "@/components/ui/Badge";
+import { Wordmark } from "@/components/brand/Logo";
+import { DashboardTour } from "@/components/tour/DashboardTour";
+import { useRestartTour } from "@/components/tour/GuidedTour";
+import { DEMO_ADMIN_PHONE } from "@/lib/demo";
 
 /**
  * Admin chrome: fixed sidebar, top bar with the language toggle.
@@ -15,7 +19,7 @@ import { Badge } from "@/components/ui/Badge";
  * document to RTL.
  */
 
-type NavItem = { href: string; label: string };
+type NavItem = { href: string; label: string; tour?: string };
 type NavGroup = { label: string; items: NavItem[] };
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -25,25 +29,29 @@ export function Shell({ children }: { children: React.ReactNode }) {
   // Identify the signed-in admin from the API, not from fixtures.
   const me = useQuery({ queryKey: ["me"], queryFn: () => api.me(), retry: false });
   const school = useQuery({ queryKey: ["schools"], queryFn: () => api.listSchools() });
+  const restartTour = useRestartTour();
   const n = strings.nav;
 
+  // `data-tour` ids are what GuidedTour's arrow actually points at — they
+  // have to exist on the real element, not a screenshot of it, so the tour
+  // can never drift out of sync with the nav it's describing.
   const groups: NavGroup[] = [
     { label: n.operations, items: [
-      { href: "/", label: n.dashboard },
-      { href: "/queue", label: n.queue },
-      { href: "/devices", label: n.devices },
+      { href: "/dashboard", label: n.dashboard },
+      { href: "/queue", label: n.queue, tour: "nav-queue" },
+      { href: "/devices", label: n.devices, tour: "nav-devices" },
       { href: "/audio", label: n.audio },
     ]},
     { label: n.people, items: [
       { href: "/schools", label: n.schools },
       { href: "/classes", label: n.classes },
-      { href: "/students", label: n.students },
+      { href: "/students", label: n.students, tour: "nav-students" },
       { href: "/guardians", label: n.guardians },
       { href: "/staff", label: n.staff },
-      { href: "/drivers", label: n.drivers },
+      { href: "/drivers", label: n.drivers, tour: "nav-drivers" },
     ]},
     { label: n.records, items: [
-      { href: "/audit", label: n.audit },
+      { href: "/audit", label: n.audit, tour: "nav-audit" },
       { href: "/announcements", label: n.announcements },
       { href: "/analytics", label: n.analytics },
     ]},
@@ -54,9 +62,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="hidden tablet:flex w-64 shrink-0 flex-col border-e border-hairline bg-canvas-soft">
         <div className="h-16 flex items-center px-6 border-b border-hairline">
-          <Link href="/" className="type-title-md text-ink">
-            {strings.common.appName}
-            <span className="text-primary">.</span>
+          <Link href="/dashboard">
+            <Wordmark />
           </Link>
         </div>
 
@@ -66,14 +73,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <p className="type-label text-muted-soft px-3 mb-2">{group.label}</p>
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
-                  const active =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(item.href);
+                  const active = pathname.startsWith(item.href);
                   return (
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        data-tour={item.tour}
                         className={`block px-3 py-2 rounded-sm type-body-sm transition-colors ${
                           active
                             ? "bg-ink text-canvas"
@@ -103,12 +108,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="h-16 shrink-0 flex items-center justify-between gap-4 px-6 tablet:px-10 border-b border-hairline bg-canvas">
-          <div className="tablet:hidden type-title-md text-ink">
-            {strings.common.appName}
-            <span className="text-primary">.</span>
+          <div className="tablet:hidden">
+            <Wordmark markSize={24} />
           </div>
 
           <div className="ms-auto flex items-center gap-3">
+            <button
+              data-tour="tour-button"
+              onClick={restartTour}
+              className="type-body-sm text-body hover:text-ink border border-hairline-strong rounded-md h-9 px-3 bg-surface-card transition-colors"
+            >
+              {strings.tour.step6Title}
+            </button>
             <button
               onClick={toggle}
               className="type-body-sm text-body hover:text-ink border border-hairline-strong rounded-md h-9 px-3 bg-surface-card transition-colors"
@@ -124,6 +135,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      <DashboardTour autoStart={me.data?.phone === DEMO_ADMIN_PHONE} />
     </div>
   );
 }

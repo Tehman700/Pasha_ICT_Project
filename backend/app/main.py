@@ -98,6 +98,13 @@ MEDIA_ROOT = Path("media")
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")
 
+# APKs for direct install, served here rather than from EAS: an EAS artifact
+# URL is per-build and not meant as a permanent link, and this way the URL a
+# judge is given never changes across rebuilds — only the file underneath it.
+DOWNLOADS_ROOT = Path("downloads")
+DOWNLOADS_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/downloads", StaticFiles(directory=DOWNLOADS_ROOT), name="downloads")
+
 V1 = "/v1"
 app.include_router(auth.router, prefix=V1)
 app.include_router(people.router, prefix=V1)

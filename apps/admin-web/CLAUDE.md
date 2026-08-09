@@ -37,7 +37,7 @@ module M6.4 in `docs/MODULE_PLAN.md` for why.
 ## Rules
 
 - Every request matches `docs/api/openapi.yaml`. If a type doesn't exist for an endpoint, that's a signal the contract needs updating — flag it, don't invent an undocumented shape.
-- This app is the one place Urdu is **not** required for MVP (see open decision #2 in `docs/PROJECT_CONTEXT.md` — confirm before assuming English-only is final).
+- Open decision #2 resolved: this app is fully bilingual — `lib/locale.tsx` provides the toggle and RTL flip, every screen reads strings from `@pickup/shared`. Treat Urdu here exactly like the two mobile apps: new user-facing copy ships in both languages in the same commit.
 
 ## Running locally
 

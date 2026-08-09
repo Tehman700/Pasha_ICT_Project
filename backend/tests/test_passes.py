@@ -245,9 +245,21 @@ class TestManualExpiry:
         )
 
     def test_a_parent_can_set_an_exact_expiry(self, client, db, family):
-        from datetime import datetime, timedelta, timezone
+        from datetime import timedelta
 
-        soon = datetime.now(timezone(timedelta(hours=5))) + timedelta(hours=2)
+        from app.routers.passes import _end_of_day
+
+        # `now + 2h` was time-of-day dependent: run this within two hours of
+        # Karachi midnight and the request genuinely crosses into tomorrow,
+        # which `_end_of_day()` then correctly caps — a real pass can't
+        # survive the day it was made. That made the test flake specifically
+        # between ~10pm and midnight, exercising the OTHER test's scenario
+        # instead of this one's.
+        #
+        # One minute before the server's own midnight cap is in the future
+        # and uncapped at every hour of every day the suite could possibly
+        # run — it moves with "today" instead of assuming what "today" is.
+        soon = _end_of_day() - timedelta(minutes=1)
         issued = self.issue(client, family, expires_at=soon.isoformat()).json()
 
         auth = db.get(PickupAuthorization, uuid.UUID(issued["pass_id"]))
