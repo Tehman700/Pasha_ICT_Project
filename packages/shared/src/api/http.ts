@@ -137,7 +137,12 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
       clearTimeout(timer);
     }
 
-    if (response.status === 401) {
+    // A 401 normally means the stored token died, so the app is bounced to the
+    // login screen. But `/auth/login` answers 401 for a WRONG PASSWORD, and
+    // redirecting there remounts the login screen — wiping both fields and the
+    // error message before anyone can read it. The screen just appears to
+    // ignore the button. Signing in is the one 401 that is not a dead session.
+    if (response.status === 401 && !path.startsWith("/auth/login")) {
       await tokens.set(null);
       onUnauthorized?.();
     }
@@ -237,14 +242,19 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
      * `uri` is a local `file://` path from the camera.
      */
     async uploadPhoto(uri: string, purpose: string) {
+      // A real Blob, not the `{ uri, name, type }` object React Native used to
+      // accept. Under the New Architecture that shape is rejected inside the
+      // native layer with "Unsupported FormDataPart implementation" — thrown
+      // by fetch before a request is made, so it surfaces as a status-0
+      // network error and reads as the server being unreachable when the
+      // server was never contacted at all.
+      //
+      // Reading the file:// URI back through fetch is what turns it into one.
+      const file = await fetch(uri).then((r) => r.blob());
+
       const form = new FormData();
-      // React Native's FormData takes this shape rather than a Blob; the
-      // filename matters only for the extension the server sees.
-      form.append("file", {
-        uri,
-        name: `${purpose}.jpg`,
-        type: "image/jpeg",
-      } as unknown as Blob);
+      // The filename matters only for the extension the server sees.
+      form.append("file", file, `${purpose}.jpg`);
 
       // No Content-Type header set by hand: fetch has to add the multipart
       // boundary itself, and supplying the header without it makes the server

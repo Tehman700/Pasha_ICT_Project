@@ -56,6 +56,8 @@ export const en = {
     subtitle: "Administrator access",
     parentSubtitle: "Parents, relatives and drivers all sign in here.",
     staffSubtitle: "Teachers and gate guards. Your role decides what you see.",
+    phoneRequired: "Enter your phone number.",
+    passwordRequired: "Enter your password.",
   },
   register: {
     // Entry
@@ -366,6 +368,8 @@ export const ur: DeepMirror<Strings> = {
     subtitle: "منتظم رسائی",
     parentSubtitle: "والدین، رشتہ دار اور ڈرائیور سب یہاں سائن ان کرتے ہیں۔",
     staffSubtitle: "اساتذہ اور گیٹ گارڈ۔ آپ کا کردار طے کرتا ہے کہ آپ کو کیا نظر آئے گا۔",
+    phoneRequired: "اپنا فون نمبر درج کریں۔",
+    passwordRequired: "اپنا پاس ورڈ درج کریں۔",
   },
   register: {
     noAccount: "اکاؤنٹ نہیں ہے؟",

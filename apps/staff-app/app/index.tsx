@@ -129,8 +129,19 @@ export default function StaffLoginScreen() {
             label={login.isPending ? strings.common.loading : strings.auth.signInCta}
             variant="primary"
             full
-            disabled={login.isPending || phone.trim() === "" || password === ""}
+            // See the note in the parent app's login screen: a button that
+            // disables itself on an empty field gives a guard at the gate a
+            // dead tap and no explanation.
+            disabled={login.isPending}
             onPress={() => {
+              if (phone.trim() === "") {
+                setError(strings.auth.phoneRequired);
+                return;
+              }
+              if (password === "") {
+                setError(strings.auth.passwordRequired);
+                return;
+              }
               setError(null);
               login.mutate();
             }}
