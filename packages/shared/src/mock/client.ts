@@ -84,6 +84,22 @@ export interface PickupApi {
   listStudents(classId?: Uuid): Promise<Student[]>;
   searchStudents(query: string): Promise<Student[]>;
   listUsers(role?: User["role"]): Promise<User[]>;
+  /** Admin only. School comes from the token, never the body. */
+  createUser(body: {
+    role: User["role"];
+    name: string;
+    name_ur?: string | null;
+    phone: string;
+    password: string;
+  }): Promise<User>;
+  createClass(body: { name: string; teacher_id?: Uuid | null }): Promise<ClassRoom>;
+  createStudent(body: {
+    name: string;
+    name_ur?: string | null;
+    class_id: Uuid;
+    guardian_cnic?: string | null;
+  }): Promise<Student>;
+  linkGuardian(studentId: Uuid, body: { user_id: Uuid; relation?: string }): Promise<unknown>;
 
   listVehicles(): Promise<Vehicle[]>;
   /** Look a driver up by exact phone before linking him. Not a search. */
@@ -258,6 +274,19 @@ export const mockApi: PickupApi = {
       fx.students.filter((s) => s.name.toLowerCase().includes(q)),
       120,
     );
+  },
+
+  async createUser(body) {
+    return delay({ ...fx.users[0]!, id: "mock-" + Date.now(), ...body } as User);
+  },
+  async createClass(body) {
+    return delay({ ...fx.classes[0]!, id: "mock-" + Date.now(), name: body.name });
+  },
+  async createStudent(body) {
+    return delay({ ...fx.students[0]!, id: "mock-" + Date.now(), name: body.name });
+  },
+  async linkGuardian() {
+    return delay({ ok: true });
   },
 
   async listUsers(role) {

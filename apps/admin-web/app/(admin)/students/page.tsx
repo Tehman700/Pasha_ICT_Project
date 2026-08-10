@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { Badge } from "@/components/ui/Badge";
@@ -9,11 +9,45 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PageHeader, SkeletonRows, EmptyState } from "@/components/ui/Misc";
 import { Table, THead, TBody, TH, TD, TR } from "@/components/ui/Table";
+import { Field } from "@/components/ui/Input";
+import { FormDialog, useAddDialog } from "@/components/ui/FormDialog";
 
 export default function StudentsPage() {
   const api = useApi();
+  const qc = useQueryClient();
   const { strings } = useLocale();
   const [q, setQ] = useState("");
+
+  const dialog = useAddDialog();
+  const [name, setName] = useState("");
+  const [nameUr, setNameUr] = useState("");
+  const [classId, setClassId] = useState("");
+  const [cnic, setCnic] = useState("");
+
+  const classes = useQuery({ queryKey: ["classes"], queryFn: () => api.listClasses() });
+
+  const add = useMutation({
+    mutationFn: () =>
+      api.createStudent({
+        name: name.trim(),
+        name_ur: nameUr.trim() || null,
+        class_id: classId,
+        guardian_cnic: cnic.trim() || null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["students"] });
+      setName(""); setNameUr(""); setCnic("");
+      dialog.close();
+    },
+    onError: dialog.fail,
+  });
+
+  function submit() {
+    if (name.trim().length < 1) return dialog.setError("Enter the child's name.");
+    if (!classId) return dialog.setError("Choose a class.");
+    dialog.setError(null);
+    add.mutate();
+  }
 
   const students = useQuery({ queryKey: ["students"], queryFn: () => api.listStudents() });
   const auths = useQuery({
@@ -31,7 +65,11 @@ export default function StudentsPage() {
       <PageHeader
         title={strings.nav.students}
         subtitle="Every child, their class, and who is currently authorized to collect them."
-        action={<Button variant="primary">{strings.common.add}</Button>}
+        action={
+          <Button variant="primary" onClick={() => dialog.setOpen(true)}>
+            {strings.common.add}
+          </Button>
+        }
       />
 
       <div className="mb-6 max-w-sm">
@@ -89,6 +127,41 @@ export default function StudentsPage() {
           </TBody>
         </Table>
       )}
+
+      <FormDialog
+        open={dialog.open}
+        title="Add a student"
+        description="The guardian CNIC is what links a self-registering parent to this child. Getting it wrong means the parent registers successfully and then sees an empty app."
+        submitLabel={strings.common.add}
+        busy={add.isPending}
+        error={dialog.error}
+        onClose={dialog.close}
+        onSubmit={submit}
+      >
+        <Field label="Full name">
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Field>
+        <Field label="Name in Urdu (optional)">
+          <Input value={nameUr} onChange={(e) => setNameUr(e.target.value)} dir="rtl" />
+        </Field>
+        <Field label={strings.nav.classes}>
+          <select
+            value={classId}
+            onChange={(e) => setClassId(e.target.value)}
+            className="w-full h-10 px-3 bg-surface-card border border-hairline-strong rounded-md type-body-sm text-ink"
+          >
+            <option value="">—</option>
+            {classes.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Guardian CNIC" hint="13 digits, as printed on the card.">
+          <Input value={cnic} onChange={(e) => setCnic(e.target.value)} dir="ltr" />
+        </Field>
+      </FormDialog>
     </>
   );
 }

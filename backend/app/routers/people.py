@@ -9,8 +9,10 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.phone import normalise as normalise_phone
+from app.phone import is_valid as valid_phone, normalise as normalise_phone
 from app.db import get_db
+from pydantic import BaseModel, Field
+
 from app.deps import get_current_user, require_admin, require_guard, require_staff
 from app.models import (
     Guardianship,
@@ -231,7 +233,13 @@ def create_user(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"Missing: {', '.join(sorted(missing))}"
         )
-    if db.execute(select(User).where(User.phone == normalise_phone(body["phone"]))).scalar_one_or_none():
+    phone = normalise_phone(body["phone"])
+    if not valid_phone(phone):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Phone must be a Pakistani mobile number, 11 digits: 03xxxxxxxxx",
+        )
+    if db.execute(select(User).where(User.phone == phone)).scalar_one_or_none():
         raise HTTPException(status.HTTP_409_CONFLICT, "Phone number already registered")
 
     u = User(
@@ -240,7 +248,7 @@ def create_user(
         role=Role(body["role"]),
         name=body["name"],
         name_ur=body.get("name_ur"),
-        phone=body["phone"],
+        phone=phone,
         password_hash=hash_password(body["password"]),
         locale=body.get("locale", "en"),
     )
@@ -248,6 +256,145 @@ def create_user(
     db.commit()
     db.refresh(u)
     return UserOut.model_validate(u)
+
+
+# ── classes, students, guardianships ───────────────────────────────────
+#
+# The admin dashboard rendered forms for all of these long before any of them
+# existed, so Save silently discarded whatever was typed. These are the
+# endpoints behind those forms.
+#
+# Everything here is admin-only and scoped to the admin's own school. A school
+# id is never taken from the request body — it comes from the token, so no
+# request can create a row inside somebody else's school.
+
+
+class ClassIn(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    teacher_id: uuid.UUID | None = None
+
+
+@router.post("/classes", status_code=status.HTTP_201_CREATED, tags=["people"])
+def create_class(
+    body: ClassIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if body.teacher_id is not None:
+        teacher = db.get(User, body.teacher_id)
+        if teacher is None or teacher.school_id != admin.school_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No such teacher")
+        if teacher.role != Role.teacher:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "That user is not a teacher"
+            )
+
+    c = SchoolClass(
+        id=uuid.uuid4(),
+        school_id=admin.school_id,
+        name=body.name.strip(),
+        teacher_id=body.teacher_id,
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return {
+        "id": str(c.id),
+        "school_id": str(c.school_id),
+        "name": c.name,
+        "teacher_id": str(c.teacher_id) if c.teacher_id else None,
+    }
+
+
+class StudentIn(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    name_ur: str | None = None
+    class_id: uuid.UUID
+    #: The guardian's CNIC, recorded at enrolment. This is the ONLY thing that
+    #: links a self-registering parent to their children — get it wrong and the
+    #: parent registers successfully and sees an empty app.
+    guardian_cnic: str | None = None
+
+
+@router.post("/students", status_code=status.HTTP_201_CREATED, tags=["people"])
+def create_student(
+    body: StudentIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    klass = db.get(SchoolClass, body.class_id)
+    if klass is None or klass.school_id != admin.school_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such class")
+
+    cnic = "".join(ch for ch in (body.guardian_cnic or "") if ch.isdigit()) or None
+
+    s = Student(
+        id=uuid.uuid4(),
+        school_id=admin.school_id,
+        class_id=klass.id,
+        name=body.name.strip(),
+        name_ur=body.name_ur,
+        guardian_cnic=cnic,
+    )
+    db.add(s)
+    db.commit()
+    db.refresh(s)
+    return StudentOut.model_validate(s)
+
+
+class GuardianLinkIn(BaseModel):
+    user_id: uuid.UUID
+    relation: str = "parent"
+    is_primary: bool = False
+    can_delegate: bool = True
+
+
+@router.post(
+    "/students/{student_id}/guardians",
+    status_code=status.HTTP_201_CREATED,
+    tags=["people"],
+)
+def link_guardian(
+    student_id: uuid.UUID,
+    body: GuardianLinkIn,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Attach a guardian to a child.
+
+    This is the admin doing by hand what CNIC matching normally does
+    automatically — the path for a family whose number the school recorded
+    wrongly, which is a phone call rather than a dead end.
+    """
+    student = db.get(Student, student_id)
+    if student is None or student.school_id != admin.school_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such student")
+
+    guardian = db.get(User, body.user_id)
+    if guardian is None or guardian.school_id != admin.school_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such user")
+
+    existing = db.execute(
+        select(Guardianship).where(
+            Guardianship.student_id == student_id,
+            Guardianship.user_id == body.user_id,
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Already a guardian of this child")
+
+    g = Guardianship(
+        id=uuid.uuid4(),
+        student_id=student_id,
+        user_id=body.user_id,
+        relation=body.relation,
+        is_primary=body.is_primary,
+        can_delegate=body.can_delegate,
+    )
+    db.add(g)
+    db.commit()
+    return {"id": str(g.id), "student_id": str(student_id), "user_id": str(body.user_id)}
 
 
 # ── vehicles ───────────────────────────────────────────────────────────

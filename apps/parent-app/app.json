@@ -24,7 +24,8 @@
       ],
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
       "googleServicesFile": "./google-services.json"
     },

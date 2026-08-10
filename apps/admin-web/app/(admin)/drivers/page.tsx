@@ -1,12 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { useStaggerIn } from "@/lib/gsap";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Input";
+import { FormDialog, useAddDialog } from "@/components/ui/FormDialog";
+import { PHONE_PLACEHOLDER, isValidPhone } from "@pickup/shared";
 import { PageHeader, SkeletonRows } from "@/components/ui/Misc";
 import { Table, THead, TBody, TH, TD, TR } from "@/components/ui/Table";
 
@@ -21,6 +25,31 @@ import { Table, THead, TBody, TH, TD, TR } from "@/components/ui/Table";
 export default function DriversPage() {
   const api = useApi();
   const { strings } = useLocale();
+  const qc = useQueryClient();
+  const dialog = useAddDialog();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"teacher" | "guard" | "admin" | "driver">("driver");
+
+  const addUser = useMutation({
+    mutationFn: () =>
+      api.createUser({ role, name: name.trim(), phone: phone.trim(), password }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      setName(""); setPhone(""); setPassword("");
+      dialog.close();
+    },
+    onError: dialog.fail,
+  });
+
+  function submitUser() {
+    if (name.trim().length < 2) return dialog.setError("Enter a full name.");
+    if (!isValidPhone(phone)) return dialog.setError(strings.auth.phoneFormat);
+    if (password.length < 8) return dialog.setError(strings.register.passwordShort);
+    dialog.setError(null);
+    addUser.mutate();
+  }
 
   const vehicles = useQuery({ queryKey: ["vehicles"], queryFn: () => api.listVehicles() });
   const auths = useQuery({
@@ -35,7 +64,11 @@ export default function DriversPage() {
       <PageHeader
         title={strings.drivers.title}
         subtitle={strings.drivers.subtitle}
-        action={<Button variant="primary">{strings.drivers.addDriver}</Button>}
+        action={
+          <Button variant="primary" onClick={() => dialog.setOpen(true)}>
+            {strings.drivers.addDriver}
+          </Button>
+        }
       />
 
       {vehicles.isLoading ? (
@@ -127,6 +160,45 @@ export default function DriversPage() {
           ))}
         </TBody>
       </Table>
+      <FormDialog
+        open={dialog.open}
+        title="Register a driver"
+        description="A driver stays invisible to every family until a parent links him by phone number. The school vets nobody."
+        submitLabel={strings.common.add}
+        busy={addUser.isPending}
+        error={dialog.error}
+        onClose={dialog.close}
+        onSubmit={submitUser}
+      >
+        <Field label="Full name">
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Field>
+        <Field label="Role">
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as typeof role)}
+            className="w-full h-10 px-3 bg-surface-card border border-hairline-strong rounded-md type-body-sm text-ink"
+          >
+            <option value="driver">Driver</option>
+          </select>
+        </Field>
+        <Field label={strings.auth.phone} hint={strings.auth.phoneFormat}>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={PHONE_PLACEHOLDER}
+            dir="ltr"
+          />
+        </Field>
+        <Field label={strings.auth.password} hint={strings.register.passwordShort}>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            dir="ltr"
+          />
+        </Field>
+      </FormDialog>
     </>
   );
 }

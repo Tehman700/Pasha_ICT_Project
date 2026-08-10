@@ -282,6 +282,27 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
       q.trim() ? get<Student[]>("/students/search", { q }) : Promise.resolve([]),
     listUsers: (role?: User["role"]) => get<User[]>("/users", { role }),
 
+    createUser: (body: {
+      role: User["role"];
+      name: string;
+      name_ur?: string | null;
+      phone: string;
+      password: string;
+    }) => post<User>("/users", body),
+
+    createClass: (body: { name: string; teacher_id?: Uuid | null }) =>
+      post<ClassRoom>("/classes", body),
+
+    createStudent: (body: {
+      name: string;
+      name_ur?: string | null;
+      class_id: Uuid;
+      guardian_cnic?: string | null;
+    }) => post<Student>("/students", body),
+
+    linkGuardian: (studentId: Uuid, body: { user_id: Uuid; relation?: string }) =>
+      post<unknown>(`/students/${studentId}/guardians`, body),
+
     listVehicles: () => get<Vehicle[]>("/vehicles"),
 
     // `+` in a query string decodes to a space, so it must be encoded here or
