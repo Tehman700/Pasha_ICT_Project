@@ -31,7 +31,7 @@ def klass(db, school):
 def driver_payload(school_id, **over):
     body = {
         "name": "Ahmed Khan",
-        "phone": "+923215559991",
+        "phone": "03215559991",
         "password": "driverpass123",
         "cnic": "35202-1234567-1",
         "selfie_url": "/photos/selfie.jpg",
@@ -69,7 +69,7 @@ class TestDriverRegistration:
         db.flush()
 
         client.post("/v1/auth/register/driver", json=driver_payload(school.id))
-        h = token(client, "+923215559991", "driverpass123")
+        h = token(client, "03215559991", "driverpass123")
 
         # He exists, he can log in, and he can see nothing.
         assert client.get("/v1/students", headers=h).status_code == 403
@@ -110,7 +110,7 @@ class TestParentRegistration:
             "/v1/auth/register/parent",
             json={
                 "name": "Tariq Raza",
-                "phone": "+923331119991",
+                "phone": "03331119991",
                 "password": "parentpass123",
                 "cnic": "35202-7777777-1",  # written form, same number
                 "school_id": str(school.id),
@@ -138,7 +138,7 @@ class TestParentRegistration:
             "/v1/auth/register/parent",
             json={
                 "name": "Unknown Person",
-                "phone": "+923331119992",
+                "phone": "03331119992",
                 "password": "parentpass123",
                 "cnic": "35202-9999999-9",
                 "school_id": str(school.id),
@@ -168,7 +168,7 @@ class TestParentRegistration:
             "/v1/auth/register/parent",
             json={
                 "name": "Different Parent",
-                "phone": "+923331119993",
+                "phone": "03331119993",
                 "password": "parentpass123",
                 "cnic": "3520222222222",
                 "school_id": str(school.id),
@@ -222,7 +222,7 @@ class TestSchoolVisibility:
         h = token(client, admin.phone)
 
         before = client.get(f"/v1/schools/{school.id}/drivers", headers=h).json()
-        assert all(d["driver"]["phone"] != "+923215559991" for d in before)
+        assert all(d["driver"]["phone"] != "03215559991" for d in before)
 
         # A parent links him to her child.
         parent = make_user(Role.parent)
@@ -255,4 +255,4 @@ class TestSchoolVisibility:
         assert grant.status_code == 201, grant.text
 
         after = client.get(f"/v1/schools/{school.id}/drivers", headers=h).json()
-        assert any(d["driver"]["phone"] == "+923215559991" for d in after)
+        assert any(d["driver"]["phone"] == "03215559991" for d in after)

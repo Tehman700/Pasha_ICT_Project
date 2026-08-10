@@ -165,13 +165,13 @@ def seed(db) -> None:
         db.add(u)
         return u
 
-    admin = mk_user(Role.admin, "Imran Qureshi", "عمران قریشی", "+923001112233", "en")
-    guard = mk_user(Role.guard, "Main Gate Guard", "مین گیٹ گارڈ", "+923007778899", "ur")
+    admin = mk_user(Role.admin, "Imran Qureshi", "عمران قریشی", "03001112233", "en")
+    guard = mk_user(Role.guard, "Main Gate Guard", "مین گیٹ گارڈ", "03007778899", "ur")
 
     # Teachers are created BEFORE classes so every class gets a real teacher_id.
-    t_nur = mk_user(Role.teacher, "Sadia Iqbal", "سعدیہ اقبال", "+923004445566", "ur")
-    t_pra = mk_user(Role.teacher, "Nadia Sheikh", "نادیہ شیخ", "+923004445567", "ur")
-    t_prb = mk_user(Role.teacher, "Rabia Khan", "رابعہ خان", "+923004445568", "en")
+    t_nur = mk_user(Role.teacher, "Sadia Iqbal", "سعدیہ اقبال", "03004445566", "ur")
+    t_pra = mk_user(Role.teacher, "Nadia Sheikh", "نادیہ شیخ", "03004445567", "ur")
+    t_prb = mk_user(Role.teacher, "Rabia Khan", "رابعہ خان", "03004445568", "en")
     db.flush()
 
     classes = {}
@@ -204,12 +204,12 @@ def seed(db) -> None:
     }
     parents = {}
     for key, name, name_ur, phone, locale in [
-        ("p1", "Tariq Raza", "طارق رضا", "+923331000001", "en"),
-        ("p2", "Nasreen Malik", "نسرین ملک", "+923331000002", "ur"),
-        ("p3", "Kamran Butt", "کامران بٹ", "+923331000003", "en"),
-        ("p4", "Shazia Sheikh", "شازیہ شیخ", "+923331000004", "ur"),
-        ("p5", "Junaid Hassan", "جنید حسن", "+923331000005", "en"),
-        ("p6", "Farah Iqbal", "فرح اقبال", "+923331000006", "ur"),
+        ("p1", "Tariq Raza", "طارق رضا", "03331000001", "en"),
+        ("p2", "Nasreen Malik", "نسرین ملک", "03331000002", "ur"),
+        ("p3", "Kamran Butt", "کامران بٹ", "03331000003", "en"),
+        ("p4", "Shazia Sheikh", "شازیہ شیخ", "03331000004", "ur"),
+        ("p5", "Junaid Hassan", "جنید حسن", "03331000005", "en"),
+        ("p6", "Farah Iqbal", "فرح اقبال", "03331000006", "ur"),
     ]:
         parents[key] = mk_user(
             Role.parent, name, name_ur, phone, locale, cnic=parent_cnic[key]
@@ -217,12 +217,12 @@ def seed(db) -> None:
 
     # A relative added directly by a parent — the non-vetted path.
     granny = mk_user(
-        Role.parent, "Rukhsana Bibi", "رخسانہ بی بی", "+923331000090", "ur"
+        Role.parent, "Rukhsana Bibi", "رخسانہ بی بی", "03331000090", "ur"
     )
 
     # Drivers — school-registered and vetted.
-    d1 = mk_user(Role.driver, "Ahmed Khan", "احمد خان", "+923215000011", "ur")
-    d2 = mk_user(Role.driver, "Yousaf Gul", "یوسف گل", "+923215000012", "ur")
+    d1 = mk_user(Role.driver, "Ahmed Khan", "احمد خان", "03215000011", "ur")
+    d2 = mk_user(Role.driver, "Yousaf Gul", "یوسف گل", "03215000012", "ur")
     db.flush()
 
     db.add_all(

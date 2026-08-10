@@ -20,6 +20,7 @@ import {
   useApi,
   useLocale,
 } from "@pickup/ui-native";
+import { PHONE_PLACEHOLDER, normalisePhone } from "@pickup/shared";
 
 /**
  * Staff login.
@@ -37,7 +38,7 @@ export default function StaffLoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const login = useMutation({
-    mutationFn: () => api.login({ phone: phone.trim(), password }),
+    mutationFn: () => api.login({ phone: normalisePhone(phone), password }),
     onSuccess: (res) => {
       const role = res.user.role;
       // Staff get no pickup notifications — voice replaces the teacher push
@@ -98,7 +99,7 @@ export default function StaffLoginScreen() {
                 setPhone(v);
                 setError(null);
               }}
-              placeholder="+92 300 4445566"
+              placeholder={PHONE_PLACEHOLDER}
               keyboardType="phone-pad"
               autoCapitalize="none"
               autoCorrect={false}

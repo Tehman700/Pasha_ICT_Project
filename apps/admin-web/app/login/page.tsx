@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import { PHONE_PLACEHOLDER, normalisePhone } from "@pickup/shared";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApi, USE_MOCK } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
@@ -32,7 +33,7 @@ function LoginForm() {
     setError(null);
     setBusy(true);
     try {
-      const res = await api.login({ phone: phone.trim(), password });
+      const res = await api.login({ phone: normalisePhone(phone), password });
       if (res.user.role !== "admin") {
         setError(strings.errors.wrongAppAdmin);
         return;
@@ -70,7 +71,7 @@ function LoginForm() {
               <Field label={strings.auth.phone}>
                 <Input
                   type="tel"
-                  placeholder="+92 300 1112233"
+                  placeholder={PHONE_PLACEHOLDER}
                   dir="ltr"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}

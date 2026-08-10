@@ -9,6 +9,7 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.phone import normalise as normalise_phone
 from app.db import get_db
 from app.deps import get_current_user, require_admin, require_guard, require_staff
 from app.models import (
@@ -230,7 +231,7 @@ def create_user(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"Missing: {', '.join(sorted(missing))}"
         )
-    if db.execute(select(User).where(User.phone == body["phone"])).scalar_one_or_none():
+    if db.execute(select(User).where(User.phone == normalise_phone(body["phone"]))).scalar_one_or_none():
         raise HTTPException(status.HTTP_409_CONFLICT, "Phone number already registered")
 
     u = User(

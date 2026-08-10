@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { PHONE_PLACEHOLDER, isValidPhone, normalisePhone } from "@pickup/shared";
 import { useRouter } from "next/navigation";
 import { storeToken, useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
@@ -56,7 +57,8 @@ export default function RegisterPage() {
   function goToStep2(e: React.FormEvent) {
     e.preventDefault();
     if (name.trim().length < 2) return setError(t.nameRequired);
-    if (phone.trim().length < 6) return setError(t.phoneRequired);
+    if (!phone.trim()) return setError(t.phoneRequired);
+    if (!isValidPhone(phone)) return setError(strings.auth.phoneFormat);
     if (password.length < 8) return setError(t.passwordShort);
     if (password !== confirm) return setError(t.passwordMismatch);
     setError(null);
@@ -74,7 +76,7 @@ export default function RegisterPage() {
       const res = await api.registerAdmin({
         name: name.trim(),
         name_ur: nameUr.trim() || null,
-        phone: phone.trim(),
+        phone: normalisePhone(phone),
         password,
         locale,
         school: {
@@ -140,7 +142,7 @@ export default function RegisterPage() {
                   <Input
                     type="tel"
                     dir="ltr"
-                    placeholder="+92 300 1112233"
+                    placeholder={PHONE_PLACEHOLDER}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required

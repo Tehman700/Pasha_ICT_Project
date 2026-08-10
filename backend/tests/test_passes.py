@@ -108,7 +108,7 @@ class TestIssuing:
         r = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877"},
+            json={"name": "Kamran Ali", "phone": "03339998877"},
         )
         assert r.status_code == 201, r.text
         assert r.json()["token"]
@@ -121,13 +121,13 @@ class TestIssuing:
         client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877"},
+            json={"name": "Kamran Ali", "phone": "03339998877"},
         )
         log = db.query(AuditLog).filter(AuditLog.action == "pass.issued").first()
         assert log is not None
         assert log.actor_user_id == family["parent"].id
         assert log.payload["bearer"] == "Kamran Ali"
-        assert log.payload["phone"] == "+923339998877"
+        assert log.payload["phone"] == "03339998877"
 
     def test_no_bearer_photo_is_stored(self, client, db, family):
         """
@@ -142,11 +142,11 @@ class TestIssuing:
             headers=token(client, family["parent"]),
             json={
                 "name": "Kamran Ali",
-                "phone": "+923339998877",
+                "phone": "03339998877",
                 "photo_url": "/p/injected.jpg",
             },
         )
-        bearer = db.query(User).filter(User.phone == "+923339998877").one()
+        bearer = db.query(User).filter(User.phone == "03339998877").one()
         assert bearer.photo_url is None
         assert bearer.selfie_url is None
 
@@ -157,7 +157,7 @@ class TestIssuing:
         r = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, stranger),
-            json={"name": "Someone", "phone": "+923330000001"},
+            json={"name": "Someone", "phone": "03330000001"},
         )
         assert r.status_code == 403
 
@@ -171,9 +171,9 @@ class TestIssuing:
         client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877"},
+            json={"name": "Kamran Ali", "phone": "03339998877"},
         )
-        bearer = db.query(User).filter(User.phone == "+923339998877").one()
+        bearer = db.query(User).filter(User.phone == "03339998877").one()
         assert bearer.is_active is False
 
     def test_the_same_relative_can_be_sent_twice(self, client, db, family):
@@ -188,11 +188,11 @@ class TestIssuing:
             r = client.post(
                 f"/v1/students/{family['child'].id}/temporary-pass",
                 headers=token(client, family["parent"]),
-                json={"name": "Kamran Ali", "phone": "+923339998877"},
+                json={"name": "Kamran Ali", "phone": "03339998877"},
             )
             assert r.status_code == 201, r.text
 
-        assert db.query(User).filter(User.phone == "+923339998877").count() == 1
+        assert db.query(User).filter(User.phone == "03339998877").count() == 1
 
     def test_a_pass_cannot_hijack_a_registered_account(self, client, db, family, make_user):
         """
@@ -219,7 +219,7 @@ class TestIssuing:
         issued = client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877"},
+            json={"name": "Kamran Ali", "phone": "03339998877"},
         ).json()
         auth = db.get(PickupAuthorization, uuid.UUID(issued["pass_id"]))
         # Never persists silently into tomorrow.
@@ -239,7 +239,7 @@ class TestManualExpiry:
             headers=token(client, family["parent"]),
             json={
                 "name": "Kamran Ali",
-                "phone": "+923339998877",
+                "phone": "03339998877",
                 **extra,
             },
         )
@@ -333,7 +333,7 @@ class TestVerifying:
         return client.post(
             f"/v1/students/{family['child'].id}/temporary-pass",
             headers=token(client, family["parent"]),
-            json={"name": "Kamran Ali", "phone": "+923339998877"},
+            json={"name": "Kamran Ali", "phone": "03339998877"},
         ).json()
 
     def test_a_valid_pass_names_the_bearer_and_fires_the_speaker(self, client, family):
@@ -348,7 +348,7 @@ class TestVerifying:
         assert body["valid"] is True
         # Name and phone are what the guard checks — there is no bearer photo.
         assert body["bearer"]["name"] == "Kamran Ali"
-        assert body["bearer"]["phone"] == "+923339998877"
+        assert body["bearer"]["phone"] == "03339998877"
         assert "photo_url" not in body["bearer"]
         # The CHILD's photo stays: it is the school's own record, and it is how
         # the guard knows who is walking out of the gate.
@@ -495,7 +495,7 @@ class TestSeveralChildrenOnOnePass:
             headers=token(client, family["parent"]),
             json={
                 "name": "Kamran Ali",
-                "phone": "+923339998877",
+                "phone": "03339998877",
                 "also_student_ids": [str(family["sibling"].id)],
                 **extra,
             },
@@ -515,7 +515,7 @@ class TestSeveralChildrenOnOnePass:
         from app.models import User as U
 
         self.issue_both(client, family)
-        bearer = db.query(U).filter(U.phone == "+923339998877").one()
+        bearer = db.query(U).filter(U.phone == "03339998877").one()
         rows = (
             db.query(PickupAuthorization)
             .filter(PickupAuthorization.collector_user_id == bearer.id)
@@ -554,7 +554,7 @@ class TestSeveralChildrenOnOnePass:
         db.expire_all()
         from app.models import User as U
 
-        bearer = db.query(U).filter(U.phone == "+923339998877").one()
+        bearer = db.query(U).filter(U.phone == "03339998877").one()
         rows = (
             db.query(PickupAuthorization)
             .filter(PickupAuthorization.collector_user_id == bearer.id)
@@ -586,7 +586,7 @@ class TestSeveralChildrenOnOnePass:
             headers=token(client, family["parent"]),
             json={
                 "name": "Kamran Ali",
-                "phone": "+923339998877",
+                "phone": "03339998877",
                 "also_student_ids": [str(outsider.id)],
             },
         )
@@ -603,11 +603,11 @@ class TestSeveralChildrenOnOnePass:
             headers=token(client, family["parent"]),
             json={
                 "name": "Kamran Ali",
-                "phone": "+923339998877",
+                "phone": "03339998877",
                 "also_student_ids": [str(family["child"].id)],
             },
         )
-        bearer = db.query(U).filter(U.phone == "+923339998877").one()
+        bearer = db.query(U).filter(U.phone == "03339998877").one()
         rows = (
             db.query(PickupAuthorization)
             .filter(PickupAuthorization.collector_user_id == bearer.id)

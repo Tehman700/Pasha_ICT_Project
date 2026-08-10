@@ -50,6 +50,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.phone import normalise as normalise_phone
 from app.db import get_db, utcnow
 from app.deps import get_current_user, require_guard
 from app.models import (
@@ -170,7 +171,7 @@ def issue_pass(
     # second pass dies on a UniqueViolation — a 500 to a parent who did nothing
     # wrong, on the perfectly ordinary "my brother came again on Friday".
     existing = db.execute(
-        select(User).where(User.phone == body.phone)
+        select(User).where(User.phone == normalise_phone(body.phone))
     ).scalar_one_or_none()
 
     if existing is not None:

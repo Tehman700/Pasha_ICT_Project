@@ -236,11 +236,11 @@ Password for all: `rukhsat123`
 
 | Role | Phone | Lands on |
 |---|---|---|
-| Parent | `+923331000001` | Children, On my way, rotating QR |
-| Driver | `+923215000011` | Trip screen, OSM map |
-| Teacher | `+923004445566` | Live class queue |
-| Guard | `+923007778899` | Scanner + manual fallback |
-| Admin | `+923001112233` | https://admin.tideover.site |
+| Parent | `03331000001` | Children, On my way, rotating QR |
+| Driver | `03215000011` | Trip screen, OSM map |
+| Teacher | `03004445566` | Live class queue |
+| Guard | `03007778899` | Scanner + manual fallback |
+| Admin | `03001112233` | https://admin.tideover.site |
 
 Wipe a stored session — the token is in the device keychain and survives
 reinstalls of the JS bundle:

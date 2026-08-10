@@ -56,12 +56,12 @@ TZ = timezone(timedelta(hours=5))
 #: Prefix distinct from every number `seed.py` uses, so nothing collides on
 #: the `users.phone` unique constraint and a reader can tell "demo" from
 #: "real test account" at a glance.
-DEMO_ADMIN = "+923009900001"
-DEMO_TEACHER = "+923009900002"
-DEMO_GUARD = "+923009900003"
-DEMO_PARENT = "+923009900010"  # two children — the sibling story
-DEMO_PARENT_2 = "+923009900011"
-DEMO_DRIVER = "+923009900020"
+DEMO_ADMIN = "03009900001"
+DEMO_TEACHER = "03009900002"
+DEMO_GUARD = "03009900003"
+DEMO_PARENT = "03009900010"  # two children — the sibling story
+DEMO_PARENT_2 = "03009900011"
+DEMO_DRIVER = "03009900020"
 
 
 def at(hhmm: str) -> datetime:

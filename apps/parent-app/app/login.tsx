@@ -20,6 +20,7 @@ import {
   useApi,
   useLocale,
 } from "@pickup/ui-native";
+import { PHONE_PLACEHOLDER, normalisePhone } from "@pickup/shared";
 
 export default function LoginScreen() {
   const api = useApi();
@@ -30,7 +31,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const login = useMutation({
-    mutationFn: () => api.login({ phone: phone.trim(), password }),
+    mutationFn: () => api.login({ phone: normalisePhone(phone), password }),
     onSuccess: (res) => {
       // A teacher or guard signing in here would see a parent's screens. Role
       // comes from the account, never from a toggle on this screen. The mock
@@ -94,7 +95,7 @@ export default function LoginScreen() {
                 setPhone(v);
                 setError(null);
               }}
-              placeholder="+92 333 1000001"
+              placeholder={PHONE_PLACEHOLDER}
               keyboardType="phone-pad"
               autoCapitalize="none"
               autoCorrect={false}

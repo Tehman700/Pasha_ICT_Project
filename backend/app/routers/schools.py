@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.phone import is_valid as valid_phone, normalise as normalise_phone
 from app.db import get_db, utcnow
 from app.deps import get_current_user
 from app.models import AuditLog, Role, School, User
@@ -103,10 +104,26 @@ class AdminSignup(BaseModel):
 
     name: str = Field(min_length=2, max_length=200)
     name_ur: str | None = None
-    phone: str = Field(min_length=6, max_length=32)
+    phone: str = Field(max_length=32)
     password: str = Field(min_length=8, max_length=128)
     locale: str = "en"
     school: SchoolDetails
+
+    @field_validator("phone")
+    @classmethod
+    def _canonical_phone(cls, v: str) -> str:
+        """
+        Normalise and validate in one place, so every malformed number gets
+        the same message. A `min_length` here would reject a short number
+        first with Pydantic's generic wording, and the caller would never see
+        the one sentence that actually says what shape is wanted.
+        """
+        canonical = normalise_phone(v)
+        if not valid_phone(canonical):
+            raise ValueError(
+                "Phone must be a Pakistani mobile number, 11 digits: 03xxxxxxxxx"
+            )
+        return canonical
 
 
 class SchoolUpdate(BaseModel):
@@ -140,7 +157,9 @@ def register_admin(body: AdminSignup, db: Session = Depends(get_db)):
     the dashboard instead of bouncing the person back to a login form they
     filled in thirty seconds ago.
     """
-    if db.execute(select(User).where(User.phone == body.phone)).scalar_one_or_none():
+    # Already normalised and validated by the model.
+    phone = body.phone
+    if db.execute(select(User).where(User.phone == phone)).scalar_one_or_none():
         raise HTTPException(status.HTTP_409_CONFLICT, "Phone number already registered")
 
     dismissal = parse_hhmm(body.school.dismissal_time, "dismissal_time")
@@ -166,7 +185,7 @@ def register_admin(body: AdminSignup, db: Session = Depends(get_db)):
         role=Role.admin,
         name=body.name,
         name_ur=body.name_ur,
-        phone=body.phone,
+        phone=phone,
         password_hash=hash_password(body.password),
         locale=body.locale if body.locale in ("en", "ur") else "en",
     )

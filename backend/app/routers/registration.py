@@ -43,6 +43,7 @@ from app.models import (
     Vehicle,
 )
 from app.schemas import UserOut
+from app.phone import is_valid as valid_phone, normalise as normalise_phone
 from app.security import hash_password
 
 router = APIRouter()
@@ -127,7 +128,13 @@ def register_driver(body: DriverRegistration, db: Session = Depends(get_db)):
     """
     if db.get(School, body.school_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such school")
-    if db.execute(select(User).where(User.phone == body.phone)).scalar_one_or_none():
+    phone = normalise_phone(body.phone)
+    if not valid_phone(phone):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Phone must be a Pakistani mobile number, 11 digits: 03xxxxxxxxx",
+        )
+    if db.execute(select(User).where(User.phone == phone)).scalar_one_or_none():
         raise HTTPException(status.HTTP_409_CONFLICT, "Phone number already registered")
 
     from datetime import time as Time
@@ -148,7 +155,7 @@ def register_driver(body: DriverRegistration, db: Session = Depends(get_db)):
         role=Role.driver,
         name=body.name,
         name_ur=body.name_ur,
-        phone=body.phone,
+        phone=phone,
         password_hash=hash_password(body.password),
         locale="ur",
         cnic=normalise_cnic(body.cnic),
@@ -195,7 +202,13 @@ def register_parent(body: ParentRegistration, db: Session = Depends(get_db)):
     """
     if db.get(School, body.school_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such school")
-    if db.execute(select(User).where(User.phone == body.phone)).scalar_one_or_none():
+    phone = normalise_phone(body.phone)
+    if not valid_phone(phone):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Phone must be a Pakistani mobile number, 11 digits: 03xxxxxxxxx",
+        )
+    if db.execute(select(User).where(User.phone == phone)).scalar_one_or_none():
         raise HTTPException(status.HTTP_409_CONFLICT, "Phone number already registered")
 
     cnic = normalise_cnic(body.cnic)
@@ -206,7 +219,7 @@ def register_parent(body: ParentRegistration, db: Session = Depends(get_db)):
         role=Role.parent,
         name=body.name,
         name_ur=body.name_ur,
-        phone=body.phone,
+        phone=phone,
         password_hash=hash_password(body.password),
         locale=body.locale,
         cnic=cnic,

@@ -20,7 +20,7 @@ from app.models import Role, School, User
 def signup_payload(**over):
     body = {
         "name": "Imran Qureshi",
-        "phone": "+923005550001",
+        "phone": "03005550001",
         "password": "adminpass123",
         "school": {
             "name": "Bahria Foundation School",
@@ -114,7 +114,7 @@ class TestAdminSignup:
 class TestSchoolUpdate:
     def test_an_admin_can_move_the_school_and_resize_the_geofence(self, client, db):
         created = client.post("/v1/auth/register-admin", json=signup_payload()).json()
-        headers = token_for(client, "+923005550001", "adminpass123")
+        headers = token_for(client, "03005550001", "adminpass123")
 
         r = client.patch(
             f"/v1/schools/{created['school']['id']}",
@@ -127,7 +127,7 @@ class TestSchoolUpdate:
 
     def test_half_a_coordinate_pair_is_refused(self, client):
         created = client.post("/v1/auth/register-admin", json=signup_payload()).json()
-        headers = token_for(client, "+923005550001", "adminpass123")
+        headers = token_for(client, "03005550001", "adminpass123")
 
         r = client.patch(
             f"/v1/schools/{created['school']['id']}",
@@ -144,9 +144,9 @@ class TestSchoolUpdate:
         a much bigger lever than the screen suggests, so it is admin-only.
         """
         teacher = make_user(
-            Role.teacher, password="teacherpass123", phone="+923004440001"
+            Role.teacher, password="teacherpass123", phone="03004440001"
         )
-        headers = token_for(client, "+923004440001", "teacherpass123")
+        headers = token_for(client, "03004440001", "teacherpass123")
 
         r = client.patch(
             f"/v1/schools/{teacher.school_id}",
@@ -159,10 +159,10 @@ class TestSchoolUpdate:
         client.post("/v1/auth/register-admin", json=signup_payload())
         other = client.post(
             "/v1/auth/register-admin",
-            json=signup_payload(phone="+923005550002"),
+            json=signup_payload(phone="03005550002"),
         ).json()
 
-        headers = token_for(client, "+923005550001", "adminpass123")
+        headers = token_for(client, "03005550001", "adminpass123")
         r = client.patch(
             f"/v1/schools/{other['school']['id']}",
             json={"geofence_radius_m": 900},

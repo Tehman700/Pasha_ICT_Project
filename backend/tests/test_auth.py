@@ -98,7 +98,7 @@ class TestLogin:
             "/v1/auth/login", json={"phone": user.phone, "password": "wrong"}
         )
         unknown = client.post(
-            "/v1/auth/login", json={"phone": "+923009999999", "password": "wrong"}
+            "/v1/auth/login", json={"phone": "03009999999", "password": "wrong"}
         )
         # Identical status AND body, so the endpoint cannot be used to discover
         # which phone numbers have accounts.

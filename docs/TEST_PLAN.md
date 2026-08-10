@@ -13,11 +13,11 @@ Accounts (password `rukhsat123` for all):
 
 | Role | Phone | App |
 |---|---|---|
-| Parent | `+923331000001` | parent |
-| Driver | `+923215000011` | parent |
-| Teacher | `+923004445566` | staff |
-| Guard | `+923007778899` | staff |
-| Admin | `+923001112233` | web |
+| Parent | `03331000001` | parent |
+| Driver | `03215000011` | parent |
+| Teacher | `03004445566` | staff |
+| Guard | `03007778899` | staff |
+| Admin | `03001112233` | web |
 
 Clear a session between roles: `adb shell pm clear com.rukhsat.parent`
 
@@ -63,7 +63,7 @@ reuse.
 | 2.1 | Open **Who can collect my children** | Your own collectors only |
 | 2.2 | **Add someone** → school-approved driver | A phone-number field, not a searchable list of drivers |
 | 2.3 | Enter a made-up number | *"No driver registered with that number."* |
-| 2.4 | Enter `+923215000011` | Ahmed Khan appears. Confirm and choose children |
+| 2.4 | Enter `03215000011` | Ahmed Khan appears. Confirm and choose children |
 | 2.5 | Open a collector | School-registered vs added-by-you is stated plainly |
 | 2.6 | **Remove access** | Gone from the list |
 | 2.7 | **Change for today** | An exception that says it applies to today only |

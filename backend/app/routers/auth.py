@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.phone import is_valid as valid_phone, normalise as normalise_phone
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import User
@@ -15,7 +16,10 @@ router = APIRouter(tags=["auth"])
 
 @router.post("/auth/login", response_model=LoginResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
-    user = db.execute(select(User).where(User.phone == body.phone)).scalar_one_or_none()
+    # Normalised so +923001234567, 0300-1234567 and 03001234567 all reach
+    # the same account — they are the same number to a human.
+    phone = normalise_phone(body.phone)
+    user = db.execute(select(User).where(User.phone == phone)).scalar_one_or_none()
 
     # Same error and roughly the same work for "no such user" and "wrong
     # password", so the response cannot be used to enumerate phone numbers.

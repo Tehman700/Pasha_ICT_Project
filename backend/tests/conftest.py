@@ -108,7 +108,9 @@ def make_user(db: Session, school: School):
             school_id=school.id,
             role=role,
             name=kwargs.get("name", f"Test {role.value} {counter['n']}"),
-            phone=kwargs.get("phone", f"+9230000{counter['n']:05d}"),
+            # Canonical 03xxxxxxxxx — the shape production stores after
+            # scripts/normalise_phones.py, so login's normalisation finds them.
+            phone=kwargs.get("phone", f"03000{counter['n']:06d}"),
             password_hash=hash_password(password),
             locale=kwargs.get("locale", "en"),
         )

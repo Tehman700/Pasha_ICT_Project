@@ -5,3 +5,4 @@ export * from "./mock/client";
 export * from "./api/http";
 export * from "./i18n/index";
 export * as fixtures from "./mock/fixtures";
+export * from "./phone";
