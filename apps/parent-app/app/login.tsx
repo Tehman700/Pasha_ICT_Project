@@ -163,12 +163,6 @@ export default function LoginScreen() {
           <View style={{ flex: 1 }} />
         </Row>
 
-        <Spacer h={spacing.base} />
-        <T variant="caption" color={colors.mutedSoft} align="center">
-          {USING_MOCK
-            ? strings.errors.usingSampleData
-            : strings.errors.usingLiveSystem}
-        </T>
       </MotiView>
     </Screen>
   );

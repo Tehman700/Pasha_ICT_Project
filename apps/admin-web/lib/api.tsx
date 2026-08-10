@@ -49,6 +49,11 @@ export function storeToken(token: string) {
   if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, token);
 }
 
+/** Forget the session. Callers navigate themselves. */
+export function clearToken() {
+  if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+}
+
 let client: PickupApi | null = null;
 
 function getClient(): PickupApi {

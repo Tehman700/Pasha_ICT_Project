@@ -121,6 +121,19 @@ export interface PickupApi {
   /** A driver's cross-family list for today. Parents get their own children. */
   getMyManifest(): Promise<PickupRequest[]>;
   getMyTrip(): Promise<Trip | null>;
+  /** Today's pickups for the caller's OWN children, whoever collects them. */
+  getMyChildrenPickups(date?: IsoDate): Promise<PickupRequest[]>;
+  /** Stream a GPS fix. Returns the recomputed ETA and geofence state. */
+  postLocation(
+    tripId: Uuid,
+    ping: { lat: number; lng: number },
+  ): Promise<{
+    eta_seconds: number;
+    distance_m: number;
+    inside_geofence: boolean;
+    status: string;
+    announced_to: string[];
+  }>;
   startTrip(): Promise<Trip>;
   endTrip(tripId: Uuid): Promise<void>;
   /** Pre-signed batch fetched at trip start so the gate works with no signal. */
@@ -383,6 +396,20 @@ export const mockApi: PickupApi = {
     return delay(
       fx.pickupRequests.filter((r) => r.collector_id === fx.currentDriver.id),
     );
+  },
+
+  async getMyChildrenPickups() {
+    return delay(fx.pickupRequests.slice(0, 2));
+  },
+
+  async postLocation() {
+    return delay({
+      eta_seconds: 95,
+      distance_m: 580,
+      inside_geofence: true,
+      status: "NEARBY",
+      announced_to: [],
+    });
   },
 
   async getMyTrip() {

@@ -39,7 +39,7 @@ export default function TodayScreen() {
 
   const requests = useQuery({
     queryKey: ["myPickupRequests"],
-    queryFn: () => api.getMyPickupRequests(),
+    queryFn: () => api.getMyChildrenPickups(),
   });
   const trip = useQuery({ queryKey: ["myTrip"], queryFn: () => api.getMyTrip() });
   const collectors = useQuery({

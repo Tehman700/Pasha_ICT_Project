@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useApi } from "@/lib/api";
+import { clearToken, useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { Badge } from "@/components/ui/Badge";
 import { Wordmark } from "@/components/brand/Logo";
@@ -102,6 +102,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {me.data ? (
             <p className="type-caption text-muted-soft mt-1">{me.data.name}</p>
           ) : null}
+          <button
+            onClick={() => {
+              // Clear the credential first; navigating alone would leave the
+              // token in localStorage and walk straight back in.
+              clearToken();
+              window.location.href = "/login";
+            }}
+            className="type-caption text-error hover:underline underline-offset-4 mt-2"
+          >
+            {strings.parent.signOut}
+          </button>
         </div>
       </aside>
 

@@ -160,8 +160,7 @@ export function LocationPicker({
     };
   }, [ready, value, radiusM]);
 
-  async function search(e: React.FormEvent) {
-    e.preventDefault();
+  async function search() {
     if (!query.trim()) return;
     setSearching(true);
     setSearchError(null);
@@ -200,17 +199,30 @@ export function LocationPicker({
 
   return (
     <div>
-      <form onSubmit={search} className="flex gap-2 mb-3">
+      {/*
+        A div, NOT a form. This component is rendered inside the registration
+        <form>, and nested forms are invalid HTML — the browser associates the
+        inner submit button with the OUTER form, so pressing "Search" submitted
+        the whole registration instead of geocoding an address. Enter is
+        handled explicitly for the same reason.
+      */}
+      <div className="flex gap-2 mb-3">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void search();
+            }
+          }}
           placeholder={t.findPlaceholder}
           aria-label={t.findLocation}
         />
-        <Button type="submit" variant="secondary" disabled={searching}>
+        <Button type="button" variant="secondary" disabled={searching} onClick={() => void search()}>
           {searching ? t.searching : t.search}
         </Button>
-      </form>
+      </div>
 
       <div
         ref={hostRef}

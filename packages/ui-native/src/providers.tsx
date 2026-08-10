@@ -78,15 +78,33 @@ const ApiContext = createContext<PickupApi>(mockApi);
  * On a physical phone `localhost` is the PHONE, not your laptop. Use the
  * production URL or your machine's LAN address.
  */
+/**
+ * One token store for the whole app, created once at module scope.
+ *
+ * It has to be a singleton so `signOut` below can clear the *same* store the
+ * API client reads from — including its in-memory fallback. Creating a fresh
+ * store per call would clear a copy and leave the live one holding the token,
+ * which is how "sign out" ends up looking like it worked until the next
+ * launch.
+ */
+const tokenStore = secureTokenStore();
+
+/**
+ * Clear the session. Both apps call this from their sign-out button.
+ *
+ * Navigation is the caller's job — this only forgets the credential. Before
+ * this existed, sign-out merely navigated to /login and left the token in the
+ * keychain, so relaunching the app walked straight back in.
+ */
+export async function signOut(): Promise<void> {
+  await tokenStore.set(null);
+}
+
 function resolveApi(onUnauthorized?: () => void): PickupApi {
   const url = process.env.EXPO_PUBLIC_API_URL;
   const forceMock = process.env.EXPO_PUBLIC_USE_MOCK_API === "true";
   if (!url || forceMock) return mockApi;
-  return createHttpApi({
-    baseUrl: url,
-    tokens: secureTokenStore(),
-    onUnauthorized,
-  });
+  return createHttpApi({ baseUrl: url, tokens: tokenStore, onUnauthorized });
 }
 
 export function AppProviders({

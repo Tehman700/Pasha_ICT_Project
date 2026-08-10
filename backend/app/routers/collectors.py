@@ -241,6 +241,32 @@ def my_manifest(
     return [PickupRequestOut.model_validate(r) for r in rows]
 
 
+@router.get("/me/children-pickups", response_model=list[PickupRequestOut], tags=["me"])
+def my_children_pickups(
+    date: Date | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Today's pickups for the caller's own children, whoever is collecting them.
+
+    Distinct from `/me/manifest`, which answers "what am I collecting" — the
+    right question for a driver and the wrong one for a parent. A mother whose
+    children go home in a van is the collector for nobody, so the manifest is
+    empty for her, and a home screen built on it showed her nothing at all on
+    a perfectly normal day.
+    """
+    rows = db.execute(
+        select(PickupRequest)
+        .join(Guardianship, Guardianship.student_id == PickupRequest.student_id)
+        .where(
+            Guardianship.user_id == user.id,
+            PickupRequest.date == (date or Date.today()),
+        )
+    ).scalars().all()
+    return [PickupRequestOut.model_validate(r) for r in rows]
+
+
 @router.get("/me/trip", tags=["me"])
 def my_trip(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     trip = db.execute(

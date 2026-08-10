@@ -1,8 +1,25 @@
 import { useRouter } from "expo-router";
 import { View } from "react-native";
-import { Badge, Row, Spacer, T, colors, spacing, useLocale } from "@pickup/ui-native";
-import { fixtures } from "@pickup/shared";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Badge,
+  Row,
+  Spacer,
+  T,
+  colors,
+  signOut,
+  spacing,
+  useApi,
+  useLocale,
+} from "@pickup/ui-native";
 
+/**
+ * Shared chrome for every staff screen.
+ *
+ * The name comes from `/users/me`, not from fixtures — this previously showed
+ * a hardcoded fixture name, so a guard signed in as one person saw somebody
+ * else's name above every screen they used.
+ */
 export function StaffHeader({
   role,
   back = false,
@@ -11,8 +28,14 @@ export function StaffHeader({
   back?: boolean;
 }) {
   const router = useRouter();
+  const api = useApi();
   const { strings, locale, toggle, isRTL } = useLocale();
-  const me = role === "teacher" ? fixtures.currentTeacher : fixtures.currentGuard;
+  const me = useQuery({ queryKey: ["me"], queryFn: () => api.me(), retry: false });
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace("/");
+  }
 
   return (
     <>
@@ -36,9 +59,15 @@ export function StaffHeader({
         </T>
       </Row>
       <Spacer h={spacing.xs} />
-      <T variant="caption" color={colors.mutedSoft}>
-        {me.name}
-      </T>
+      <Row>
+        <T variant="caption" color={colors.mutedSoft}>
+          {me.data?.name ?? ""}
+        </T>
+        <View style={{ flex: 1 }} />
+        <T variant="caption" color={colors.error} onPress={handleSignOut}>
+          {strings.parent.signOut}
+        </T>
+      </Row>
       <Spacer h={spacing.lg} />
     </>
   );

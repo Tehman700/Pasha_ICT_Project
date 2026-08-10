@@ -217,6 +217,14 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      // Without this the touch target is exactly the painted box, and on a
+      // 48px control that reads as "only the middle works" — a thumb lands
+      // a few pixels outside the border and nothing happens. 8px of slop on
+      // every side costs nothing visually and makes the edges live.
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      // Android needs this explicitly; without it a Pressable inside an
+      // animated (transformed) parent can keep its pre-animation hit area.
+      pressRetentionOffset={{ top: 12, bottom: 12, left: 12, right: 12 }}
       style={({ pressed }) => ({
         backgroundColor: pressed && variant === "primary" ? colors.primaryActive : s.bg,
         borderColor: s.border,

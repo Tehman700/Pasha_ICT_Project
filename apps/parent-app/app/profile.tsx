@@ -16,6 +16,7 @@ import {
   colors,
   spacing,
   useApi,
+  signOut,
   useLocale,
 } from "@pickup/ui-native";
 import { fixtures } from "@pickup/shared";
@@ -82,7 +83,12 @@ export default function ProfileScreen() {
         label={strings.parent.signOut}
         variant="danger"
         full
-        onPress={() => router.replace("/login")}
+        onPress={async () => {
+          // Clear the credential BEFORE navigating. Navigating alone left the
+          // token in the keychain, so the next launch signed straight back in.
+          await signOut();
+          router.replace("/login");
+        }}
       />
     </Screen>
   );

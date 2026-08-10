@@ -166,14 +166,7 @@ export default function StaffLoginScreen() {
               />
             </Row>
           </>
-        ) : (
-          <>
-            <Spacer h={spacing.base} />
-            <T variant="caption" color={colors.mutedSoft} align="center">
-              {strings.errors.usingLiveSystem}
-            </T>
-          </>
-        )}
+        ) : null}
       </MotiView>
     </Screen>
   );

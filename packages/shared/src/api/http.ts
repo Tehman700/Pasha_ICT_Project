@@ -336,6 +336,18 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
     getMyManifest: () => get<PickupRequest[]>("/me/manifest"),
     getMyTrip: () => get<Trip | null>("/me/trip"),
 
+    getMyChildrenPickups: (date?: IsoDate) =>
+      get<PickupRequest[]>("/me/children-pickups", { date }),
+
+    postLocation: (tripId: Uuid, ping: { lat: number; lng: number }) =>
+      post<{
+        eta_seconds: number;
+        distance_m: number;
+        inside_geofence: boolean;
+        status: string;
+        announced_to: string[];
+      }>(`/trips/${tripId}/location`, ping),
+
     startTrip: () => post<Trip>("/trips/start"),
     endTrip: (tripId: Uuid) => post<void>(`/trips/${tripId}/end`),
 
