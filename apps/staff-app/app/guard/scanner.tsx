@@ -20,6 +20,7 @@ import {
   useLocale,
 } from "@pickup/ui-native";
 import { StaffHeader } from "../../components/StaffHeader";
+import { StaffWalkthrough } from "../../components/StaffWalkthrough";
 
 const DEVICE_ID = "GATE-TAB-01";
 
@@ -92,6 +93,7 @@ export default function ScannerScreen() {
 
   return (
     <Screen inverted>
+      <StaffWalkthrough role="guard" />
       <StaffHeader role="guard" />
 
       <T variant="displaySm" color={colors.inverted.text}>

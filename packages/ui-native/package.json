@@ -13,9 +13,11 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "*",
+    "expo-secure-store": "*",
     "moti": "*",
     "react": "*",
     "react-native": "*",
-    "react-native-safe-area-context": "*"
+    "react-native-safe-area-context": "*",
+    "react-native-svg": "*"
   }
 }

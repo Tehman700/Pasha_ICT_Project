@@ -16,6 +16,7 @@ import {
   colors,
   spacing,
   useApi,
+  resetWalkthrough,
   signOut,
   useLocale,
 } from "@pickup/ui-native";
@@ -79,6 +80,16 @@ export default function ProfileScreen() {
       </T>
 
       <Spacer h={spacing.lg} />
+      <Button
+        label={strings.walkthrough.replay}
+        icon="shield"
+        full
+        onPress={async () => {
+          await resetWalkthrough("parent");
+          router.replace("/");
+        }}
+      />
+      <Spacer h={spacing.xs} />
       <Button
         label={strings.parent.signOut}
         variant="danger"

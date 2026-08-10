@@ -23,6 +23,7 @@ import {
 } from "@pickup/ui-native";
 import { fixtures } from "@pickup/shared";
 import { StaffHeader } from "../../components/StaffHeader";
+import { StaffWalkthrough } from "../../components/StaffWalkthrough";
 
 const MY_CLASS = "cls-nur";
 
@@ -52,6 +53,7 @@ export default function TeacherPrepScreen() {
 
   return (
     <Screen>
+      <StaffWalkthrough role="teacher" />
       <StaffHeader role="teacher" />
 
       <Row>

@@ -178,6 +178,45 @@ export const en = {
     phoneTaken: "That phone number is already registered. Sign in instead.",
     failed: "Could not create your school. Please try again.",
   },
+  walkthrough: {
+    next: "Next",
+    start: "Get started",
+    skip: "Skip",
+    replay: "Show the guide again",
+
+    // Parent / collector
+    p1Title: "Everything happens at the gate",
+    p1Body:
+      "Your child is only released to someone you have authorised — checked by the school, every single time.",
+    p2Title: "Tap \"On my way\" when you set off",
+    p2Body:
+      "The school sees how far away you are, so your child is waiting at the gate instead of you waiting in the car. Location is shared only while that screen is open.",
+    p3Title: "Show your code at the gate",
+    p3Body:
+      "It changes every minute and works without signal, so a screenshot is worth nothing to anyone else.",
+    p4Title: "Send someone else, safely",
+    p4Body:
+      "Add a driver or a relative by phone number, choose which children they may collect, and remove them whenever you like.",
+
+    // Teacher
+    t1Title: "Your class, in arrival order",
+    t1Body:
+      "Children are listed by how close their collector actually is — not by who booked first.",
+    t2Title: "Bring them when they are close",
+    t2Body:
+      "The classroom is told about two minutes before arrival, once. Mark a child at the gate when they set off.",
+
+    // Guard
+    g1Title: "Scan the code at the gate",
+    g1Body:
+      "Point the camera at the collector's phone. Verification happens on this device — it works with no signal at all.",
+    g2Title: "Check the face, then confirm",
+    g2Body:
+      "The screen shows the child and who is collecting them. A valid code is necessary, but you are the last check.",
+    g3Title: "If anything fails, use manual",
+    g3Body:
+      "A dead phone must never stop a real handover. Manual is always available, always logged, and reviewed later.",
+  },
   errors: {
     badCredentials: "Incorrect phone number or password.",
     network: "Could not reach the server. Check your connection.",
@@ -271,6 +310,7 @@ export const en = {
     onMyWay: "On my way",
     endTrip: "End trip",
     tripActive: "Trip in progress",
+    vanTogetherNote: "Both children travel together on one trip — the van only completes when every child has been handed over.",
     classroomsTold: "The classrooms have been told. Children are being brought to the gate.",
     locationNeeded: "Share your location",
     locationWhy:
@@ -675,6 +715,42 @@ export const ur: DeepMirror<Strings> = {
     phoneTaken: "یہ فون نمبر پہلے سے رجسٹرڈ ہے۔ سائن ان کریں۔",
     failed: "آپ کا اسکول نہیں بن سکا۔ دوبارہ کوشش کریں۔",
   },
+  walkthrough: {
+    next: "آگے",
+    start: "شروع کریں",
+    skip: "چھوڑ دیں",
+    replay: "رہنمائی دوبارہ دیکھیں",
+
+    p1Title: "سب کچھ گیٹ پر ہوتا ہے",
+    p1Body:
+      "آپ کا بچہ صرف اسی کے حوالے کیا جاتا ہے جسے آپ نے اجازت دی ہو — اسکول ہر بار جانچتا ہے۔",
+    p2Title: "روانہ ہوتے وقت \"میں آ رہا ہوں\" دبائیں",
+    p2Body:
+      "اسکول دیکھتا ہے کہ آپ کتنی دور ہیں، تاکہ بچہ گیٹ پر تیار ہو اور آپ کو گاڑی میں انتظار نہ کرنا پڑے۔ مقام صرف اس وقت شیئر ہوتا ہے جب وہ اسکرین کھلی ہو۔",
+    p3Title: "گیٹ پر اپنا کوڈ دکھائیں",
+    p3Body:
+      "یہ ہر منٹ بدلتا ہے اور بغیر سگنل کے بھی کام کرتا ہے، اس لیے کسی اور کے لیے اسکرین شاٹ بیکار ہے۔",
+    p4Title: "کسی اور کو محفوظ طریقے سے بھیجیں",
+    p4Body:
+      "ڈرائیور یا رشتہ دار کو فون نمبر سے شامل کریں، منتخب کریں کہ وہ کن بچوں کو لے جا سکتے ہیں، اور جب چاہیں ہٹا دیں۔",
+
+    t1Title: "آپ کی جماعت، آمد کی ترتیب میں",
+    t1Body:
+      "بچے اس ترتیب میں ہیں کہ ان کا لینے والا اصل میں کتنا قریب ہے — نہ کہ کس نے پہلے بکنگ کی۔",
+    t2Title: "قریب پہنچنے پر انہیں لائیں",
+    t2Body:
+      "کلاس روم کو آمد سے تقریباً دو منٹ پہلے، ایک بار بتایا جاتا ہے۔ بچہ روانہ ہو تو اسے گیٹ پر نشان زد کریں۔",
+
+    g1Title: "گیٹ پر کوڈ اسکین کریں",
+    g1Body:
+      "کیمرہ لینے والے کے فون کی طرف کریں۔ تصدیق اسی آلے پر ہوتی ہے — بغیر سگنل کے بھی کام کرتی ہے۔",
+    g2Title: "چہرہ دیکھیں، پھر تصدیق کریں",
+    g2Body:
+      "اسکرین بچہ اور لینے والا دکھاتی ہے۔ درست کوڈ ضروری ہے، لیکن آخری جانچ آپ ہیں۔",
+    g3Title: "کچھ کام نہ کرے تو دستی استعمال کریں",
+    g3Body:
+      "بند فون کبھی اصل حوالگی نہ روکے۔ دستی طریقہ ہمیشہ دستیاب، ہمیشہ محفوظ، اور بعد میں جانچا جاتا ہے۔",
+  },
   errors: {
     badCredentials: "فون نمبر یا پاس ورڈ درست نہیں ہے۔",
     network: "سرور سے رابطہ نہیں ہو سکا۔ اپنا انٹرنیٹ کنکشن دیکھیں۔",
@@ -768,6 +844,7 @@ export const ur: DeepMirror<Strings> = {
     onMyWay: "میں آ رہا ہوں",
     endTrip: "سفر ختم کریں",
     tripActive: "سفر جاری ہے",
+    vanTogetherNote: "دونوں بچے ایک ہی سفر میں جاتے ہیں — وین تب مکمل ہوگی جب ہر بچہ حوالے کر دیا جائے۔",
     classroomsTold: "کلاس رومز کو بتا دیا گیا ہے۔ بچوں کو گیٹ پر لایا جا رہا ہے۔",
     locationNeeded: "اپنا مقام شیئر کریں",
     locationWhy:

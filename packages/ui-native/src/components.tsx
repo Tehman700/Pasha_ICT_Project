@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PickupStatus } from "@pickup/shared";
+import { Icon, type IconName } from "./icons";
 import { colors, radius, spacing, surface, text, textUr } from "./theme";
 import { useLocale } from "./providers";
 
@@ -195,6 +196,7 @@ export function Button({
   loading,
   full,
   large,
+  icon,
 }: {
   label: string;
   onPress?: () => void;
@@ -203,6 +205,8 @@ export function Button({
   loading?: boolean;
   full?: boolean;
   large?: boolean;
+  /** Optional leading glyph. Inherits the button's foreground colour. */
+  icon?: IconName;
 }) {
   const styles: Record<ButtonVariant, { bg: string; fg: string; border: string }> = {
     primary: { bg: colors.primary, fg: colors.onPrimary, border: colors.primary },
@@ -243,9 +247,12 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={s.fg} />
       ) : (
-        <T variant={large ? "titleMd" : "button"} color={s.fg} align="center">
-          {label}
-        </T>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {icon ? <Icon name={icon} size={large ? 20 : 18} color={s.fg} /> : null}
+          <T variant={large ? "titleMd" : "button"} color={s.fg} align="center">
+            {label}
+          </T>
+        </View>
       )}
     </Pressable>
   );

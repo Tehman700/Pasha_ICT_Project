@@ -22,9 +22,11 @@ import {
   spacing,
   useApi,
   useLocale,
+  EmptyQueueScene,
 } from "@pickup/ui-native";
 import { fixtures } from "@pickup/shared";
 import { AppHeader } from "../components/AppHeader";
+import { ParentWalkthrough } from "../components/ParentWalkthrough";
 
 /**
  * Today's pickup — the parent's home screen.
@@ -56,6 +58,7 @@ export default function TodayScreen() {
 
   return (
     <Screen>
+      <ParentWalkthrough />
       <AppHeader />
 
       <T variant="displaySm" color={colors.ink}>
@@ -66,7 +69,11 @@ export default function TodayScreen() {
       {requests.isLoading ? (
         <Loading />
       ) : today.length === 0 ? (
-        <Empty message={strings.parent.noPickupsToday} />
+        <View style={{ alignItems: "center", paddingVertical: spacing.lg }}>
+          <EmptyQueueScene width={190} />
+          <Spacer h={spacing.base} />
+          <Empty message={strings.parent.noPickupsToday} />
+        </View>
       ) : (
         <>
           {activeTrip ? (
@@ -95,6 +102,7 @@ export default function TodayScreen() {
                   />
                   <Button
                     label={strings.parent.showQr}
+            icon="qr"
                     variant="primary"
                     onPress={() => router.push("/qr")}
                   />
@@ -140,8 +148,7 @@ export default function TodayScreen() {
             <>
               <Spacer h={spacing.xs} />
               <T variant="caption" color={colors.muted}>
-                Both children travel together on one trip — the van only
-                completes when every child has been handed over.
+{strings.parent.vanTogetherNote}
               </T>
             </>
           ) : null}
@@ -153,14 +160,17 @@ export default function TodayScreen() {
       <Label>{strings.parent.quickActions}</Label>
       <Spacer h={spacing.sm} />
       <Row gap={spacing.xs} style={{ flexWrap: "wrap" }}>
-        <Button label={strings.parent.mySchedule} onPress={() => router.push("/schedule")} />
-        <Button label={strings.parent.exception} onPress={() => router.push("/exception")} />
+        <Button label={strings.parent.mySchedule}
+            icon="calendar" onPress={() => router.push("/schedule")} />
+        <Button label={strings.parent.exception}
+            icon="clock" onPress={() => router.push("/exception")} />
         <Button
           label={`${strings.parent.myCollectors} (${collectors.data?.filter((c) => !c.revoked_at).length ?? 0})`}
           onPress={() => router.push("/collectors")}
         />
         <Button label={strings.nav.announcements} onPress={() => router.push("/announcements")} />
-        <Button label={strings.parent.profile} onPress={() => router.push("/profile")} />
+        <Button label={strings.parent.profile}
+            icon="user" onPress={() => router.push("/profile")} />
       </Row>
 
       {!activeTrip ? (
@@ -168,6 +178,7 @@ export default function TodayScreen() {
           <Spacer h={spacing.lg} />
           <Button
             label={strings.parent.onMyWay}
+            icon="car"
             variant="primary"
             large
             full

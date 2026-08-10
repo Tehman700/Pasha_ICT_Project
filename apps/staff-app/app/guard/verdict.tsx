@@ -16,6 +16,7 @@ import {
   spacing,
   useApi,
   useLocale,
+  HandoverDoneScene,
 } from "@pickup/ui-native";
 import type { ScanResult } from "@pickup/shared";
 
@@ -185,7 +186,8 @@ export default function VerdictScreen() {
                     </View>
                     {c.authorized ? (
                       <Button
-                        label={isDone ? `✓ ${strings.staff.handoverComplete}` : strings.common.confirm}
+                        label={isDone ? strings.staff.handoverComplete : strings.common.confirm}
+                        icon={isDone ? "check" : "hand"}
                         variant={isDone ? "ghost" : "primary"}
                         disabled={isDone || handover.isPending}
                         onPress={() => handover.mutate(c.pickup_request_id)}
@@ -210,9 +212,28 @@ export default function VerdictScreen() {
             </>
           ) : null}
 
+          {/* A handover is the moment the whole system exists for. It gets a
+              beat of its own rather than a button label quietly changing —
+              a guard glancing up mid-queue needs to see, not read, that the
+              last child went through. */}
+          {complete ? (
+            <>
+              <Spacer h={spacing.lg} />
+              <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", damping: 14 }}
+                style={{ alignItems: "center" }}
+              >
+                <HandoverDoneScene width={180} />
+              </MotiView>
+            </>
+          ) : null}
+
           <Spacer h={spacing.lg} />
           <Button
             label={complete ? strings.staff.handoverComplete : strings.common.back}
+            icon={complete ? "check" : undefined}
             variant={complete ? "primary" : "ghost"}
             large
             full
