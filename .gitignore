@@ -64,3 +64,6 @@ backend/downloads/*
 # are in components/landing/Founders.tsx, so committing these too would just
 # duplicate them at the repo root.
 /profile-images/
+
+# Source screenshots for the deck; the copies used are in docs/pitch/assets/
+Placeholder Images in PDF/

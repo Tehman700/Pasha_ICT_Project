@@ -201,6 +201,25 @@ p, li { font-size: 15px; line-height: 1.6; color: var(--body); }
 .slide--ink .figure-well { background: var(--inv-canvas); }
 .shot--wide { aspect-ratio: 16 / 10; }
 
+/* ── Photographs with a caption ─────────────────────────────────────── */
+/* The image gets a fixed share of the figure and `cover`, so two photos of
+   different aspect ratios still end up exactly the same height — which is
+   what makes a two-photo column read as aligned rather than approximate. */
+.photo {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--hairline); border-radius: 12px;
+  overflow: hidden; background: var(--surface-card); min-height: 0;
+}
+.photo img { flex: 1; width: 100%; min-height: 0; object-fit: cover; display: block; }
+/* For a graphic rather than a photograph — cropping a headline off a news
+   card destroys the only reason it is on the slide. */
+.photo--fit img { object-fit: contain; background: var(--canvas-soft); }
+.photo figcaption {
+  flex-shrink: 0; padding: 9px 13px; font-size: 11.5px; line-height: 1.4;
+  color: var(--muted); border-top: 1px solid var(--hairline-soft);
+}
+.photo .credit { color: var(--muted-soft); }
+
 /* ── Bits ───────────────────────────────────────────────────────────── */
 .pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -227,15 +246,15 @@ ul.ticks li::before {
 /* ── Tech stack grid ────────────────────────────────────────────────── */
 /* Flex-wrap, not a grid: 13 items into 7 columns leaves a ragged hole at the
    end of the last row. Wrapping lets the short row centre itself. */
-.tech-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 13px; }
+.tech-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 11px; }
 .tech {
-  flex: 0 0 138px;
+  flex: 0 0 126px;
   background: var(--surface-card); border: 1px solid var(--hairline);
-  border-radius: 10px; padding: 15px 8px;
+  border-radius: 10px; padding: 10px 6px;
   display: flex; flex-direction: column; align-items: center; gap: 9px;
 }
-.tech svg { width: 26px; height: 26px; }
-.tech span { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.25; }
+.tech svg { width: 23px; height: 23px; }
+.tech span { font-size: 10.5px; color: var(--muted); text-align: center; line-height: 1.25; }
 
 /* ── Step flow ──────────────────────────────────────────────────────── */
 .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; align-items: stretch; }
@@ -269,6 +288,8 @@ ul.ticks li::before {
 .compare td:first-child { color: var(--ink); }
 .compare .ours { color: var(--ink); }
 .compare .ours strong { color: var(--primary); font-weight: 600; }
+.accounts td { padding: 15px 16px; font-size: 15px; }
+.accounts td.mono { font-size: 14.5px; letter-spacing: 0.2px; }
 </style>
 </head>
 <body>
@@ -288,7 +309,6 @@ ul.ticks li::before {
   </div>
 
   <div class="body-fill" style="flex-direction:column;justify-content:center">
-    <span class="eyebrow" style="margin-bottom:20px">P@SHA ICT Awards — Student Category</span>
     <h1 style="max-width:1000px">
       The gate knows who's<br />collecting your child.
     </h1>
@@ -300,6 +320,7 @@ ul.ticks li::before {
 
     <div style="display:flex;gap:10px;margin-top:34px">
       <span class="pill pill--accent" style="border-color:#f54e00;color:#f54e00">Live in production</span>
+      <span class="pill">Built for montessori &amp; junior schools</span>
       <span class="pill">2 Android apps + admin dashboard</span>
       <span class="pill">English &amp; اردو</span>
     </div>
@@ -376,7 +397,7 @@ ul.ticks li::before {
   </div>
 
   <div class="slide-foot">
-    <span>01 · The problem</span>
+    <span>01 · Problem</span>
     <span>Rukhsat</span>
   </div>
 </section>
@@ -392,47 +413,41 @@ ul.ticks li::before {
     </p>
   </div>
 
-  <div class="body-fill" style="flex-direction:column;gap:20px">
-    <div class="grid grid-4">
+  <div class="body-fill" style="flex-direction:column;gap:22px">
+    <div class="grid grid-3">
       <div class="card card--soft stat">
         <div>
-          <div class="figure">54.9<span class="unit">M</span></div>
-          <div class="label">students enrolled in Pakistani schools</div>
+          <div class="figure">56.07<span class="unit">M</span></div>
+          <div class="label">students enrolled in Pakistani institutions</div>
         </div>
-        <div class="src">Pakistan Education Statistics 2021–22 · VERIFY</div>
+        <div class="src">Pakistan Education Statistics 2022–23, Pakistan Institute of Education</div>
       </div>
 
       <div class="card card--soft stat">
         <div>
-          <div class="figure">313<span class="unit">K</span></div>
+          <div class="figure">349.9<span class="unit">K</span></div>
           <div class="label">educational institutions nationwide</div>
         </div>
-        <div class="src">Pakistan Education Statistics 2021–22 · VERIFY</div>
+        <div class="src">Pakistan Education Statistics 2022–23, Pakistan Institute of Education</div>
       </div>
 
       <div class="card card--soft stat stat--accent">
         <div>
-          <div class="figure">~9.9<span class="unit">bn</span></div>
-          <div class="label">child handovers a year — essentially none of them verified</div>
+          <div class="figure">~10<span class="unit">bn</span></div>
+          <div class="label">child handovers a year, and almost none of them recorded</div>
         </div>
-        <div class="src">Derived: 54.9M students × ~180 school days</div>
-      </div>
-
-      <div class="card card--soft stat">
-        <div>
-          <div class="figure">0</div>
-          <div class="label">of them currently produce a record a parent can check</div>
-        </div>
-        <div class="src">No verification system in general use</div>
+        <div class="src">Derived: 56.07M students × ~180 school days</div>
       </div>
     </div>
 
     <div class="card card--accent" style="flex-direction:row;align-items:center;gap:24px;padding:22px 24px">
       <span class="num">!</span>
       <p style="font-size:16px;color:var(--ink)">
-        A system that makes one handover verifiable makes all of them verifiable.
-        The gate is the same everywhere — which is exactly why this is a product
-        and not a school project.
+        Almost no school in Pakistan runs a system that records who collected a
+        child. The register, where one exists at all, is a paper book nobody
+        reads back. A system that makes one handover verifiable makes all of
+        them verifiable — the gate is the same everywhere, which is exactly why
+        this is a product and not a school project.
       </p>
     </div>
   </div>
@@ -445,43 +460,51 @@ ul.ticks li::before {
 
 <!-- ═══════════════════════ 4 · WHY BAHRIA ═══════════════════════ -->
 <section class="slide">
-  <div class="slide-head">
-    <span class="eyebrow">Where we started</span>
-    <h2>We built this for a gate we<br />have both stood at.</h2>
+  <div class="slide-head" style="margin-bottom:26px">
+    <span class="eyebrow">Who this is for</span>
+    <h2>Montessori and junior schools —<br />where the child cannot self-rescue.</h2>
   </div>
 
-  <div class="body-fill" style="gap:28px">
-    <div style="flex:1.15;display:flex;flex-direction:column;gap:18px">
-      <p style="font-size:16px">
-        This is not a problem we picked from a list. Both of us have waited in
-        the pickup line at a <strong style="color:var(--ink)">Bahria school</strong>
-        to collect a younger brother — the same crowd, the same guard working
-        from memory, the same twenty minutes of nobody knowing who is next.
+  <div class="body-fill" style="gap:26px">
+    <div style="flex:1.05;display:flex;flex-direction:column;gap:16px">
+      <p style="font-size:15px">
+        A fifteen-year-old who is collected by the wrong person says so, phones
+        someone, walks away. A four-year-old does none of that — she goes with
+        whoever takes her hand. <strong style="color:var(--ink)">That asymmetry
+        is the whole reason this exists</strong>, so we target montessori,
+        nursery and junior schools rather than large secondary campuses.
       </p>
-      <ul class="ticks">
-        <li><span><strong style="color:var(--ink)">Large, gated campuses.</strong> One controlled entrance with a guard already checking people through — exactly where a verification step belongs.</span></li>
-        <li><span><strong style="color:var(--ink)">Van culture is the norm.</strong> Most children go home with a driver carrying several families' children — precisely the case a naive "parent collects child" model cannot express.</span></li>
-        <li><span><strong style="color:var(--ink)">A national network, one operator.</strong> A consistent process across campuses means a system that works at one gate works at the rest.</span></li>
-        <li><span><strong style="color:var(--ink)">Smartphone-ready families.</strong> The parents already carry the device this depends on.</span></li>
+      <ul class="ticks" style="gap:9px">
+        <li><span><strong style="color:var(--ink)">The child is never the check.</strong> At this age recognition, refusal and reporting all have to happen somewhere other than the child.</span></li>
+        <li><span><strong style="color:var(--ink)">Every single child is collected.</strong> Nobody walks home alone, so the handover is not an exception to handle — it is the entire dismissal.</span></li>
+        <li><span><strong style="color:var(--ink)">Van culture is the norm.</strong> Most go home with a driver carrying several families' children — the case a naive "parent collects child" model cannot express.</span></li>
+        <li><span><strong style="color:var(--ink)">Smaller rolls, one gate.</strong> A few hundred children and one controlled entrance is a system you can deploy in an afternoon.</span></li>
       </ul>
-    </div>
-
-    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
-      <div class="shot shot--wide">
-        <span class="tag">Photo placeholder</span>
-        <span class="hint">A real pickup line — Bahria school gate at dismissal</span>
-      </div>
-      <div class="card card--accent" style="padding:18px 20px">
+      <div class="card card--accent" style="padding:16px 18px">
         <p style="font-size:14px;color:var(--ink)">
-          Bahria is where we start, not where this stops. Every school in
-          Pakistan runs the same dismissal, so the same system serves the
-          313,000 institutions behind it.
+          We start with <strong style="color:var(--ink)">Bahria schools</strong>,
+          where both of us have waited in the pickup line to collect a younger
+          brother. Secondary schools are a later step, not the first one.
         </p>
       </div>
     </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <figure class="photo photo--fit" style="flex:1.25">
+        <img src="assets/context-dismissal.jpg" alt="Lahore school dismissal safety guidelines" />
+        <figcaption>Dismissal is already a policing problem — Lahore issued
+          formal guidelines for school leaving hours.
+          <span class="credit">Source: Tribune Trends</span></figcaption>
+      </figure>
+      <figure class="photo" style="flex:1">
+        <img src="assets/context-traffic.jpg" alt="Congested traffic outside a Pakistani school" />
+        <figcaption>And it happens into this. A parent who arrives early waits
+          in it; a child who waits at the gate is exposed to it.</figcaption>
+      </figure>
+    </div>
   </div>
 
-  <div class="slide-foot"><span>03 · Why Bahria</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>03 · Who this is for</span><span>Rukhsat</span></div>
 </section>
 
 <!-- ═══════════════════════ 5 · THE SOLUTION ═══════════════════════ -->
@@ -648,9 +671,9 @@ ul.ticks li::before {
 </section>
 
 <!-- ═══════════════════════ 8 · SECURITY ═══════════════════════ -->
-<section class="slide slide--ink">
+<section class="slide slide--ink" id="sec">
   <div class="slide-head">
-    <span class="eyebrow">Security model</span>
+    <span class="eyebrow">Security model</span><style>#sec h3{font-size:19px}#sec p{font-size:14px}</style>
     <h2 style="color:var(--inv-text)">A valid signature is necessary.<br />It is never sufficient.</h2>
   </div>
 
@@ -670,14 +693,19 @@ ul.ticks li::before {
       </div>
     </div>
 
-    <div style="flex:1;display:flex;flex-direction:column;gap:16px">
-      <div class="shot shot--wide" style="border-color:var(--inv-hairline);background:var(--inv-canvas-soft)">
-        <span class="tag" style="color:var(--inv-muted)">Screenshot placeholder</span>
-        <span class="hint" style="color:var(--inv-hairline)">Guard verdict screen — verified handover</span>
+    <div style="flex:1;display:flex;gap:16px;min-height:0">
+      <div class="shot" style="flex:0 0 auto;height:100%;aspect-ratio:9/20;padding:0">
+        <img src="assets/guard-verified.jpg" alt="Guard verdict screen showing a verified handover" />
       </div>
-      <div class="card" style="flex:1">
-        <h3>Every handover leaves a record</h3>
-        <p>Who released the child, to whom, at what time, and by which method. Manual handovers are flagged for review. This is what a school hands a parent who asks.</p>
+      <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-height:0">
+        <div class="card">
+          <h3>Every handover leaves a record</h3>
+          <p>Who released the child, to whom, at what time, and by which method. Manual handovers are flagged for review. This is what a school hands a parent who asks.</p>
+        </div>
+        <div class="card" style="flex:1">
+          <h3>Green is a proposal, not a decision</h3>
+          <p>The screen still shows both photos and still asks the guard to confirm each child by hand. Software proposes; a person decides — and we did not automate that tap away.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -685,12 +713,115 @@ ul.ticks li::before {
   <div class="slide-foot"><span>07 · Security</span><span>Rukhsat</span></div>
 </section>
 
+<!-- ═══════════════════════ 9 · HUMAN IN THE LOOP ═══════════════════════ -->
+<section class="slide" id="hitl">
+  <div class="slide-head" style="margin-bottom:26px">
+    <span class="eyebrow">Child safety</span><style>#hitl .card{padding:19px 21px}#hitl h3{font-size:19px}#hitl p{font-size:14px}</style>
+    <h2>A person releases the child.<br />The system only tells them who.</h2>
+  </div>
+
+  <div class="body-fill" style="gap:24px">
+    <div style="flex:1.5;display:flex;flex-direction:column;gap:16px">
+      <div class="grid grid-2" style="gap:16px">
+        <div class="card">
+          <h3>The guard confirms, child by child</h3>
+          <p>A valid code lists the children and stops. The guard checks each face against each photo and taps Confirm individually — three children is three deliberate decisions, not one.</p>
+        </div>
+        <div class="card">
+          <h3>The teacher holds the class</h3>
+          <p>Children are only brought to the gate when the collector is genuinely close. Until then they stay with their teacher, inside — never waiting at a roadside for someone who is twenty minutes away.</p>
+        </div>
+        <div class="card">
+          <h3>Nobody leaves until the last child does</h3>
+          <p>The dashboard shows what is still outstanding, so staff stay on duty until the queue is empty. An unclaimed child at 2pm is visible to the whole school, not to nobody.</p>
+        </div>
+        <div class="card">
+          <h3>A refusal is never automatic</h3>
+          <p>An expired or unknown code does not turn a family away. It routes the guard to a manual handover — logged, flagged, reviewed later. A wrong answer from software must cost a review, never a child's way home.</p>
+        </div>
+      </div>
+
+      <div class="card card--accent" style="flex-direction:row;align-items:center;gap:20px;padding:18px 22px">
+        <span class="num">✓</span>
+        <p style="font-size:15px;color:var(--ink)">
+          The technology narrows who may collect a child from "anyone at the
+          gate" to "one named, authorised person" — and then hands that answer
+          to a human being to act on.
+        </p>
+      </div>
+    </div>
+
+    <div class="shot" style="flex:0 0 auto;height:100%;aspect-ratio:9/20;padding:0">
+      <img src="assets/parent-walk-gate.jpg" alt="Parent app walkthrough — everything happens at the gate" />
+    </div>
+  </div>
+
+  <div class="slide-foot"><span>08 · Human in the loop</span><span>Rukhsat</span></div>
+</section>
+
+<!-- ═══════════════════════ 10 · WHY TWO APPS ═══════════════════════ -->
+<section class="slide">
+  <div class="slide-head" style="margin-bottom:24px">
+    <span class="eyebrow">Architecture</span>
+    <h2>Two apps, four roles — split by<br />who is trusted, not by job title.</h2>
+  </div>
+
+  <div class="body-fill" style="flex-direction:column;gap:22px">
+    <div style="flex:1;min-height:0">
+      <svg viewBox="0 0 1000 170" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%" fill="none" aria-hidden="true">
+        <rect x="0" y="6" width="296" height="158" rx="14" fill="#ffffff" stroke="#e6e5e0"/>
+        <rect x="22" y="30" width="42" height="76" rx="8" fill="#26251e"/>
+        <rect x="29" y="38" width="28" height="40" rx="3" fill="#ffffff"/>
+        <circle cx="43" cy="93" r="7" fill="#f54e00"/>
+        <text x="82" y="54" font-size="20" font-weight="600" fill="#26251e" font-family="Inter, sans-serif">Collector app</text>
+        <text x="82" y="79" font-size="14" fill="#807d72" font-family="Inter, sans-serif">Parent · Relative · Driver</text>
+        <text x="22" y="130" font-size="13.5" fill="#5a5852" font-family="Inter, sans-serif">Shows a code. Sees only their own</text>
+        <text x="22" y="150" font-size="13.5" fill="#5a5852" font-family="Inter, sans-serif">children. Self-registers, vetted by nobody.</text>
+
+        <rect x="372" y="26" width="256" height="118" rx="14" fill="#26251e"/>
+        <text x="500" y="66" font-size="19" font-weight="600" fill="#f7f7f4" text-anchor="middle" font-family="Inter, sans-serif">One backend</text>
+        <text x="500" y="95" font-size="13.5" fill="#a09c92" text-anchor="middle" font-family="Inter, sans-serif">Signs every code · holds the key</text>
+        <text x="500" y="117" font-size="13.5" fill="#a09c92" text-anchor="middle" font-family="Inter, sans-serif">Re-checks every authorisation</text>
+
+        <rect x="704" y="6" width="296" height="158" rx="14" fill="#ffffff" stroke="#e6e5e0"/>
+        <rect x="726" y="30" width="42" height="76" rx="8" fill="#26251e"/>
+        <path d="M737 66l8 9 15-17" stroke="#f54e00" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="786" y="54" font-size="20" font-weight="600" fill="#26251e" font-family="Inter, sans-serif">Staff app</text>
+        <text x="786" y="79" font-size="14" fill="#807d72" font-family="Inter, sans-serif">Guard · Teacher</text>
+        <text x="726" y="130" font-size="13.5" fill="#5a5852" font-family="Inter, sans-serif">Verifies a code. Holds only the public</text>
+        <text x="726" y="150" font-size="13.5" fill="#5a5852" font-family="Inter, sans-serif">key, so it can never mint one. Offline.</text>
+
+        <path d="M306 85h50" stroke="#cfcdc4" stroke-width="2" stroke-dasharray="6 6"/>
+        <path d="M644 85h50" stroke="#cfcdc4" stroke-width="2" stroke-dasharray="6 6"/>
+        <path d="M350 79l9 6-9 6" fill="#cfcdc4"/>
+        <path d="M688 79l9 6-9 6" fill="#cfcdc4"/>
+      </svg>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card card--soft">
+        <h3>The trust boundary is the split</h3>
+        <p>A collector's device displays a signed code. A staff device verifies one. Those are opposite privileges, so they must not ship in one binary where a role flag is all that separates them.</p>
+      </div>
+      <div class="card card--soft">
+        <h3>One app per person, not per role</h3>
+        <p>A parent who also drives a van, a teacher who collects her own child — one login each. Four apps would have made those people carry two.</p>
+      </div>
+      <div class="card card--soft">
+        <h3>Different devices, different lives</h3>
+        <p>The staff app is a shared, wall-charged gate device that must work with no signal. The collector app is a personal phone. Same code, and neither compromise fits both.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-foot"><span>09 · Architecture</span><span>Rukhsat</span></div>
+</section>
+
 <!-- ═══════════════════════ 9 · TECH STACK ═══════════════════════ -->
 <section class="slide">
   <div class="slide-head" style="margin-bottom:26px">
     <span class="eyebrow">Tech stack</span>
-    <h2>Built to run on one small server,<br />and to keep running.</h2>
-    <p class="lead">No paid mapping API, no third-party auth, and no vendor that needs an international credit card to stay alive.</p>
+    <h2>An MVP that runs on one small<br />server — and a clear way up.</h2>
   </div>
 
   <div class="body-fill" style="flex-direction:column;gap:22px">
@@ -708,25 +839,36 @@ ul.ticks li::before {
     <div class="tech"><svg viewBox="0 0 24 24"><path d="M0 20.084c.043.53.23 1.063.718 1.778.58.849 1.576 1.315 2.303.567.49-.505 5.794-9.776 8.35-13.29a.761.761 0 011.248 0c2.556 3.514 7.86 12.785 8.35 13.29.727.748 1.723.282 2.303-.567.57-.835.728-1.42.728-2.046 0-.426-8.26-15.798-9.092-17.078-.8-1.23-1.044-1.498-2.397-1.542h-1.032c-1.353.044-1.597.311-2.398 1.542C8.267 3.991.33 18.758 0 19.77Z" fill="#1C2024"/></svg><span>Expo</span></div>
     <div class="tech"><svg viewBox="0 0 24 24"><path d="M10.984 13.836a.5.5 0 0 1-.353-.146l-.745-.743a.5.5 0 1 1 .706-.708l.392.391 1.181-1.18a.5.5 0 0 1 .708.707l-1.535 1.533a.504.504 0 0 1-.354.146zm9.353-.147l1.534-1.532a.5.5 0 0 0-.707-.707l-1.181 1.18-.392-.391a.5.5 0 1 0-.706.708l.746.743a.497.497 0 0 0 .706-.001zM4.527 7.452l2.557-1.585A1 1 0 0 0 7.09 4.17L4.533 2.56A1 1 0 0 0 3 3.406v3.196a1.001 1.001 0 0 0 1.527.85zm2.03-2.436L4 6.602V3.406l2.557 1.61zM24 12.5c0 1.93-1.57 3.5-3.5 3.5a3.503 3.503 0 0 1-3.46-3h-2.08a3.503 3.503 0 0 1-3.46 3 3.502 3.502 0 0 1-3.46-3h-.558c-.972 0-1.85-.399-2.482-1.042V17c0 1.654 1.346 3 3 3h.04c.244-1.693 1.7-3 3.46-3 1.93 0 3.5 1.57 3.5 3.5S13.43 24 11.5 24a3.502 3.502 0 0 1-3.46-3H8c-2.206 0-4-1.794-4-4V9.899A5.008 5.008 0 0 1 0 5c0-2.757 2.243-5 5-5s5 2.243 5 5a5.005 5.005 0 0 1-4.952 4.998A2.482 2.482 0 0 0 7.482 12h.558c.244-1.693 1.7-3 3.46-3a3.502 3.502 0 0 1 3.46 3h2.08a3.503 3.503 0 0 1 3.46-3c1.93 0 3.5 1.57 3.5 3.5zm-15 8c0 1.378 1.122 2.5 2.5 2.5s2.5-1.122 2.5-2.5-1.122-2.5-2.5-2.5S9 19.122 9 20.5zM5 9c2.206 0 4-1.794 4-4S7.206 1 5 1 1 2.794 1 5s1.794 4 4 4zm9 3.5c0-1.378-1.122-2.5-2.5-2.5S9 11.122 9 12.5s1.122 2.5 2.5 2.5 2.5-1.122 2.5-2.5zm9 0c0-1.378-1.122-2.5-2.5-2.5S18 11.122 18 12.5s1.122 2.5 2.5 2.5 2.5-1.122 2.5-2.5zm-13 8a.5.5 0 1 0 1 0 .5.5 0 0 0-1 0zm2 0a.5.5 0 1 0 1 0 .5.5 0 0 0-1 0zm12 0c0 1.93-1.57 3.5-3.5 3.5a3.503 3.503 0 0 1-3.46-3.002c-.007.001-.013.005-.021.005l-.506.017h-.017a.5.5 0 0 1-.016-.999l.506-.017c.018-.002.035.006.052.007A3.503 3.503 0 0 1 20.5 17c1.93 0 3.5 1.57 3.5 3.5zm-1 0c0-1.378-1.122-2.5-2.5-2.5S18 19.122 18 20.5s1.122 2.5 2.5 2.5 2.5-1.122 2.5-2.5z" fill="#2088FF"/></svg><span>GitHub Actions</span></div>
     <div class="tech"><svg viewBox="0 0 24 24"><path d="M11.094.47c-.842 0-1.696.092-2.552.288a11.37 11.37 0 0 0-4.87 2.423 10.632 10.632 0 0 0-2.36 2.826A10.132 10.132 0 0 0 .305 8.582c-.398 1.62-.4 3.336-.043 5.048.085.405.183.809.31 1.212a11.85 11.85 0 0 0 1.662 3.729 3.273 3.273 0 0 0-.086.427 3.323 3.323 0 0 0 2.848 3.71 3.279 3.279 0 0 0 1.947-.346c1.045.51 2.17.864 3.339 1.04a11.66 11.66 0 0 0 4.285-.155 11.566 11.566 0 0 0 4.936-2.485 10.643 10.643 0 0 0 2.352-2.894 11.164 11.164 0 0 0 1.356-4.424 11.214 11.214 0 0 0-.498-4.335c.175-.077.338-.175.486-.293a.444.444 89.992 0 0 .001 0c.402-.322.693-.794.777-1.342a2.146 2.146 0 0 0-1.79-2.434 2.115 2.115 0 0 0-1.205.171c-.038-.043-.078-.086-.113-.13a11.693 11.693 0 0 0-3.476-2.93 13.348 13.348 0 0 0-1.76-.81 13.55 13.55 0 0 0-2.06-.613A12.121 12.121 0 0 0 11.093.47Zm.714.328c.345-.004.688.01 1.028.042a9.892 9.892 0 0 1 2.743.639c.984.39 1.89.958 2.707 1.632.803.662 1.502 1.45 2.091 2.328.026.039.048.08.07.12a2.12 2.12 0 0 0-.435 2.646c-.158.114-.97.692-1.634 1.183-.414.308-.733.557-.733.557l.581.68s.296-.276.665-.638c.572-.562 1.229-1.233 1.395-1.403a2.122 2.122 0 0 0 1.907.677 11.229 11.229 0 0 1-.013 4.046 11.41 11.41 0 0 1-1.475 3.897 12.343 12.343 0 0 1-2.079 2.587c-1.19 1.125-2.633 2.022-4.306 2.531a10.826 10.826 0 0 1-3.973.484 11.04 11.04 0 0 1-3.057-.652 3.304 3.304 0 0 0 1.417-2.294 3.275 3.275 0 0 0-.294-1.842c.18-.162.403-.363.656-.6 1.015-.955 2.353-2.303 2.353-2.303l-.47-.599s-1.63.972-2.801 1.728c-.307.198-.573.378-.777.517a3.273 3.273 0 0 0-1.516-.611c-1.507-.198-2.927.672-3.487 2.017a10.323 10.323 0 0 1-.695-1.078A10.92 10.92 0 0 1 .728 14.8a10.35 10.35 0 0 1-.2-1.212c-.164-1.653.103-3.258.629-4.754a12.95 12.95 0 0 1 1.087-2.288c.57-.968 1.248-1.872 2.069-2.656A11.013 11.013 0 0 1 11.808.797Zm-.147 3.257a3.838 3.838 0 0 0-3.82 3.82v2.36h-.94c-.751 0-1.377.625-1.377 1.377v3.8h1.46v-3.718h9.354v6.264H10.02v1.46h6.4c.751 0 1.377-.625 1.377-1.377v-6.43c0-.751-.626-1.377-1.377-1.377h-.94v-2.36a3.838 3.838 0 0 0-3.82-3.819zm0 1.46a2.371 2.371 0 0 1 2.36 2.36v2.36H9.3v-2.36a2.372 2.372 0 0 1 2.36-2.36zm10.141.392a1.253 1.253 0 0 1 1.296 1.434c-.049.319-.217.59-.453.78-.266.213-.61.318-.968.264a1.253 1.253 0 0 1-1.045-1.42 1.255 1.255 0 0 1 1.17-1.058zM5.384 17.425a2.02 2.02 0 0 1 1.917 1.298c.116.3.159.628.114.967a2.015 2.015 0 0 1-2.249 1.728 2.016 2.016 0 0 1-1.727-2.25 2.017 2.017 0 0 1 1.945-1.743z" fill="#1F88C0"/></svg><span>Caddy</span></div>
+  <div class="tech"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.6v18.8M4.1 7.05l15.8 9.9M19.9 7.05l-15.8 9.9" stroke="#f54e00" stroke-width="2.6" stroke-linecap="round"/></svg><span>Claude Code</span></div>
     </div>
 
-    <div class="grid grid-3" style="--h3: 17px">
-      <div class="card card--soft" style="padding:18px 20px">
-        <h3 style="font-size:17px">OpenStreetMap, not Google Maps</h3>
-        <p>No API key and no billing account — the riskiest non-technical dependency, removed entirely.</p>
+    <div class="grid grid-3" style="gap:18px">
+      <div class="card card--soft" style="padding:16px 18px">
+        <h3 style="font-size:16px">Free tiers today, on purpose</h3>
+        <p>OpenStreetMap instead of Google Maps, our own auth instead of a paid vendor, one 2 GB instance instead of managed everything. For an MVP that must stay up without funding, the riskiest dependency is a bill nobody can pay.</p>
       </div>
-      <div class="card card--soft" style="padding:18px 20px">
-        <h3 style="font-size:17px">Native services, no Docker in production</h3>
-        <p>Postgres, Redis, FastAPI and Next.js run under systemd on a single 2 GB instance.</p>
+      <div class="card card--soft" style="padding:16px 18px">
+        <h3 style="font-size:16px">Built so scaling is a swap, not a rewrite</h3>
+        <p>Each of those sits behind an interface. Real users mean paid map and routing APIs, managed Postgres with replicas, object storage for photos, and API instances behind a load balancer — configuration, not new code.</p>
       </div>
-      <div class="card card--soft" style="padding:18px 20px">
-        <h3 style="font-size:17px">Offline-first at the gate</h3>
-        <p>On-device ES256 verification, codes pre-fetched in batches, handovers queued and synced.</p>
+      <div class="card card--soft" style="padding:16px 18px">
+        <h3 style="font-size:16px">The parts that must not change</h3>
+        <p>ES256 signing, offline verification at the gate, and the manual fallback are not cost savings — they are the design. They stay exactly as they are on a thousand servers or on one.</p>
       </div>
+    </div>
+
+    <div class="card" style="flex-direction:row;align-items:center;gap:18px;padding:12px 18px">
+      <span class="num">AI</span>
+      <p style="font-size:14px;color:var(--ink)">
+        <strong style="color:var(--ink)">Built with Claude Code</strong> throughout —
+        both of us worked with it on one repository. It wrote and ran the test
+        suite and caught a live authorisation leak before launch. The
+        architecture, the security model and every product decision here are ours.
+      </p>
     </div>
   </div>
 
-  <div class="slide-foot"><span>08 · Stack</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>10 · Stack</span><span>Rukhsat</span></div>
 </section>
 
 <!-- ═══════════════════════ 10 · RESULTS ═══════════════════════ -->
@@ -736,7 +878,7 @@ ul.ticks li::before {
     <h2>Not a prototype. A deployed system<br />with a public address.</h2>
   </div>
 
-  <div class="body-fill" style="flex-direction:column;gap:18px">
+  <div class="body-fill" style="flex-direction:column;gap:11px">
     <div class="grid grid-4" style="gap:18px">
       <div class="card card--soft stat" style="min-height:0;padding:18px 20px">
         <div class="figure">44</div><div class="label">modules built, end to end</div>
@@ -764,94 +906,134 @@ ul.ticks li::before {
         </ul>
       </div>
       <div class="card card--accent" style="padding:20px 22px">
-        <h3 style="font-size:19px">Live right now</h3>
-        <p style="margin-top:8px">Anyone can open the dashboard, sign in with a demo account, and use the real system — not a mockup, not a recorded video.</p>
+        <h3 style="font-size:19px">Tested continuously, by machine</h3>
+        <p style="margin-top:8px">The 244 backend tests were written and run with
+        <strong style="color:var(--ink)">Claude Code</strong> as we built, not bolted
+        on at the end — they cover signing, expiry, replay and every authorisation
+        path. One of those runs is what surfaced a live access leak before any real
+        family was on the system. The suite runs on every push through GitHub Actions.</p>
         <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;align-items:flex-start">
           <div style="display:flex;gap:8px">
             <span class="pill"><span class="mono">admin.tideover.site</span></span>
             <span class="pill"><span class="mono">api.tideover.site</span></span>
           </div>
-          <p class="small">Both Android apps install directly by QR. Submitted to Google Play; store review in progress.</p>
+          <p class="small">Live now — anyone can sign in with a demo account. Both Android apps install by QR; submitted to Google Play, review in progress.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="slide-foot"><span>09 · Results</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>11 · Results</span><span>Rukhsat</span></div>
 </section>
 
-<!-- ═══════════════════════ 11 · DEMO — ADMIN ═══════════════════════ -->
+<!-- ═══════════════════════ 13 · DEMO — ADMIN ═══════════════════════ -->
 <section class="slide">
-  <div class="slide-head">
+  <div class="slide-head" style="margin-bottom:22px">
     <span class="eyebrow">Demo · Admin dashboard</span>
-    <h2>The school&rsquo;s view.</h2>
-    <p class="lead">Live at <span class="mono" style="font-size:17px">admin.tideover.site</span> — a guided tour walks a first-time visitor through the whole dashboard.</p>
+    <h2>The school&rsquo;s view. <span style="color:var(--muted-soft);font-size:26px">Live at <span class="mono" style="font-size:22px">admin.tideover.site</span></span></h2>
   </div>
 
-  <div class="body-fill" style="flex-direction:column;gap:16px">
-    <div class="grid grid-2" style="flex:1">
-      <div class="shot" data-shot="admin-1">
-        <span class="tag">Screenshot 1</span>
-        <span class="hint">Live queue — children ordered by real arrival time</span>
-      </div>
-      <div class="shot" data-shot="admin-2">
-        <span class="tag">Screenshot 2</span>
-        <span class="hint">Audit log — every handover, manual ones flagged</span>
-      </div>
+  <div class="body-fill" style="flex-direction:column;gap:14px">
+    <div class="grid grid-2" style="flex:1;min-height:0;gap:14px">
+      <figure class="photo photo--fit"><img src="assets/admin-queue.png" alt="Live queue" /><figcaption>Live queue — ordered by real ETA, not by who booked first</figcaption></figure>
+      <figure class="photo photo--fit"><img src="assets/admin-tour.png" alt="Guided tour over the dashboard" /><figcaption>The guided tour running over the live dashboard</figcaption></figure>
     </div>
-    <div class="grid grid-2" style="flex:1">
-      <div class="shot" data-shot="admin-3">
-        <span class="tag">Screenshot 3</span>
-        <span class="hint">School setup — pin the gate, set the arrival radius</span>
-      </div>
-      <div class="shot" data-shot="admin-4">
-        <span class="tag">Screenshot 4</span>
-        <span class="hint">Guided tour running over the live dashboard</span>
-      </div>
+    <div class="grid grid-2" style="flex:1;min-height:0;gap:14px">
+      <figure class="photo photo--fit"><img src="assets/admin-school.png" alt="School setup with map" /><figcaption>School setup — pin the gate on OpenStreetMap, set the arrival radius</figcaption></figure>
+      <figure class="photo photo--fit"><img src="assets/admin-audit.png" alt="Audit log" /><figcaption>Audit log — every handover and authorisation change, permanently recorded</figcaption></figure>
     </div>
   </div>
 
-  <div class="slide-foot"><span>10 · Demo · Admin</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>12 · Demo · Admin</span><span>Rukhsat</span></div>
 </section>
 
-<!-- ═══════════════════════ 12 · DEMO — PARENT APP ═══════════════════════ -->
+<!-- ═══════════════════════ 14 · DEMO — PARENT APP ═══════════════════════ -->
 <section class="slide">
-  <div class="slide-head">
-    <span class="eyebrow">Demo · Parent &amp; driver app</span>
+  <div class="slide-head" style="margin-bottom:22px">
+    <span class="eyebrow">Demo · Collector app</span>
     <h2>What a family sees.</h2>
-    <p class="lead">One app for parents and drivers. Every screen ships in English and اردو from the first commit, not as a later pass.</p>
+    <p class="lead">One app for parents, relatives and drivers. Every screen ships in English and اردو from the first commit, not as a later pass.</p>
   </div>
 
-  <div class="body-fill" style="gap:16px;align-items:center;justify-content:center">
-    <div class="shot shot--phone" data-shot="parent-1" style="flex:1 1 0;min-width:0"><span class="tag">Parent</span><span class="hint">Walkthrough — first launch</span></div>
-    <div class="shot shot--phone" data-shot="parent-2" style="flex:1 1 0;min-width:0"><span class="tag">Parent</span><span class="hint">Home — today's pickup</span></div>
-    <div class="shot shot--phone" data-shot="parent-3" style="flex:1 1 0;min-width:0"><span class="tag">Parent</span><span class="hint">On my way — live ETA and map</span></div>
-    <div class="shot shot--phone" data-shot="parent-4" style="flex:1 1 0;min-width:0"><span class="tag">Parent</span><span class="hint">Rotating pickup code</span></div>
-    <div class="shot shot--phone" data-shot="parent-5" style="flex:1 1 0;min-width:0"><span class="tag">Parent</span><span class="hint">Who can collect my children</span></div>
-    <div class="shot shot--phone" data-shot="parent-6" style="flex:1 1 0;min-width:0"><span class="tag">Parent</span><span class="hint">اردو — the same screen</span></div>
+  <div class="body-fill" style="gap:13px;align-items:stretch">
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/parent-signin.jpg" alt="Sign in — parents, relatives and drivers" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Sign in — parents, relatives and drivers</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/parent-home.jpg" alt="Today's pickup, with the school named" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Today's pickup, with the school named</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/parent-add-driver.jpg" alt="Authorise a driver — exact phone only, no search" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Authorise a driver — exact phone only, no search</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/parent-add-relative.jpg" alt="Or a relative, per child, revocable" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Or a relative, per child, revocable</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/parent-walk-code.jpg" alt="Walkthrough — the code rotates every minute" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Walkthrough — the code rotates every minute</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/parent-walk-onmyway.jpg" alt="Walkthrough — location only while open" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Walkthrough — location only while open</figcaption></figure>
   </div>
 
-  <div class="slide-foot"><span>11 · Demo · Parent app</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>13 · Demo · Collector app</span><span>Rukhsat</span></div>
 </section>
 
-<!-- ═══════════════════════ 13 · DEMO — STAFF APP ═══════════════════════ -->
+<!-- ═══════════════════════ 15 · DEMO — STAFF APP ═══════════════════════ -->
 <section class="slide">
-  <div class="slide-head">
+  <div class="slide-head" style="margin-bottom:22px">
     <span class="eyebrow">Demo · Staff app</span>
     <h2>What the gate and the classroom see.</h2>
     <p class="lead">Teacher and guard are two roles behind one login — a guard never sees a teacher&rsquo;s screens, and neither depends on signal.</p>
   </div>
 
-  <div class="body-fill" style="gap:16px;align-items:center;justify-content:center">
-    <div class="shot shot--phone" data-shot="staff-1" style="flex:1 1 0;min-width:0"><span class="tag">Guard</span><span class="hint">Scanner at the gate</span></div>
-    <div class="shot shot--phone" data-shot="staff-2" style="flex:1 1 0;min-width:0"><span class="tag">Guard</span><span class="hint">Verified verdict</span></div>
-    <div class="shot shot--phone" data-shot="staff-3" style="flex:1 1 0;min-width:0"><span class="tag">Guard</span><span class="hint">Manual fallback</span></div>
-    <div class="shot shot--phone" data-shot="staff-4" style="flex:1 1 0;min-width:0"><span class="tag">Teacher</span><span class="hint">Live class queue</span></div>
-    <div class="shot shot--phone" data-shot="staff-5" style="flex:1 1 0;min-width:0"><span class="tag">Display</span><span class="hint">Classroom announcing</span></div>
-    <div class="shot shot--phone" data-shot="staff-6" style="flex:1 1 0;min-width:0"><span class="tag">Guard</span><span class="hint">Walkthrough — first launch</span></div>
+  <div class="body-fill" style="gap:18px;align-items:stretch;justify-content:center">
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/guard-scanner.jpg" alt="Guard — scanner, with the manual fallback always below" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Guard — scanner, with the manual fallback always below</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/guard-verified.jpg" alt="Verified — three children, each confirmed by hand" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Verified — three children, each confirmed by hand</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/guard-notvalid.jpg" alt="Refused — routed to a manual handover, never a locked gate" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Refused — routed to a manual handover, never a locked gate</figcaption></figure>
+      <figure class="photo" style="flex:1;min-width:0"><img src="assets/teacher-class.jpg" alt="Teacher — the live class queue for Nursery" style="object-fit:contain;background:var(--canvas-soft)" /><figcaption>Teacher — the live class queue for Nursery</figcaption></figure>
   </div>
 
-  <div class="slide-foot"><span>12 · Demo · Staff app</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>14 · Demo · Staff app</span><span>Rukhsat</span></div>
+</section>
+
+<!-- ═══════════════════════ 16 · DEMO ACCOUNTS ═══════════════════════ -->
+<section class="slide">
+  <div class="slide-head" style="margin-bottom:26px">
+    <span class="eyebrow">Try it yourself</span>
+    <h2>Six accounts. The whole system,<br />end to end, in ten minutes.</h2>
+  </div>
+
+  <div class="body-fill" style="gap:26px">
+    <div style="flex:1.55;display:flex;flex-direction:column;min-height:0">
+      <table class="compare accounts">
+        <colgroup><col style="width:20%" /><col style="width:24%" /><col style="width:26%" /><col /></colgroup>
+        <thead>
+          <tr><th>Role</th><th>Phone</th><th>Name</th><th>Where to sign in</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Admin</td><td class="mono ours">03009900001</td><td>Demo Admin</td><td>Web dashboard</td></tr>
+          <tr><td>Teacher</td><td class="mono ours">03009900002</td><td>Ayesha Noor</td><td>Staff app</td></tr>
+          <tr><td>Guard</td><td class="mono ours">03009900003</td><td>Demo Guard</td><td>Staff app</td></tr>
+          <tr><td>Parent 1</td><td class="mono ours">03009900010</td><td>Bilal Ahmed</td><td>Collector app</td></tr>
+          <tr><td>Parent 2</td><td class="mono ours">03009900011</td><td>Sana Malik</td><td>Collector app</td></tr>
+          <tr><td>Driver</td><td class="mono ours">03009900020</td><td>Kamal Yousuf</td><td>Collector app</td></tr>
+        </tbody>
+      </table>
+
+      <div class="card card--accent" style="flex-direction:row;align-items:center;gap:20px;padding:16px 20px;margin-top:20px">
+        <p style="font-size:15px;color:var(--ink)">
+          Password for every one of them:
+          <span class="mono" style="font-size:17px;color:var(--primary)">rukhsat123</span>
+        </p>
+      </div>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px;min-height:0">
+      <div class="card card--soft" style="padding:16px 19px">
+        <h3 style="font-size:17px">The driver uses the collector app</h3>
+        <p>That is deliberate, not a shortcut. Parents, relatives and drivers are all collectors and share one app; only teachers and guards use the staff app.</p>
+      </div>
+      <div class="card card--soft" style="padding:16px 19px">
+        <h3 style="font-size:17px">What is already set up</h3>
+        <p>One class, <span style="color:var(--ink)">Nursery</span>. Three children — Zoya and Rayan Ahmed are siblings; Ibrahim Malik belongs to another family. Kamal Yousuf is authorised for all three, <span style="color:var(--ink)">across two families</span> — the case a naive data model cannot express.</p>
+      </div>
+      <div class="card card--soft" style="padding:16px 19px">
+        <h3 style="font-size:17px">A separate, judge-facing school</h3>
+        <p>This dataset is isolated from the one we test on — a driver in one is invisible in the other.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide-foot"><span>15 · Demo accounts</span><span>Rukhsat</span></div>
 </section>
 
 <!-- ═══════════════════════ 14 · TEAM ═══════════════════════ -->
@@ -886,7 +1068,7 @@ ul.ticks li::before {
     </div>
   </div>
 
-  <div class="slide-foot"><span>13 · Team</span><span>Rukhsat</span></div>
+  <div class="slide-foot"><span>16 · Team</span><span>Rukhsat</span></div>
 </section>
 
 <!-- ═══════════════════════ 15 · CLOSE ═══════════════════════ -->
