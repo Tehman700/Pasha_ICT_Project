@@ -37,6 +37,18 @@ function browserTokenStore(): TokenStore {
   };
 }
 
+/**
+ * Persist a token obtained outside the usual login call.
+ *
+ * Admin signup returns a token with the created records, so the browser can go
+ * straight to the dashboard. `PickupApi` deliberately does not expose its
+ * token store — the mock client has none — so this writes to the same key
+ * `browserTokenStore` reads from.
+ */
+export function storeToken(token: string) {
+  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, token);
+}
+
 let client: PickupApi | null = null;
 
 function getClient(): PickupApi {

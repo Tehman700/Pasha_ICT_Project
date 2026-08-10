@@ -28,6 +28,7 @@ from app.routers import (
     uploads,
     qr,
     registration,
+    schools,
     trips,
     ws,
 )
@@ -113,6 +114,7 @@ app.include_router(operations.router, prefix=V1)
 app.include_router(trips.router, prefix=V1)
 app.include_router(handovers.router, prefix=V1)
 app.include_router(registration.router, prefix=V1)
+app.include_router(schools.router, prefix=V1)
 app.include_router(qr.router, prefix=V1)
 app.include_router(ws.router, prefix=V1)
 app.include_router(devices.router, prefix=V1)

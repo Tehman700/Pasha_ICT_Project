@@ -9,6 +9,9 @@
  */
 
 import type {
+  AdminSignupRequest,
+  AdminSignupResponse,
+  SchoolUpdate,
   Announcement,
   CollectorLookup,
   AuditLogEntry,
@@ -232,6 +235,15 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
      * fails with a 401 that looks like a network fault.
      */
     listSchoolsPublic: () => get<School[]>("/schools/public"),
+
+    registerAdmin: (body: AdminSignupRequest) =>
+      post<AdminSignupResponse>("/auth/register-admin", body),
+
+    updateSchool: (schoolId: Uuid, patch: SchoolUpdate) =>
+      request<School>(`/schools/${schoolId}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
 
     /**
      * Upload one photograph, returning the KEY to store — never a URL. The

@@ -11,6 +11,9 @@
  */
 
 import type {
+  AdminSignupRequest,
+  AdminSignupResponse,
+  SchoolUpdate,
   Announcement,
   AuditLogEntry,
   ClassRoom,
@@ -67,6 +70,14 @@ export interface PickupApi {
   listSchools(): Promise<School[]>;
   /** Unauthenticated — the registration screens run before a token exists. */
   listSchoolsPublic(): Promise<School[]>;
+  /**
+   * Creates a school AND its first administrator in one transaction, and
+   * returns a token. Unauthenticated by nature — there is nobody to
+   * authenticate as until it succeeds.
+   */
+  registerAdmin(body: AdminSignupRequest): Promise<AdminSignupResponse>;
+  /** Admin only, own school only. */
+  updateSchool(schoolId: Uuid, patch: SchoolUpdate): Promise<School>;
   /** Returns the storage KEY to persist, not a URL. See the http client. */
   uploadPhoto(uri: string, purpose: string): Promise<{ key: string; url: string | null }>;
   listClasses(schoolId?: Uuid): Promise<ClassRoom[]>;
@@ -178,6 +189,31 @@ export const mockApi: PickupApi = {
 
   async listSchools() {
     return delay([fx.school]);
+  },
+
+  async registerAdmin(body: AdminSignupRequest) {
+    const school: School = {
+      id: "mock-school-" + Date.now(),
+      name: body.school.name,
+      lat: body.school.lat,
+      lng: body.school.lng,
+      geofence_radius_m: body.school.geofence_radius_m,
+      dismissal_time: body.school.dismissal_time,
+      timezone: body.school.timezone ?? "Asia/Karachi",
+    };
+    const user: User = {
+      ...fx.users.find((u) => u.role === "admin")!,
+      id: "mock-admin-" + Date.now(),
+      name: body.name,
+      phone: body.phone,
+      school_id: school.id,
+    };
+    return delay({ access_token: "mock.jwt.token", expires_in: 3600, user, school });
+  },
+
+  async updateSchool(schoolId: Uuid, patch: SchoolUpdate) {
+    // Fixtures hold exactly one school, so there is nothing to look up.
+    return delay({ ...fx.school, ...patch });
   },
 
   async listSchoolsPublic() {

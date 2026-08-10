@@ -517,6 +517,71 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/School' }
 
+  /auth/register-admin:
+    post:
+      tags: [auth]
+      security: []
+      summary: Register a school and its first administrator, together
+      description: >
+        One request creates both, in one transaction. `users.school_id` is NOT
+        NULL, so an administrator cannot exist before their school — rather
+        than weaken a constraint the whole authorization model leans on, signup
+        takes both halves at once and the UI collects them across two screens.
+
+
+        The new school is given its own ES256 keypair here, not lazily: a
+        school without one looks completely healthy until the first parent
+        shows a code at the gate and it cannot be verified.
+
+
+        Returns a token, so the browser goes straight to the dashboard instead
+        of bouncing back to a login form.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password, school]
+              properties:
+                name: { type: string, minLength: 2 }
+                name_ur: { type: string, nullable: true }
+                phone: { type: string }
+                password: { type: string, minLength: 8 }
+                locale: { type: string, enum: [en, ur], default: en }
+                school:
+                  type: object
+                  required: [name, lat, lng]
+                  properties:
+                    name: { type: string, minLength: 2 }
+                    lat: { type: number, minimum: -90, maximum: 90 }
+                    lng: { type: number, minimum: -180, maximum: 180 }
+                    geofence_radius_m:
+                      type: integer
+                      minimum: 100
+                      maximum: 20000
+                      default: 1000
+                      description: >
+                        Bounded deliberately. Below ~100 m the ring sits inside
+                        the building and nobody ever enters it; above 20 km it
+                        covers a city and stops meaning "nearly here".
+                    dismissal_time: { type: string, example: "13:15" }
+                    timezone: { type: string, default: Asia/Karachi }
+      responses:
+        '201':
+          description: School and administrator created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  expires_in: { type: integer }
+                  user: { $ref: '#/components/schemas/User' }
+                  school: { $ref: '#/components/schemas/School' }
+        '409': { description: Phone number already registered }
+        '422': { description: Invalid geofence radius or dismissal time }
+
   /schools:
     get:
       tags: [schools]
@@ -543,6 +608,39 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/School' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /schools/{school_id}:
+    patch:
+      tags: [schools]
+      summary: Move the school or resize its geofence
+      description: >
+        Administrators, and only for their own school. The geofence radius
+        governs whether arrival announcements fire at all, so this is a much
+        larger lever than the screen suggests. `lat` and `lng` must be sent
+        together — half a coordinate pair puts the school in the sea and the
+        geofence silently stops matching anyone.
+      parameters:
+        - { name: school_id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 2 }
+                lat: { type: number, minimum: -90, maximum: 90 }
+                lng: { type: number, minimum: -180, maximum: 180 }
+                geofence_radius_m: { type: integer, minimum: 100, maximum: 20000 }
+                dismissal_time: { type: string, example: "13:15" }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/School' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /schools/{id}/public-key:
     get:

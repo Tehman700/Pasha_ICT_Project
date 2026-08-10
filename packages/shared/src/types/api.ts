@@ -328,6 +328,53 @@ export interface LoginResponse {
   user: User;
 }
 
+// ── School onboarding ──────────────────────────────────────────────────
+
+/** The half of admin signup that describes the school itself. */
+export interface SchoolDetails {
+  name: string;
+  lat: number;
+  lng: number;
+  /**
+   * Bounded 100..20000 by the API. Below ~100m the ring sits inside the
+   * building and nobody ever enters it; above 20km it covers a city and stops
+   * meaning "nearly here".
+   */
+  geofence_radius_m: number;
+  dismissal_time: TimeOfDay;
+  timezone?: string;
+}
+
+export interface AdminSignupRequest {
+  name: string;
+  name_ur?: string | null;
+  phone: string;
+  password: string;
+  locale?: Locale;
+  school: SchoolDetails;
+}
+
+/**
+ * Signup returns a token as well as the records — `users.school_id` is NOT
+ * NULL so both are created in one transaction, and the browser goes straight
+ * to the dashboard rather than back to a login form.
+ */
+export interface AdminSignupResponse {
+  access_token: string;
+  expires_in: number;
+  user: User;
+  school: School;
+}
+
+export interface SchoolUpdate {
+  name?: string;
+  /** Send both or neither — half a pair puts the school in the sea. */
+  lat?: number;
+  lng?: number;
+  geofence_radius_m?: number;
+  dismissal_time?: TimeOfDay;
+}
+
 // ── Self-registration ──────────────────────────────────────────────────
 //
 // Two paths, deliberately asymmetric. A parent is matched to children the

@@ -134,6 +134,15 @@ function LoginForm() {
               {strings.landing.demoTitle}
             </Link>
           </p>
+
+          <div className="mt-6 pt-5 border-t border-hairline text-center">
+            <p className="type-body-sm text-muted mb-3">{strings.register.noAccount}</p>
+            <Link href="/register">
+              <Button variant="secondary" className="w-full">
+                {strings.adminSignup.cta}
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

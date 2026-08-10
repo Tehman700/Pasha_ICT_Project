@@ -58,3 +58,9 @@ backend/media/name-audio/*
 # untracked directory, so this survives every deploy.
 backend/downloads/*
 !backend/downloads/.gitkeep
+
+# Source photos handed over for the team section. The images the site
+# actually serves live in apps/admin-web/public/team/ and the LinkedIn URLs
+# are in components/landing/Founders.tsx, so committing these too would just
+# duplicate them at the repo root.
+/profile-images/
