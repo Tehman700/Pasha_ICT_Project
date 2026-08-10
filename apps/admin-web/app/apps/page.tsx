@@ -7,7 +7,6 @@ import { useScrollReveal } from "@/lib/gsap";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { Footer } from "@/components/landing/Footer";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { QrCode } from "@/components/landing/QrCode";
 import { AppIcon } from "@/components/brand/Logo";
 
@@ -44,15 +43,13 @@ function AppCard({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col tablet:flex-row items-start gap-6">
-        <div className="flex-1">
-          <a href={href} download>
-            <Button variant="primary">{a.downloadButton}</Button>
-          </a>
-        </div>
-        <div className="text-center shrink-0">
-          <QrCode value={href} size={110} />
-          <p className="type-caption text-muted-soft mt-2 max-w-[110px]">{a.scanToInstall}</p>
+      {/* QR only, no download button. Downloading on the laptop produces a
+          file that then has to reach a phone somehow, which is the slow part;
+          scanning puts it on the device that will actually run it. */}
+      <div className="flex-1 flex items-center justify-center tablet:justify-end">
+        <div className="text-center">
+          <QrCode value={href} size={150} />
+          <p className="type-caption text-muted mt-3 max-w-[170px]">{a.scanToInstall}</p>
         </div>
       </div>
     </Card>

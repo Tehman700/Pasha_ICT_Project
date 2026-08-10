@@ -510,15 +510,14 @@ export const en = {
   apps: {
     title: "Get the apps",
     subtitle:
-      "Install directly — no Play Store account needed to try this today.",
+      "Scan with your phone and install directly — no Play Store account needed to try this today.",
     parentAppName: "Rukhsat",
     parentAppTagline: "For parents, relatives and drivers",
     staffAppName: "Rukhsat Staff",
     staffAppTagline: "For teachers and gate guards",
-    downloadButton: "Download APK",
-    scanToInstall: "Or scan to open on your phone",
+    scanToInstall: "Scan with your phone's camera to install",
     installTitle: "Installing on Android",
-    installStep1: "Download the APK on the phone itself, or scan the QR code above.",
+    installStep1: "Point your phone's camera at the QR code above and open the link it offers.",
     installStep2:
       "Android will warn about installing from outside the Play Store — tap Settings, then allow this source.",
     installStep3: "Open the downloaded file and tap Install.",
@@ -1046,10 +1045,9 @@ export const ur: DeepMirror<Strings> = {
     parentAppTagline: "والدین، رشتہ داروں اور ڈرائیوروں کے لیے",
     staffAppName: "رخصت اسٹاف",
     staffAppTagline: "اساتذہ اور گیٹ گارڈز کے لیے",
-    downloadButton: "APK ڈاؤن لوڈ کریں",
-    scanToInstall: "یا فون پر کھولنے کے لیے اسکین کریں",
+    scanToInstall: "انسٹال کرنے کے لیے اپنے فون کے کیمرے سے اسکین کریں",
     installTitle: "اینڈرائیڈ پر انسٹال کرنا",
-    installStep1: "فون پر ہی APK ڈاؤن لوڈ کریں، یا اوپر دیا گیا QR کوڈ اسکین کریں۔",
+    installStep1: "اپنے فون کا کیمرہ اوپر دیے گئے QR کوڈ پر رکھیں اور جو لنک آئے اسے کھولیں۔",
     installStep2:
       "اینڈرائیڈ پلے اسٹور سے باہر انسٹال کرنے پر خبردار کرے گا — سیٹنگز پر جائیں اور اس ذریعے کی اجازت دیں۔",
     installStep3: "ڈاؤن لوڈ شدہ فائل کھولیں اور انسٹال دبائیں۔",
