@@ -92,8 +92,12 @@ def generate_es256_keypair() -> tuple[str, str]:
 
 def seed_demo(db) -> bool:
     """Returns False (no-op) if the demo school already exists."""
+    # Keyed on the demo admin's phone, not the school name. The name is
+    # editable from the dashboard now, and once somebody renames the demo
+    # school a name check stops matching and this script cheerfully seeds a
+    # second copy of everything.
     existing = db.execute(
-        select(School).where(School.name == DEMO_SCHOOL_NAME)
+        select(User).where(User.phone == DEMO_ADMIN)
     ).scalar_one_or_none()
     if existing is not None:
         return False

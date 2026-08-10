@@ -6,8 +6,9 @@ Move the demo school, so ETA and the voice announcement work where you are.
     python scripts/demo_location.py --at 31.5204 74.3587          # Lahore
     python scripts/demo_location.py --at 31.5204 74.3587 --radius 1500
 
-Only ever touches the school named by DEMO_SCHOOL_NAME. The other school in
-this database is what Tehman and Ali test phones against, and it is left alone.
+Only ever touches the demo school, found via the demo admin's phone rather
+than by name — the name is editable from the dashboard now, and two schools
+can legitimately share one. Every other school is left alone.
 
 Why this script exists
 ----------------------
@@ -48,9 +49,9 @@ sys.path.insert(0, str(BACKEND))
 from sqlalchemy import select  # noqa: E402
 
 from app.db import SessionLocal  # noqa: E402
-from app.models import School  # noqa: E402
+from app.models import School, User  # noqa: E402
 
-DEMO_SCHOOL_NAME = "Rukhsat Demo School"
+DEMO_ADMIN_PHONE = "03009900001"
 
 # Geographic centre of Pakistan, and a radius that reaches every corner of it
 # (furthest points are ~1000 km out; 1200 km leaves margin).
@@ -76,12 +77,15 @@ def main() -> None:
     args = p.parse_args()
 
     with SessionLocal() as db:
-        school = db.execute(
-            select(School).where(School.name == DEMO_SCHOOL_NAME)
+        # Found through the demo admin rather than by name — the name is
+        # editable from the dashboard, and two schools can share one.
+        admin = db.execute(
+            select(User).where(User.phone == DEMO_ADMIN_PHONE)
         ).scalar_one_or_none()
+        school = db.get(School, admin.school_id) if admin else None
 
         if school is None:
-            print(f'No school named "{DEMO_SCHOOL_NAME}". Run scripts/seed_demo.py first.')
+            print(f"No demo school (admin {DEMO_ADMIN_PHONE} not found). Run scripts/seed_demo.py first.")
             raise SystemExit(1)
 
         if args.show:
