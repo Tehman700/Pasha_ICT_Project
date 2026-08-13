@@ -12,12 +12,12 @@
     "@pickup/shared": "workspace:*"
   },
   "peerDependencies": {
-    "@tanstack/react-query": "*",
-    "expo-secure-store": "*",
-    "moti": "*",
-    "react": "*",
-    "react-native": "*",
-    "react-native-safe-area-context": "*",
-    "react-native-svg": "*"
+    "@tanstack/react-query": "^5.101.4",
+    "expo-secure-store": "~57.0.1",
+    "moti": "^0.30.0",
+    "react": "19.2.8",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4"
   }
 }
