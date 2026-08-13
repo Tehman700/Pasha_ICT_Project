@@ -22,16 +22,10 @@ export function Hero() {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: motion.ease.entrance } });
       tl.fromTo(
-        "[data-hero=eyebrow]",
-        { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: motion.duration.base },
+        "[data-hero=title] .word",
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: motion.duration.slow, stagger: 0.06 },
       )
-        .fromTo(
-          "[data-hero=title] .word",
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: motion.duration.slow, stagger: 0.06 },
-          "-=0.15",
-        )
         .fromTo(
           "[data-hero=subtitle]",
           { opacity: 0, y: 14 },
@@ -56,9 +50,6 @@ export function Hero() {
 
   return (
     <div ref={rootRef} className="px-6 tablet:px-10 pt-20 pb-24 tablet:pt-28 tablet:pb-32 max-w-[1200px] mx-auto text-center">
-      <p data-hero="eyebrow" className="type-label text-primary mb-5">
-        {l.heroEyebrow}
-      </p>
       <h1
         data-hero="title"
         className="type-display-mega text-ink max-w-4xl mx-auto mb-6"

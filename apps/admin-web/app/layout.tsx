@@ -29,7 +29,7 @@ const nastaliq = Noto_Nastaliq_Urdu({
 });
 
 export const metadata: Metadata = {
-  title: "Rukhsat — Admin",
+  title: "Rukhsat",
   description:
     "Queue and verification system for school dismissal. Admin dashboard.",
 };

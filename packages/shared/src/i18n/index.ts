@@ -418,8 +418,7 @@ export const en = {
     navApps: "Get the apps",
     navLogin: "Login",
     navRegister: "Register",
-    heroEyebrow: "Live system, not a mockup",
-    heroTitle: "The gate knows who's collecting your child.",
+    heroTitle: "Solving Pakistan's montessori school-gate traffic problem.",
     heroSubtitle:
       "A rotating, offline-verified QR code, a driver a parent chose and can revoke, and a manual fallback that never turns a family away.",
     heroCtaPrimary: "Explore the live dashboard",
@@ -954,8 +953,7 @@ export const ur: DeepMirror<Strings> = {
     navApps: "ایپس حاصل کریں",
     navLogin: "لاگ ان",
     navRegister: "رجسٹر",
-    heroEyebrow: "لائیو سسٹم، نمائشی نہیں",
-    heroTitle: "گیٹ کو معلوم ہے کہ آپ کے بچے کو کون لے جا رہا ہے۔",
+    heroTitle: "پاکستان کے مونٹیسری اسکولوں کے گیٹ پر ٹریفک کے مسئلے کا حل۔",
     heroSubtitle:
       "ایک گھومتا، آف لائن تصدیق شدہ QR کوڈ، ایک ڈرائیور جسے والدین نے چنا اور واپس لے سکتے ہیں، اور ایک دستی طریقہ جو کبھی کسی خاندان کو واپس نہیں بھیجتا۔",
     heroCtaPrimary: "لائیو ڈیش بورڈ دیکھیں",
