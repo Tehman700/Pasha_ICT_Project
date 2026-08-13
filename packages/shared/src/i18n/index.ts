@@ -506,6 +506,10 @@ export const en = {
     footerTagline: "A school pickup queue and verification system.",
     footerNote:
       "Submitted to the Google Play Store; store review is in progress. The APKs below install directly today.",
+    getAppsPopupTitle: "See it on a phone",
+    getAppsPopupBody:
+      "The dashboard is one half of this. Install the parent and staff apps to see the pickup code, the live trip, and the gate scan for yourself.",
+    getAppsPopupDismiss: "Not now",
   },
   apps: {
     title: "Get the apps",
@@ -1037,6 +1041,10 @@ export const ur: DeepMirror<Strings> = {
     footerTagline: "اسکول پک اپ قطار اور تصدیقی نظام۔",
     footerNote:
       "گوگل پلے اسٹور پر جمع کرایا گیا؛ اسٹور کا جائزہ جاری ہے۔ نیچے دی گئی APKs آج ہی براہ راست انسٹال ہوتی ہیں۔",
+    getAppsPopupTitle: "اسے فون پر دیکھیں",
+    getAppsPopupBody:
+      "ڈیش بورڈ اس کا آدھا حصہ ہے۔ پک اپ کوڈ، لائیو ٹرپ، اور گیٹ پر اسکین خود دیکھنے کے لیے پیرنٹ اور اسٹاف ایپس انسٹال کریں۔",
+    getAppsPopupDismiss: "ابھی نہیں",
   },
   apps: {
     title: "ایپس حاصل کریں",

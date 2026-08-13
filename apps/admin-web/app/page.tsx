@@ -8,6 +8,7 @@ import { DemoAccess } from "@/components/landing/DemoAccess";
 import { Founders } from "@/components/landing/Founders";
 import { Faq } from "@/components/landing/Faq";
 import { Footer } from "@/components/landing/Footer";
+import { AppsPromptPopup } from "@/components/landing/AppsPromptPopup";
 
 export default function LandingPage() {
   return (
@@ -24,6 +25,7 @@ export default function LandingPage() {
         <Faq />
       </main>
       <Footer />
+      <AppsPromptPopup />
     </div>
   );
 }
