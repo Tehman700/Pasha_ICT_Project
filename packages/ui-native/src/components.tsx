@@ -10,7 +10,15 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { PickupStatus } from "@pickup/shared";
+import {
+  CNIC_LENGTH,
+  CNIC_PLACEHOLDER,
+  PHONE_LENGTH,
+  PHONE_PLACEHOLDER,
+  formatCnic,
+  formatPhoneInput,
+  type PickupStatus,
+} from "@pickup/shared";
 import { Icon, type IconName } from "./icons";
 import { colors, radius, spacing, surface, text, textUr } from "./theme";
 import { useLocale } from "./providers";
@@ -363,6 +371,70 @@ export const Input = forwardRef<TextInput, TextInputProps>(function Input(props,
         },
         props.style as object,
       ]}
+    />
+  );
+});
+
+/**
+ * Phone field. 11 digits, `03xxxxxxxxx`, and nothing else can be typed into it.
+ *
+ * Every phone entry point in both apps goes through this rather than a bare
+ * `Input` with a `maxLength` prop, because "the cap is a prop" is how four of
+ * six call sites ended up without one.
+ *
+ * `dir="ltr"` is forced: a phone number is left-to-right even in Urdu, and the
+ * shared `Input` flips `textAlign` with the locale. A number that renders
+ * right-aligned reads as though it starts with the last digit.
+ */
+export const PhoneInput = forwardRef<TextInput, PhoneInputProps>(function PhoneInput(
+  { value, onChangeText, ...rest },
+  ref,
+) {
+  return (
+    <Input
+      ref={ref}
+      value={value}
+      onChangeText={(raw) => onChangeText(formatPhoneInput(raw))}
+      placeholder={PHONE_PLACEHOLDER}
+      keyboardType="number-pad"
+      textContentType="telephoneNumber"
+      autoComplete="tel"
+      autoCorrect={false}
+      // Belt and braces. formatPhoneInput already caps the value, but a
+      // hardware keyboard repeating a key can outrun a controlled update.
+      maxLength={PHONE_LENGTH}
+      style={{ textAlign: "left" }}
+      {...rest}
+    />
+  );
+});
+
+type PhoneInputProps = Omit<TextInputProps, "value" | "onChangeText"> & {
+  value: string;
+  onChangeText: (next: string) => void;
+};
+
+/**
+ * CNIC field. Dashes appear as you pass each boundary — `38515-1952462-5`.
+ *
+ * Holds the formatted string; callers send `cnicDigits(value)`. The 15-char
+ * `maxLength` counts the two dashes on top of 13 digits.
+ */
+export const CnicInput = forwardRef<TextInput, PhoneInputProps>(function CnicInput(
+  { value, onChangeText, ...rest },
+  ref,
+) {
+  return (
+    <Input
+      ref={ref}
+      value={value}
+      onChangeText={(raw) => onChangeText(formatCnic(raw))}
+      placeholder={CNIC_PLACEHOLDER}
+      keyboardType="number-pad"
+      autoCorrect={false}
+      maxLength={CNIC_LENGTH + 2}
+      style={{ textAlign: "left" }}
+      {...rest}
     />
   );
 });

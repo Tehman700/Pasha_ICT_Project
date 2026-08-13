@@ -178,11 +178,35 @@ export const en = {
     phoneTaken: "That phone number is already registered. Sign in instead.",
     failed: "Could not create your school. Please try again.",
   },
+  onboarding: {
+    // Parent / collector app
+    p1Title: "Your child leaves with the right person",
+    p1Body:
+      "Only someone you have authorised can collect. The gate checks, every single time.",
+    p2Title: "No more waiting in the queue",
+    p2Body:
+      "Tap \"On my way\" and your child is brought to the gate as you arrive — not after.",
+    p3Title: "A code that cannot be copied",
+    p3Body:
+      "It changes every minute and works without signal, so a screenshot is worth nothing.",
+
+    // Staff app
+    s1Title: "Every handover, verified",
+    s1Body:
+      "Scan the collector's code at the gate. It is checked on this device, with or without signal.",
+    s2Title: "Your class, in arrival order",
+    s2Body:
+      "Children are listed by how close their collector actually is — never by who booked first.",
+    s3Title: "Never turn a family away",
+    s3Body:
+      "If a phone is dead, the manual handover is one tap away. It is logged, and it always works.",
+  },
   walkthrough: {
     next: "Next",
     start: "Get started",
     skip: "Skip",
     replay: "Show the guide again",
+    takeTour: "Take a quick tour",
 
     // Parent / collector
     p1Title: "Everything happens at the gate",
@@ -717,11 +741,33 @@ export const ur: DeepMirror<Strings> = {
     phoneTaken: "یہ فون نمبر پہلے سے رجسٹرڈ ہے۔ سائن ان کریں۔",
     failed: "آپ کا اسکول نہیں بن سکا۔ دوبارہ کوشش کریں۔",
   },
+  onboarding: {
+    p1Title: "آپ کا بچہ صحیح شخص کے ساتھ جائے",
+    p1Body:
+      "صرف وہی لے جا سکتا ہے جسے آپ نے اجازت دی ہو۔ گیٹ ہر بار جانچتا ہے۔",
+    p2Title: "اب قطار میں انتظار نہیں",
+    p2Body:
+      "\"میں آ رہا ہوں\" دبائیں اور آپ کے پہنچنے تک بچہ گیٹ پر موجود ہوگا — بعد میں نہیں۔",
+    p3Title: "ایسا کوڈ جو نقل نہیں ہو سکتا",
+    p3Body:
+      "یہ ہر منٹ بدلتا ہے اور سگنل کے بغیر بھی چلتا ہے، اس لیے اسکرین شاٹ بےکار ہے۔",
+
+    s1Title: "ہر حوالگی، تصدیق شدہ",
+    s1Body:
+      "گیٹ پر لینے والے کا کوڈ اسکین کریں۔ جانچ اسی آلے پر ہوتی ہے، سگنل ہو یا نہ ہو۔",
+    s2Title: "آپ کی کلاس، آمد کی ترتیب میں",
+    s2Body:
+      "بچے اس ترتیب سے دکھائے جاتے ہیں کہ ان کا لینے والا کتنا قریب ہے — پہلے بکنگ کے حساب سے نہیں۔",
+    s3Title: "کسی خاندان کو واپس نہ بھیجیں",
+    s3Body:
+      "فون بند ہو تو دستی حوالگی ایک دبانے پر ہے۔ یہ محفوظ ہو جاتی ہے اور ہمیشہ کام کرتی ہے۔",
+  },
   walkthrough: {
     next: "آگے",
     start: "شروع کریں",
     skip: "چھوڑ دیں",
     replay: "رہنمائی دوبارہ دیکھیں",
+    takeTour: "مختصر رہنمائی دیکھیں",
 
     p1Title: "سب کچھ گیٹ پر ہوتا ہے",
     p1Body:
