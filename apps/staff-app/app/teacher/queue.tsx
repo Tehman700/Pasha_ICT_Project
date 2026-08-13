@@ -4,13 +4,12 @@ import { MotiView } from "moti";
 import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
-  Card,
   ChildChip,
   Empty,
   Loading,
-  PageTitle,
   Row,
   Screen,
+  Section,
   Spacer,
   StatusPill,
   T,
@@ -43,17 +42,14 @@ export default function TeacherQueueScreen() {
   return (
     <Screen>
       <StaffHeader role="teacher" back />
-      <PageTitle
-        title={strings.queue.title}
-        subtitle={strings.staff.classQueueNote}
-      />
 
       {queue.isLoading ? (
         <Loading />
       ) : !queue.data?.length ? (
         <Empty message={strings.queue.noneInQueue} />
       ) : (
-        queue.data.map((e, i) => {
+        <Section title={strings.queue.title}>
+          {queue.data.map((e, i) => {
           const isVan = e.collector_role === "driver";
           // A van's trip spans classes; this teacher only stages their own.
           const mine = e.sibling_group.filter((s) => s.class_name === "Nursery");
@@ -67,10 +63,13 @@ export default function TeacherQueueScreen() {
                 duration: motion.duration.reorder * 1000,
                 delay: i * motion.stagger.list * 1000,
               }}
-              style={{ marginBottom: spacing.sm }}
+              style={{
+                padding: spacing.base,
+                borderBottomWidth: i === queue.data!.length - 1 ? 0 : 1,
+                borderBottomColor: colors.hairlineSoft,
+              }}
             >
-              <Card accent={e.status === "NEARBY" ? "primary" : "none"}>
-                <Row align="flex-start">
+              <Row align="flex-start">
                   <T variant="displaySm" color={colors.mutedSoft}>
                     {e.position}
                   </T>
@@ -91,7 +90,8 @@ export default function TeacherQueueScreen() {
                       <>
                         <Spacer h={6} />
                         <T variant="caption" color={colors.mutedSoft}>
-                          +{e.sibling_group.length - mine.length} in other classes
+                          +{e.sibling_group.length - mine.length}{" "}
+                          {strings.staff.inOtherClasses}
                         </T>
                       </>
                     ) : null}
@@ -103,11 +103,11 @@ export default function TeacherQueueScreen() {
                     <Spacer h={6} />
                     <StatusPill status={e.status} />
                   </View>
-                </Row>
-              </Card>
+              </Row>
             </MotiView>
           );
-        })
+          })}
+        </Section>
       )}
     </Screen>
   );

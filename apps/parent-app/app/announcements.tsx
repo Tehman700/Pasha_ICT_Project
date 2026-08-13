@@ -3,12 +3,11 @@ import { MotiView } from "moti";
 import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
-  Card,
   Empty,
   Loading,
-  PageTitle,
   Row,
   Screen,
+  Section,
   Spacer,
   T,
   colors,
@@ -26,6 +25,9 @@ import { ScreenHeader } from "../components/ScreenHeader";
  * Each record carries both languages, so the parent sees whichever they read.
  * There is no "translate later" path — that would show a parent who reads only
  * Urdu an empty message.
+ *
+ * These stay as full-width bodies rather than ListRows: an announcement is
+ * something to read, not a row to tap through to somewhere else.
  */
 export default function AnnouncementsScreen() {
   const api = useApi();
@@ -41,26 +43,29 @@ export default function AnnouncementsScreen() {
   return (
     <Screen>
       <ScreenHeader title={strings.nav.announcements} />
-      <PageTitle title={strings.nav.announcements} />
 
       {list.isLoading ? (
         <Loading />
       ) : sent.length === 0 ? (
         <Empty message={strings.common.empty} />
       ) : (
-        sent.map((a, i) => (
-          <MotiView
-            key={a.id}
-            from={{ opacity: 0, translateY: 12 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{
-              type: "timing",
-              duration: motion.duration.base * 1000,
-              delay: i * motion.stagger.card * 1000,
-            }}
-            style={{ marginBottom: spacing.sm }}
-          >
-            <Card>
+        <Section title={strings.nav.announcements}>
+          {sent.map((a, i) => (
+            <MotiView
+              key={a.id}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{
+                type: "timing",
+                duration: motion.duration.base * 1000,
+                delay: i * motion.stagger.card * 1000,
+              }}
+              style={{
+                padding: spacing.base,
+                borderBottomWidth: i === sent.length - 1 ? 0 : 1,
+                borderBottomColor: colors.hairlineSoft,
+              }}
+            >
               <Row>
                 <Badge tone="neutral">{a.audience}</Badge>
                 <View style={{ flex: 1 }} />
@@ -76,10 +81,12 @@ export default function AnnouncementsScreen() {
               <T variant="bodySm" color={colors.body}>
                 {locale === "ur" ? a.body_ur : a.body_en}
               </T>
-            </Card>
-          </MotiView>
-        ))
+            </MotiView>
+          ))}
+        </Section>
       )}
+
+      <Spacer h={spacing.xl} />
     </Screen>
   );
 }

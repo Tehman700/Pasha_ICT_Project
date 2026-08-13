@@ -5,13 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
   Button,
-  Card,
   ChildChip,
   Empty,
   Loading,
-  PageTitle,
   Row,
   Screen,
+  Section,
   Spacer,
   T,
   colors,
@@ -41,7 +40,7 @@ export default function CollectorsScreen() {
 
   const active = collectors.data?.filter((a) => !a.revoked_at) ?? [];
 
-  // One card per person, listing every child they may collect.
+  // One block per person, listing every child they may collect.
   const byCollector = new Map<string, typeof active>();
   for (const a of active) {
     const list = byCollector.get(a.collector_user_id) ?? [];
@@ -49,47 +48,50 @@ export default function CollectorsScreen() {
     byCollector.set(a.collector_user_id, list);
   }
 
+  const entries = [...byCollector.entries()];
+
   return (
     <Screen>
       <ScreenHeader title={strings.parent.myCollectors} />
-      <PageTitle
-        title={strings.parent.myCollectors}
-        subtitle={strings.parent.collectorsNote}
-      />
 
       {collectors.isLoading ? (
         <Loading />
-      ) : byCollector.size === 0 ? (
+      ) : entries.length === 0 ? (
         <Empty message={strings.common.empty} />
       ) : (
-        [...byCollector.entries()].map(([id, grants], i) => {
-          const first = grants[0]!;
-          const isDriver = first.collector_role === "driver";
-          return (
-            <MotiView
-              key={id}
-              from={{ opacity: 0, translateY: 12 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{
-                type: "timing",
-                duration: motion.duration.base * 1000,
-                delay: i * motion.stagger.card * 1000,
-              }}
-              style={{ marginBottom: spacing.sm }}
-            >
-              <Card>
+        <Section title={strings.parent.myCollectors}>
+          {entries.map(([id, grants], i) => {
+            const first = grants[0]!;
+            const isDriver = first.collector_role === "driver";
+            return (
+              <MotiView
+                key={id}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: motion.duration.base * 1000,
+                  delay: i * motion.stagger.card * 1000,
+                }}
+                style={{
+                  padding: spacing.base,
+                  borderBottomWidth: i === entries.length - 1 ? 0 : 1,
+                  borderBottomColor: colors.hairlineSoft,
+                }}
+              >
                 <Row>
                   <View style={{ flex: 1 }}>
-                    <T variant="titleMd" color={colors.ink}>
+                    <T variant="bodyMd" color={colors.ink}>
                       {first.collector_name}
                     </T>
-                    <Spacer h={4} />
                     <T variant="caption" color={colors.muted}>
-                      {first.kind === "one_time" ? strings.parent.oneTimePass : strings.parent.standingAccess}
+                      {first.kind === "one_time"
+                        ? strings.parent.oneTimePass
+                        : strings.parent.standingAccess}
                     </T>
                   </View>
                   <Badge tone={isDriver ? "primary" : "neutral"}>
-                    {isDriver ? strings.role.driver : "Relative"}
+                    {isDriver ? strings.role.driver : strings.parent.relative}
                   </Badge>
                 </Row>
 
@@ -108,19 +110,21 @@ export default function CollectorsScreen() {
                   />
                   <Button label={strings.parent.revokeAccess} variant="danger" />
                 </Row>
-              </Card>
-            </MotiView>
-          );
-        })
+              </MotiView>
+            );
+          })}
+        </Section>
       )}
 
-      <Spacer h={spacing.base} />
+      <Spacer h={spacing.lg} />
       <Button
         label={strings.parent.addCollector}
         variant="primary"
+        icon="plus"
         full
         onPress={() => router.push("/collectors/add")}
       />
+      <Spacer h={spacing.xl} />
     </Screen>
   );
 }

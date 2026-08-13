@@ -193,7 +193,7 @@ export default function VerdictScreen() {
                         onPress={() => handover.mutate(c.pickup_request_id)}
                       />
                     ) : (
-                      <Badge tone="error">refused</Badge>
+                      <Badge tone="error">{strings.staff.refused}</Badge>
                     )}
                   </Row>
                 </View>

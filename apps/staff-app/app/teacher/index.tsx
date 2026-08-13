@@ -6,12 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
   Button,
-  Card,
   Empty,
-  Label,
+  HeroCard,
   Loading,
   Row,
   Screen,
+  Section,
   Spacer,
   StatusPill,
   T,
@@ -56,43 +56,23 @@ export default function TeacherPrepScreen() {
       <StaffWalkthrough role="teacher" />
       <StaffHeader role="teacher" />
 
-      <Row>
-        <View style={{ flex: 1 }}>
-          <T variant="displaySm" color={colors.ink}>
-            {cls?.name}
-          </T>
-        </View>
-        <Badge tone={device?.online ? "success" : "error"}>
-          {device?.online ? strings.common.online : strings.common.offline}
-        </Badge>
-      </Row>
-
-      {!device?.online ? (
-        <>
-          <Spacer h={spacing.sm} />
-          <Card accent="error">
-            <T variant="bodySm" color={colors.body}>
-              {strings.devices.offlineWarning}. Watch this screen — no voice
-              announcement will play in your room.
-            </T>
-          </Card>
-        </>
-      ) : null}
+      <HeroCard
+        eyebrow={strings.staff.prepList}
+        value={cls?.name ?? ""}
+        caption={
+          device?.online ? strings.staff.prepListNote : strings.devices.displayOfflineBody
+        }
+      />
 
       <Spacer h={spacing.lg} />
-      <Label>{strings.staff.prepList}</Label>
-      <Spacer h={6} />
-      <T variant="caption" color={colors.muted}>
-        {strings.staff.prepListNote}
-      </T>
-      <Spacer h={spacing.base} />
 
       {prep.isLoading ? (
         <Loading />
       ) : !prep.data?.length ? (
         <Empty message={strings.common.empty} />
       ) : (
-        prep.data.map((r, i) => {
+        <Section title={strings.staff.prepList}>
+          {prep.data.map((r, i) => {
           const isStaged = staged.includes(r.id) || r.status === "AT_GATE";
           return (
             <MotiView
@@ -104,10 +84,13 @@ export default function TeacherPrepScreen() {
                 duration: motion.duration.base * 1000,
                 delay: i * motion.stagger.list * 1000,
               }}
-              style={{ marginBottom: spacing.sm }}
+              style={{
+                padding: spacing.base,
+                borderBottomWidth: i === prep.data!.length - 1 ? 0 : 1,
+                borderBottomColor: colors.hairlineSoft,
+              }}
             >
-              <Card accent={r.status === "NEARBY" ? "primary" : "none"}>
-                <Row>
+              <Row>
                   <View style={{ flex: 1 }}>
                     <T variant="titleMd" color={colors.ink}>
                       {r.student_name}
@@ -133,10 +116,10 @@ export default function TeacherPrepScreen() {
                     )
                   }
                 />
-              </Card>
             </MotiView>
           );
-        })
+          })}
+        </Section>
       )}
 
       <Spacer h={spacing.base} />

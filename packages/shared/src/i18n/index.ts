@@ -287,6 +287,7 @@ export const en = {
     eta: "ETA",
     arrivingNow: "Arriving now",
     childrenOnTrip: "children on this trip",
+    you: "You",
     noneInQueue: "No one is in the queue right now",
   },
   drivers: {
@@ -305,6 +306,8 @@ export const en = {
     lastSeen: "Last seen",
     pairNew: "Pair a display",
     offlineWarning: "This classroom is not announcing",
+    displayOfflineBody:
+      "The display is offline — no voice announcement will play in your room. Watch this screen instead.",
   },
   audio: {
     title: "Name recordings",
@@ -344,6 +347,10 @@ export const en = {
   parent: {
     todayTitle: "Today's pickup",
     tabToday: "Today",
+    relative: "Relative",
+    scheduleNoteTitle: "Note",
+    scheduleNoteBody:
+      "Queue order on the day comes from live arrival time, not from these booking times. A late arrival simply falls behind — there is no penalty.",
     qrExhausted: "You have used every saved code. Reconnect to get more.",
     privacyTitle: "Privacy",
     privacyBody:
@@ -429,6 +436,8 @@ export const en = {
     staged: "At gate",
     myClass: "My class",
     offlineVerify: "Offline verify",
+    inOtherClasses: "in other classes",
+    refused: "Refused",
     scanQr: "Scan pickup code",
     pointAtCode: "Point the camera at the parent's code",
     verified: "Verified",
@@ -876,6 +885,7 @@ export const ur: DeepMirror<Strings> = {
     eta: "متوقع وقت",
     arrivingNow: "ابھی پہنچ رہے ہیں",
     childrenOnTrip: "بچے اس سفر میں",
+    you: "آپ",
     noneInQueue: "اس وقت قطار میں کوئی نہیں",
   },
   drivers: {
@@ -894,6 +904,8 @@ export const ur: DeepMirror<Strings> = {
     lastSeen: "آخری بار دیکھا گیا",
     pairNew: "نیا ڈسپلے جوڑیں",
     offlineWarning: "یہ کلاس روم اعلان نہیں کر رہا",
+    displayOfflineBody:
+      "ڈسپلے آف لائن ہے — آپ کے کمرے میں کوئی آواز نہیں چلے گی۔ اس کے بجائے یہ اسکرین دیکھتے رہیں۔",
   },
   audio: {
     title: "ناموں کی ریکارڈنگ",
@@ -933,6 +945,10 @@ export const ur: DeepMirror<Strings> = {
   parent: {
     todayTitle: "آج کی پک اپ",
     tabToday: "آج",
+    relative: "رشتہ دار",
+    scheduleNoteTitle: "نوٹ",
+    scheduleNoteBody:
+      "اُس دن قطار کی ترتیب اصل آمد کے وقت سے طے ہوتی ہے، ان بکنگ اوقات سے نہیں۔ دیر سے آنے پر صرف باری پیچھے ہو جاتی ہے — کوئی جرمانہ نہیں۔",
     qrExhausted: "محفوظ شدہ تمام کوڈ استعمال ہو چکے ہیں۔ مزید حاصل کرنے کے لیے دوبارہ رابطہ کریں۔",
     privacyTitle: "رازداری",
     privacyBody:
@@ -1018,6 +1034,8 @@ export const ur: DeepMirror<Strings> = {
     staged: "گیٹ پر",
     myClass: "میری کلاس",
     offlineVerify: "آف لائن تصدیق",
+    inOtherClasses: "دیگر کلاسوں میں",
+    refused: "انکار",
     scanQr: "پک اپ کوڈ اسکین کریں",
     pointAtCode: "کیمرہ والدین کے کوڈ پر رکھیں",
     verified: "تصدیق ہو گئی",

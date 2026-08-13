@@ -2,12 +2,11 @@ import { View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
-  Card,
-  Label,
   Loading,
   PageTitle,
   Row,
   Screen,
+  Section,
   Spacer,
   T,
   WEEKDAYS,
@@ -46,7 +45,7 @@ export default function ScheduleScreen() {
   function collectorName(id: string): string {
     const auth = collectors.data?.find((a) => a.collector_user_id === id);
     if (auth?.collector_name) return auth.collector_name;
-    return "You";
+    return strings.queue.you;
   }
 
   return (
@@ -70,7 +69,10 @@ export default function ScheduleScreen() {
               </Row>
               <Spacer h={spacing.sm} />
 
-              <Card>
+              {/* class_name is optional on the wire; the child's name is
+                  already shown above, so an absent class just drops the
+                  qualifier rather than rendering "undefined". */}
+              <Section title={child.class_name ?? child.name}>
                 {mine.map((s, i) => (
                   <View key={s.id}>
                     <Row>
@@ -98,18 +100,20 @@ export default function ScheduleScreen() {
                     {i < mine.length - 1 ? <Spacer h={spacing.sm} /> : null}
                   </View>
                 ))}
-              </Card>
+              </Section>
             </View>
           );
         })
       )}
 
-      <Label>Note</Label>
-      <Spacer h={6} />
-      <T variant="caption" color={colors.muted}>
-        Queue order on the day comes from live arrival time, not from these
-        booking times. A late arrival simply falls behind — there is no penalty.
-      </T>
+      <Section title={strings.parent.scheduleNoteTitle}>
+        <View style={{ padding: spacing.base }}>
+          <T variant="caption" color={colors.muted}>
+            {strings.parent.scheduleNoteBody}
+          </T>
+        </View>
+      </Section>
+      <Spacer h={spacing.xl} />
     </Screen>
   );
 }
