@@ -59,6 +59,9 @@ export const en = {
     phoneFormat: "Enter an 11-digit mobile number, starting 03 — for example 03001234567.",
     phoneRequired: "Enter your phone number.",
     passwordRequired: "Enter your password.",
+    phoneQuestion: "What's your phone number?",
+    phoneHint: "The number your school has on file.",
+    passwordQuestion: "Enter your password",
   },
   register: {
     // Entry
@@ -81,6 +84,16 @@ export const en = {
     selectSchool: "Select your school",
     submit: "Create account",
     submitting: "Creating your account…",
+    nameQuestion: "What's your name?",
+    phoneQuestionHint: "You will sign in with this number.",
+    driverPhoneHint: "Parents will add you using this number, so it has to be right.",
+    vanQuestion: "Tell us about your van",
+    photosQuestion: "Two photos, taken now",
+    photosHint:
+      "A parent has to recognise your face before she lets you collect her child. Camera only — no gallery.",
+    cnicQuestion: "What's your CNIC number?",
+    passwordQuestion: "Choose a password",
+    passwordHint: "At least 8 characters.",
 
     // Parent result
     parentTitle: "Parent registration",
@@ -632,6 +645,9 @@ export const ur: DeepMirror<Strings> = {
     staffSubtitle: "اساتذہ اور گیٹ گارڈ۔ آپ کا کردار طے کرتا ہے کہ آپ کو کیا نظر آئے گا۔",
     phoneRequired: "اپنا فون نمبر درج کریں۔",
     passwordRequired: "اپنا پاس ورڈ درج کریں۔",
+    phoneQuestion: "آپ کا فون نمبر کیا ہے؟",
+    phoneHint: "وہی نمبر جو اسکول کے پاس درج ہے۔",
+    passwordQuestion: "اپنا پاس ورڈ درج کریں",
   },
   register: {
     noAccount: "اکاؤنٹ نہیں ہے؟",
@@ -652,6 +668,16 @@ export const ur: DeepMirror<Strings> = {
     selectSchool: "اپنا اسکول منتخب کریں",
     submit: "اکاؤنٹ بنائیں",
     submitting: "آپ کا اکاؤنٹ بن رہا ہے…",
+    nameQuestion: "آپ کا نام کیا ہے؟",
+    phoneQuestionHint: "آپ اسی نمبر سے سائن ان کریں گے۔",
+    driverPhoneHint: "والدین اسی نمبر سے آپ کو شامل کریں گے، اس لیے یہ درست ہونا چاہیے۔",
+    vanQuestion: "اپنی وین کے بارے میں بتائیں",
+    photosQuestion: "دو تصاویر، ابھی لی جائیں",
+    photosHint:
+      "بچہ حوالے کرنے سے پہلے والدین کو آپ کا چہرہ پہچاننا ہوگا۔ صرف کیمرہ — گیلری نہیں۔",
+    cnicQuestion: "آپ کا شناختی کارڈ نمبر کیا ہے؟",
+    passwordQuestion: "پاس ورڈ منتخب کریں",
+    passwordHint: "کم از کم 8 حروف۔",
 
     parentTitle: "والدین کی رجسٹریشن",
     parentIntro:

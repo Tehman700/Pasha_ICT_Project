@@ -14,16 +14,13 @@ import {
 import { isValidPhone } from "@pickup/shared";
 
 /**
- * Sign in, one question per screen: phone, then password.
+ * Staff sign-in: phone, then password.
  *
- * Split because the two fields fail for unrelated reasons. On a single form a
- * 401 can only say "phone or password is wrong" — deliberately, so the response
- * cannot be used to enumerate accounts. Asking separately does not leak
- * anything more (the server still answers only at the end) but it does let the
- * *format* check for the phone land on the phone screen, before a password has
- * been typed at all.
+ * One app, two roles — and the role comes from `/users/me`, never from a
+ * toggle on this screen. A device flag would mean a guard's phone could be
+ * flipped to teacher mode and read every class roster.
  */
-export default function LoginScreen() {
+export default function StaffLoginScreen() {
   const api = useApi();
   const router = useRouter();
   const { strings } = useLocale();
@@ -34,29 +31,21 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const login = useMutation({
-    // PhoneInput already holds the canonical form, so there is nothing left to
-    // normalise here.
     mutationFn: () => api.login({ phone, password }),
     onSuccess: (res) => {
-      // A teacher or guard signing in here would see a parent's screens. Role
-      // comes from the account, never from a toggle on this screen. The mock
-      // client has no real accounts, so the gate only applies to the live API.
-      if (!USING_MOCK && res.user.role !== "parent" && res.user.role !== "driver") {
-        setError(strings.errors.wrongAppParent);
-        return;
-      }
-      // Ask for notification permission here, not at launch: Android only lets
-      // you ask once, and a stranger on the login screen has no reason to say
-      // yes. Fire and forget — a refusal must not hold up the sign-in.
+      const role = res.user.role;
+      // Staff get no pickup notifications — voice replaces the teacher push
+      // entirely. This registers the device anyway so an admin broadcast has
+      // somewhere to land, and so the token is fresh if that ever ships.
       void registerForPush(api);
-      router.replace("/");
+      if (USING_MOCK) return router.replace("/teacher");
+      if (role === "teacher") return router.replace("/teacher");
+      if (role === "guard" || role === "admin") return router.replace("/guard/scanner");
+      setError(strings.errors.wrongAppStaff);
     },
     onError: (err) => {
       const status = (err as { status?: number })?.status;
       setError(status === 401 ? strings.errors.badCredentials : strings.errors.network);
-      // Send them back to the phone step: at this point either field could be
-      // the wrong one, and stranding them on the password screen hides half
-      // of what they might need to fix.
       if (status === 401) back();
     },
   });
@@ -83,7 +72,7 @@ export default function LoginScreen() {
   const steps = [
     {
       question: strings.auth.phoneQuestion,
-      hint: strings.auth.phoneHint,
+      hint: strings.auth.staffSubtitle,
       canAdvance: phone.length > 0,
       field: (
         <PhoneInput

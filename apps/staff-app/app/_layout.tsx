@@ -1,4 +1,5 @@
-import { Stack, router } from "expo-router";
+import { useRef } from "react";
+import { Stack, router, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -11,6 +12,14 @@ function PushTokenWatcher() {
 }
 
 /**
+ * Screens reachable WITHOUT a token. A 401 fired while a guard is halfway
+ * through typing a password is not a dead session — it is a background query
+ * failing before anyone has signed in. Redirecting anyway remounts the screen
+ * and wipes the form, which reads as "the button does nothing".
+ */
+const PUBLIC = ["/", "/login"];
+
+/**
  * One app, two roles.
  *
  * Teacher and guard are different screen trees behind the same login, routed
@@ -18,10 +27,22 @@ function PushTokenWatcher() {
  * vice versa — but they share auth, the component kit, and the build pipeline.
  */
 export default function RootLayout() {
+  // A ref, not the value: `AppProviders` builds the API client once and keeps
+  // the callback it was given, so a captured `pathname` would stay frozen at
+  // whatever it was on first render.
+  const pathname = usePathname();
+  const here = useRef(pathname);
+  here.current = pathname;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AppProviders onUnauthorized={() => router.replace("/")}>
+        <AppProviders
+          onUnauthorized={() => {
+            if (PUBLIC.includes(here.current)) return;
+            router.replace("/");
+          }}
+        >
           <PushTokenWatcher />
           <StatusBar style="dark" />
           <Stack

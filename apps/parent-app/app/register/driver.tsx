@@ -1,5 +1,5 @@
 /**
- * Driver self-registration.
+ * Driver self-registration, one question per screen.
  *
  * He registers and is attached to nothing. No admin queue, no school approval
  * — the school vets nobody, so a driver is invisible until a parent chooses
@@ -15,33 +15,37 @@
  *
  * Both photos are **camera-only and required**. A gallery upload can be any
  * face off the internet, and the parent linking him is the one who has to
- * recognise it — so `launchCameraAsync` with no library option, and the
- * server refuses a registration without them.
+ * recognise it — so `CameraView` with no library option, and the server
+ * refuses a registration without them.
  */
 
 import { useRef, useState } from "react";
 import { useRouter } from "expo-router";
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { MotiView } from "moti";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { cnicDigits, isValidCnic, isValidPhone } from "@pickup/shared";
 import {
   Button,
   Card,
+  CnicInput,
   Field,
   Input,
+  PhoneInput,
   Row,
   Screen,
   Spacer,
+  StepScreen,
   T,
   colors,
   motion,
+  radius,
   spacing,
   useApi,
   useLocale,
+  useStepFlow,
 } from "@pickup/ui-native";
-
-const digits = (v: string) => v.replace(/\D/g, "");
 
 /** `HH:MM`, or null when the field is left empty — it is optional. */
 function normaliseTime(v: string): string | null {
@@ -58,7 +62,7 @@ function normaliseTime(v: string): string | null {
 export default function DriverRegisterScreen() {
   const api = useApi();
   const router = useRouter();
-  const { strings, locale, toggle } = useLocale();
+  const { strings } = useLocale();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -80,6 +84,8 @@ export default function DriverRegisterScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const camera = useRef<CameraView>(null);
 
+  const { index, dir, next, back, isFirst, setIndex } = useStepFlow(6);
+
   async function capture() {
     const shot = await camera.current?.takePictureAsync({ quality: 0.6 });
     if (!shot?.uri) return;
@@ -96,17 +102,6 @@ export default function DriverRegisterScreen() {
   });
   const school = schools.data?.[0];
 
-  function validate(): string | null {
-    if (name.trim().length < 2) return strings.register.nameShort;
-    if (digits(cnic).length !== 13) return strings.register.cnicInvalid;
-    if (vehicle.trim().length < 3) return strings.register.vehicleRequired;
-    if (password.length < 8) return strings.register.passwordShort;
-    if (password !== confirm) return strings.register.passwordMismatch;
-    if (!selfie || !idCard) return strings.register.photosRequired;
-    if (!school) return strings.register.schoolRequired;
-    return null;
-  }
-
   const submit = useMutation({
     mutationFn: async () => {
       // Photos first: the registration call requires both keys, so uploading
@@ -118,13 +113,13 @@ export default function DriverRegisterScreen() {
       ]);
       return api.registerDriver({
         name: name.trim(),
-        phone: phone.trim(),
+        phone,
         password,
-        cnic: digits(cnic),
+        cnic: cnicDigits(cnic),
         selfie_url: shot.key,
         id_photo_url: card.key,
         registration_no: vehicle.trim().toUpperCase(),
-        capacity: seats.trim() ? Number(digits(seats)) : null,
+        capacity: seats.trim() ? Number(seats.replace(/\D/g, "")) : null,
         expected_arrival: normaliseTime(arrival),
         school_id: school!.id,
       });
@@ -139,6 +134,8 @@ export default function DriverRegisterScreen() {
             ? strings.errors.network
             : strings.register.failed,
       );
+      // Only the phone step can fix a duplicate, so send him back to it.
+      if (status === 409) setIndex(1);
     },
   });
 
@@ -169,7 +166,7 @@ export default function DriverRegisterScreen() {
             </T>
             <Spacer h={spacing.xxs} />
             <T variant="titleSm" color={colors.ink}>
-              {phone.trim()}
+              {phone}
             </T>
           </Card>
 
@@ -209,11 +206,7 @@ export default function DriverRegisterScreen() {
             onPress={() => void requestPermission()}
           />
           <Spacer h={spacing.sm} />
-          <Button
-            label={strings.common.cancel}
-            onPress={() => setShooting(null)}
-            full
-          />
+          <Button label={strings.common.cancel} onPress={() => setShooting(null)} full />
         </Screen>
       );
     }
@@ -227,9 +220,7 @@ export default function DriverRegisterScreen() {
         />
         <View style={{ padding: spacing.lg, backgroundColor: "#000" }}>
           <T variant="bodySm" color="#fff" align="center">
-            {shooting === "selfie"
-              ? strings.register.selfieHint
-              : strings.register.idCardHint}
+            {shooting === "selfie" ? strings.register.selfieHint : strings.register.idCardHint}
           </T>
           <Spacer h={spacing.base} />
           <Button
@@ -240,84 +231,72 @@ export default function DriverRegisterScreen() {
             onPress={() => void capture()}
           />
           <Spacer h={spacing.xs} />
-          <Button
-            label={strings.common.cancel}
-            full
-            onPress={() => setShooting(null)}
-          />
+          <Button label={strings.common.cancel} full onPress={() => setShooting(null)} />
         </View>
       </View>
     );
   }
 
-  // ── Form ────────────────────────────────────────────────────────────
-  return (
-    <Screen>
-      <Row>
-        <T variant="bodySm" color={colors.body} onPress={() => router.back()}>
-          ← {strings.common.back}
-        </T>
-        <View style={{ flex: 1 }} />
-        <T variant="bodySm" color={colors.body} onPress={toggle}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
-      </Row>
-
-      <Spacer h={spacing.lg} />
-
-      <ScrollView keyboardShouldPersistTaps="handled">
-        <T variant="displaySm" color={colors.ink}>
-          {strings.register.driverTitle}
-        </T>
-        <Spacer h={spacing.xs} />
-        <T variant="bodySm" color={colors.muted}>
-          {strings.register.driverIntro}
-        </T>
-        <Spacer h={spacing.lg} />
-
-        <Card>
-          <Field label={strings.register.fullName}>
-            <Input
-              value={name}
-              onChangeText={(v) => {
-                setName(v);
-                setError(null);
-              }}
-              placeholder="Ahmed Khan"
-              autoCapitalize="words"
-            />
-          </Field>
-
-          <Field label={strings.auth.phone}>
-            <Input
-              value={phone}
-              onChangeText={(v) => {
-                setPhone(v);
-                setError(null);
-              }}
-              placeholder="+92 321 5000011"
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </Field>
-
-          <Field label={strings.register.cnic} hint={strings.register.cnicHint}>
-            <Input
-              value={cnic}
-              onChangeText={(v) => {
-                setCnic(v);
-                setError(null);
-              }}
-              placeholder="42101-1234567-1"
-              keyboardType="number-pad"
-            />
-          </Field>
-
-          <Field
-            label={strings.register.vehicleNumber}
-            hint={strings.register.vehicleNumberHint}
-          >
+  // ── Steps ───────────────────────────────────────────────────────────
+  const steps = [
+    {
+      question: strings.register.nameQuestion,
+      hint: strings.register.driverIntro,
+      valid: () => (name.trim().length < 2 ? strings.register.nameShort : null),
+      canAdvance: name.trim().length > 0,
+      field: (
+        <Input
+          value={name}
+          onChangeText={(v) => {
+            setName(v);
+            setError(null);
+          }}
+          placeholder="Ahmed Khan"
+          autoCapitalize="words"
+          autoFocus
+        />
+      ),
+    },
+    {
+      question: strings.auth.phoneQuestion,
+      hint: strings.register.driverPhoneHint,
+      valid: () => (isValidPhone(phone) ? null : strings.auth.phoneFormat),
+      canAdvance: phone.length > 0,
+      field: (
+        <PhoneInput
+          value={phone}
+          onChangeText={(v) => {
+            setPhone(v);
+            setError(null);
+          }}
+          autoFocus
+        />
+      ),
+    },
+    {
+      question: strings.register.cnicQuestion,
+      hint: strings.register.cnicHint,
+      valid: () => (isValidCnic(cnic) ? null : strings.register.cnicInvalid),
+      canAdvance: cnic.length > 0,
+      field: (
+        <CnicInput
+          value={cnic}
+          onChangeText={(v) => {
+            setCnic(v);
+            setError(null);
+          }}
+          autoFocus
+        />
+      ),
+    },
+    {
+      question: strings.register.vanQuestion,
+      hint: strings.register.expectedArrivalHint,
+      valid: () => (vehicle.trim().length < 3 ? strings.register.vehicleRequired : null),
+      canAdvance: vehicle.trim().length > 0,
+      field: (
+        <>
+          <Field label={strings.register.vehicleNumber} hint={strings.register.vehicleNumberHint}>
             <Input
               value={vehicle}
               onChangeText={(v) => {
@@ -327,22 +306,13 @@ export default function DriverRegisterScreen() {
               placeholder="LEA-1234"
               autoCapitalize="characters"
               autoCorrect={false}
+              autoFocus
             />
           </Field>
-
           <Field label={strings.register.capacity}>
-            <Input
-              value={seats}
-              onChangeText={setSeats}
-              placeholder="12"
-              keyboardType="number-pad"
-            />
+            <Input value={seats} onChangeText={setSeats} placeholder="12" keyboardType="number-pad" />
           </Field>
-
-          <Field
-            label={strings.register.expectedArrival}
-            hint={strings.register.expectedArrivalHint}
-          >
+          <Field label={strings.register.expectedArrival}>
             <Input
               value={arrival}
               onChangeText={setArrival}
@@ -350,107 +320,161 @@ export default function DriverRegisterScreen() {
               keyboardType="numbers-and-punctuation"
             />
           </Field>
-
-          {/* Camera only, and required. A parent has to recognise this face
-              before she grants a stranger access to her child. */}
-          <Field label={strings.register.selfie} hint={strings.register.selfieHint}>
-            <Pressable onPress={() => setShooting("selfie")}>
-              {selfie ? (
-                <Row>
-                  <Image
-                    source={{ uri: selfie }}
-                    style={{ width: 64, height: 64, borderRadius: 8 }}
-                  />
-                  <View style={{ width: spacing.sm }} />
-                  <T variant="bodySm" color={colors.primary}>
-                    {strings.register.retakePhoto}
-                  </T>
-                </Row>
-              ) : (
-                <T variant="bodySm" color={colors.primary}>
-                  {strings.register.takePhoto}
-                </T>
-              )}
-            </Pressable>
-          </Field>
-
-          <Field label={strings.register.idCard} hint={strings.register.idCardHint}>
-            <Pressable onPress={() => setShooting("id")}>
-              {idCard ? (
-                <Row>
-                  <Image
-                    source={{ uri: idCard }}
-                    style={{ width: 64, height: 64, borderRadius: 8 }}
-                  />
-                  <View style={{ width: spacing.sm }} />
-                  <T variant="bodySm" color={colors.primary}>
-                    {strings.register.retakePhoto}
-                  </T>
-                </Row>
-              ) : (
-                <T variant="bodySm" color={colors.primary}>
-                  {strings.register.takePhoto}
-                </T>
-              )}
-            </Pressable>
-          </Field>
-
-          <Field label={strings.auth.password}>
-            <Input
-              value={password}
-              onChangeText={(v) => {
-                setPassword(v);
-                setError(null);
-              }}
-              placeholder="••••••••"
-              secureTextEntry
-            />
-          </Field>
-
-          <Field label={strings.register.confirmPassword}>
-            <Input
-              value={confirm}
-              onChangeText={(v) => {
-                setConfirm(v);
-                setError(null);
-              }}
-              placeholder="••••••••"
-              secureTextEntry
-            />
-          </Field>
-
-          {error ? (
-            <>
-              <T variant="bodySm" color={colors.error}>
-                {error}
-              </T>
-              <Spacer h={spacing.sm} />
-            </>
-          ) : null}
-
-          <Button
-            label={
-              submit.isPending
-                ? strings.register.submitting
-                : strings.register.submit
-            }
-            variant="primary"
-            full
-            disabled={submit.isPending || !school}
-            onPress={() => {
-              const invalid = validate();
-              if (invalid) {
-                setError(invalid);
-                return;
-              }
-              setError(null);
-              submit.mutate();
-            }}
+        </>
+      ),
+    },
+    {
+      question: strings.register.photosQuestion,
+      hint: strings.register.photosHint,
+      valid: () => (!selfie || !idCard ? strings.register.photosRequired : null),
+      canAdvance: Boolean(selfie && idCard),
+      field: (
+        <>
+          <PhotoSlot
+            label={strings.register.selfie}
+            hint={strings.register.selfieHint}
+            uri={selfie}
+            onPress={() => setShooting("selfie")}
+            retakeLabel={strings.register.retakePhoto}
+            takeLabel={strings.register.takePhoto}
           />
-        </Card>
+          <Spacer h={spacing.sm} />
+          <PhotoSlot
+            label={strings.register.idCard}
+            hint={strings.register.idCardHint}
+            uri={idCard}
+            onPress={() => setShooting("id")}
+            retakeLabel={strings.register.retakePhoto}
+            takeLabel={strings.register.takePhoto}
+          />
+        </>
+      ),
+    },
+    {
+      question: strings.register.passwordQuestion,
+      hint: strings.register.passwordHint,
+      valid: () => {
+        if (password.length < 8) return strings.register.passwordShort;
+        if (password !== confirm) return strings.register.passwordMismatch;
+        if (!school) return strings.register.schoolRequired;
+        return null;
+      },
+      canAdvance: password.length > 0 && confirm.length > 0,
+      field: (
+        <>
+          <Input
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              setError(null);
+            }}
+            placeholder="••••••••"
+            secureTextEntry
+            autoFocus
+          />
+          <Spacer h={spacing.sm} />
+          <Input
+            value={confirm}
+            onChangeText={(v) => {
+              setConfirm(v);
+              setError(null);
+            }}
+            placeholder={strings.register.confirmPassword}
+            secureTextEntry
+          />
+        </>
+      ),
+    },
+  ];
 
-        <Spacer h={spacing.xxl} />
-      </ScrollView>
-    </Screen>
+  const step = steps[index];
+  const isLast = index === steps.length - 1;
+
+  function advance() {
+    const problem = step.valid();
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setError(null);
+    if (isLast) submit.mutate();
+    else next();
+  }
+
+  return (
+    <StepScreen
+      index={index}
+      count={steps.length}
+      dir={dir}
+      question={step.question}
+      hint={step.hint}
+      error={error}
+      busy={submit.isPending}
+      canAdvance={step.canAdvance}
+      nextLabel={isLast ? strings.register.submit : undefined}
+      onBack={isFirst ? () => router.back() : back}
+      onNext={advance}
+    >
+      {step.field}
+    </StepScreen>
+  );
+}
+
+/** A camera-only photo slot: thumbnail once shot, prompt until then. */
+function PhotoSlot({
+  label,
+  hint,
+  uri,
+  onPress,
+  retakeLabel,
+  takeLabel,
+}: {
+  label: string;
+  hint: string;
+  uri: string | null;
+  onPress: () => void;
+  retakeLabel: string;
+  takeLabel: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.base,
+        backgroundColor: colors.surfaceCard,
+        borderWidth: 1,
+        borderColor: uri ? colors.hairline : colors.hairlineStrong,
+        borderRadius: radius.lg,
+        padding: spacing.base,
+      }}
+    >
+      {uri ? (
+        <Image source={{ uri }} style={{ width: 56, height: 56, borderRadius: radius.md }} />
+      ) : (
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: radius.md,
+            backgroundColor: colors.canvasSoft,
+            borderWidth: 1,
+            borderColor: colors.hairline,
+          }}
+        />
+      )}
+      <View style={{ flex: 1 }}>
+        <T variant="bodyMd" color={colors.ink}>
+          {label}
+        </T>
+        <T variant="caption" color={colors.muted}>
+          {hint}
+        </T>
+      </View>
+      <T variant="bodySm" color={colors.primary}>
+        {uri ? retakeLabel : takeLabel}
+      </T>
+    </Pressable>
   );
 }

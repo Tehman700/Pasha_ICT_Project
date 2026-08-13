@@ -18,7 +18,7 @@ function PushTokenWatcher() {
  * the screen and wipes whatever the user was halfway through typing, which
  * reads as "the button does nothing".
  */
-const PUBLIC = ["/login", "/register"];
+const PUBLIC = ["/welcome", "/login", "/register"];
 
 export default function RootLayout() {
   // A ref, not the value: `AppProviders` builds the API client once and keeps
@@ -34,7 +34,9 @@ export default function RootLayout() {
         <AppProviders
           onUnauthorized={() => {
             if (PUBLIC.some((p) => here.current.startsWith(p))) return;
-            router.replace("/login");
+            // The carousel, not the phone field. A cold launch with no token
+            // should explain what the app is before asking for anything.
+            router.replace("/welcome");
           }}
         >
           <PushTokenWatcher />

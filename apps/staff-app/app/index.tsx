@@ -1,174 +1,50 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { View } from "react-native";
-import { MotiView } from "moti";
-import { useMutation } from "@tanstack/react-query";
 import {
-  Button,
-  Card,
-  Field,
-  Input,
-  Row,
-  Screen,
-  Spacer,
-  T,
-  USING_MOCK,
-  colors,
-  motion,
-  register as registerForPush,
-  spacing,
-  useApi,
+  EmptyQueueScene,
+  HandoverDoneScene,
+  Onboarding,
+  ScanScene,
+  Walkthrough,
   useLocale,
+  type OnboardingCard,
+  type WalkthroughStep,
 } from "@pickup/ui-native";
-import { PHONE_PLACEHOLDER, normalisePhone } from "@pickup/shared";
 
 /**
- * Staff login.
+ * Staff app entry: three cards, then sign in.
  *
- * One app, two roles — and the role comes from `/users/me`, never from a
- * toggle on this screen. A device flag would mean a guard's phone could be
- * flipped to teacher mode and read every class roster.
+ * There is no "create account" here on purpose. Teachers and guards are
+ * created by their school in the admin dashboard — a gate guard who could
+ * self-register would be a gate guard the school never approved, which is the
+ * one place in this system where self-registration would be a hole rather
+ * than a feature. (Drivers self-register in the other app precisely because a
+ * parent, not the school, vouches for them.)
  */
-export default function StaffLoginScreen() {
-  const api = useApi();
+export default function StaffWelcomeScreen() {
   const router = useRouter();
-  const { strings, locale, toggle } = useLocale();
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const { strings } = useLocale();
+  const o = strings.onboarding;
+  const w = strings.walkthrough;
+  const [tour, setTour] = useState(false);
 
-  const login = useMutation({
-    mutationFn: () => api.login({ phone: normalisePhone(phone), password }),
-    onSuccess: (res) => {
-      const role = res.user.role;
-      // Staff get no pickup notifications — voice replaces the teacher push
-      // entirely. This registers the device anyway so an admin broadcast has
-      // somewhere to land, and so the token is fresh if that ever ships.
-      void registerForPush(api);
-      if (USING_MOCK) return router.replace("/teacher");
-      if (role === "teacher") return router.replace("/teacher");
-      if (role === "guard" || role === "admin") return router.replace("/guard/scanner");
-      setError(strings.errors.wrongAppStaff);
-    },
-    onError: (err) => {
-      const status = (err as { status?: number })?.status;
-      setError(
-        status === 401
-          ? strings.errors.badCredentials
-          : strings.errors.network,
-      );
-    },
-  });
+  const cards: OnboardingCard[] = [
+    { title: o.s1Title, body: o.s1Body, art: <ScanScene width={220} /> },
+    { title: o.s2Title, body: o.s2Body, art: <EmptyQueueScene width={200} /> },
+    { title: o.s3Title, body: o.s3Body, art: <HandoverDoneScene width={200} /> },
+  ];
+
+  // The guard sequence: what the scan proves, and what to do when it fails.
+  const tourSteps: WalkthroughStep[] = [
+    { title: w.g1Title, body: w.g1Body, art: <ScanScene width={230} /> },
+    { title: w.g2Title, body: w.g2Body, art: <HandoverDoneScene width={210} /> },
+    { title: w.g3Title, body: w.g3Body, art: <EmptyQueueScene width={210} /> },
+  ];
 
   return (
-    <Screen>
-      <Row>
-        <T variant="titleMd" color={colors.ink}>
-          {strings.common.appName}
-          <T variant="titleMd" color={colors.primary}>
-            .
-          </T>
-        </T>
-        <View style={{ flex: 1 }} />
-        <T variant="bodySm" color={colors.body} onPress={toggle}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
-      </Row>
-
-      <Spacer h={spacing.xxl} />
-
-      <MotiView
-        from={{ opacity: 0, translateY: 12 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "timing", duration: motion.duration.base * 1000 }}
-      >
-        <T variant="displaySm" color={colors.ink}>
-          {strings.auth.signIn}
-        </T>
-        <Spacer h={spacing.xs} />
-        <T variant="bodyMd" color={colors.muted}>
-          {strings.auth.staffSubtitle}
-        </T>
-        <Spacer h={spacing.lg} />
-
-        <Card>
-          <Field label={strings.auth.phone}>
-            <Input
-              value={phone}
-              onChangeText={(v) => {
-                setPhone(v);
-                setError(null);
-              }}
-              placeholder={PHONE_PLACEHOLDER}
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </Field>
-          <Field label={strings.auth.password}>
-            <Input
-              value={password}
-              onChangeText={(v) => {
-                setPassword(v);
-                setError(null);
-              }}
-              placeholder="••••••••"
-              secureTextEntry
-            />
-          </Field>
-
-          {error ? (
-            <>
-              <T variant="bodySm" color={colors.error}>
-                {error}
-              </T>
-              <Spacer h={spacing.sm} />
-            </>
-          ) : null}
-
-          <Button
-            label={login.isPending ? strings.common.loading : strings.auth.signInCta}
-            variant="primary"
-            full
-            // See the note in the parent app's login screen: a button that
-            // disables itself on an empty field gives a guard at the gate a
-            // dead tap and no explanation.
-            disabled={login.isPending}
-            onPress={() => {
-              if (phone.trim() === "") {
-                setError(strings.auth.phoneRequired);
-                return;
-              }
-              if (password === "") {
-                setError(strings.auth.passwordRequired);
-                return;
-              }
-              setError(null);
-              login.mutate();
-            }}
-          />
-        </Card>
-
-        {USING_MOCK ? (
-          <>
-            <Spacer h={spacing.lg} />
-            <T variant="caption" color={colors.mutedSoft}>
-              {strings.errors.usingSampleData}
-            </T>
-            <Spacer h={spacing.sm} />
-            <Row gap={spacing.xs}>
-              <Button
-                label={strings.role.teacher}
-                onPress={() => router.replace("/teacher")}
-              />
-              <Button
-                label={strings.role.guard}
-                onPress={() => router.replace("/guard/scanner")}
-              />
-            </Row>
-          </>
-        ) : null}
-      </MotiView>
-    </Screen>
+    <>
+      <Onboarding cards={cards} onSignIn={() => router.push("/login")} onTour={() => setTour(true)} />
+      <Walkthrough visible={tour} steps={tourSteps} onDone={() => setTour(false)} />
+    </>
   );
 }
