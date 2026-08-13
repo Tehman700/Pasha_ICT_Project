@@ -19,7 +19,7 @@ import {
   useApi,
   useLocale,
 } from "@pickup/ui-native";
-import { ScreenHeader } from "../../components/ScreenHeader";
+import { ScreenHeader } from "../../../components/ScreenHeader";
 
 /**
  * One collector's per-child access.

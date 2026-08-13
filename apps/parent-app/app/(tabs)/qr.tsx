@@ -18,7 +18,7 @@ import {
   useApi,
   useLocale,
 } from "@pickup/ui-native";
-import { ScreenHeader } from "../components/ScreenHeader";
+import { ScreenHeader } from "../../components/ScreenHeader";
 
 const ROTATE_SECONDS = 60;
 

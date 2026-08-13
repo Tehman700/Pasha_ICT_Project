@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { cnicDigits } from "@pickup/shared";
 import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { Badge } from "@/components/ui/Badge";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PageHeader, SkeletonRows, EmptyState } from "@/components/ui/Misc";
 import { Table, THead, TBody, TH, TD, TR } from "@/components/ui/Table";
-import { Field } from "@/components/ui/Input";
+import { CnicInput, Field } from "@/components/ui/Input";
 import { FormDialog, useAddDialog } from "@/components/ui/FormDialog";
 
 export default function StudentsPage() {
@@ -32,7 +33,7 @@ export default function StudentsPage() {
         name: name.trim(),
         name_ur: nameUr.trim() || null,
         class_id: classId,
-        guardian_cnic: cnic.trim() || null,
+        guardian_cnic: cnicDigits(cnic) || null,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["students"] });
@@ -159,7 +160,7 @@ export default function StudentsPage() {
           </select>
         </Field>
         <Field label="Guardian CNIC" hint="13 digits, as printed on the card.">
-          <Input value={cnic} onChange={(e) => setCnic(e.target.value)} dir="ltr" />
+          <CnicInput value={cnic} onValueChange={setCnic} />
         </Field>
       </FormDialog>
     </>

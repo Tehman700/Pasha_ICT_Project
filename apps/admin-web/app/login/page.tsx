@@ -2,14 +2,14 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { PHONE_PLACEHOLDER, normalisePhone } from "@pickup/shared";
+import { normalisePhone } from "@pickup/shared";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApi, USE_MOCK } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { useFadeIn } from "@/lib/gsap";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, PhoneInput } from "@/components/ui/Input";
 import { Wordmark } from "@/components/brand/Logo";
 import { DEMO_ADMIN_PHONE, DEMO_PASSWORD } from "@/lib/demo";
 
@@ -69,12 +69,9 @@ function LoginForm() {
           <Card>
             <form className="space-y-5" onSubmit={submit}>
               <Field label={strings.auth.phone}>
-                <Input
-                  type="tel"
-                  placeholder={PHONE_PLACEHOLDER}
-                  dir="ltr"
+                <PhoneInput
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onValueChange={setPhone}
                   autoComplete="username"
                   required
                 />

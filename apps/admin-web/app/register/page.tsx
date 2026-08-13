@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PHONE_PLACEHOLDER, isValidPhone, normalisePhone } from "@pickup/shared";
+import { isValidPhone, normalisePhone } from "@pickup/shared";
 import { useRouter } from "next/navigation";
 import { storeToken, useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { useFadeIn } from "@/lib/gsap";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, PhoneInput } from "@/components/ui/Input";
 import { Wordmark } from "@/components/brand/Logo";
 import { LocationPicker, type PickedLocation } from "@/components/map/LocationPicker";
 
@@ -139,14 +139,7 @@ export default function RegisterPage() {
                   <Input value={nameUr} onChange={(e) => setNameUr(e.target.value)} dir="rtl" />
                 </Field>
                 <Field label={t.phone} hint={t.phoneHint}>
-                  <Input
-                    type="tel"
-                    dir="ltr"
-                    placeholder={PHONE_PLACEHOLDER}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                  />
+                  <PhoneInput value={phone} onValueChange={setPhone} required />
                 </Field>
                 <Field label={t.password} hint={t.passwordHint}>
                   <Input

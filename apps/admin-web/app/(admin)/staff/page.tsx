@@ -6,9 +6,9 @@ import { useApi } from "@/lib/api";
 import { useLocale } from "@/lib/locale";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, PhoneInput } from "@/components/ui/Input";
 import { FormDialog, useAddDialog } from "@/components/ui/FormDialog";
-import { PHONE_PLACEHOLDER, isValidPhone } from "@pickup/shared";
+import { isValidPhone } from "@pickup/shared";
 import { PageHeader, SkeletonRows } from "@/components/ui/Misc";
 import { Table, THead, TBody, TH, TD, TR } from "@/components/ui/Table";
 
@@ -115,12 +115,7 @@ export default function StaffPage() {
           </select>
         </Field>
         <Field label={strings.auth.phone} hint={strings.auth.phoneFormat}>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder={PHONE_PLACEHOLDER}
-            dir="ltr"
-          />
+          <PhoneInput value={phone} onValueChange={setPhone} />
         </Field>
         <Field label={strings.auth.password} hint={strings.register.passwordShort}>
           <Input

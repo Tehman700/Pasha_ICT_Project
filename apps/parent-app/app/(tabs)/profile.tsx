@@ -21,7 +21,7 @@ import {
   useLocale,
 } from "@pickup/ui-native";
 import { fixtures } from "@pickup/shared";
-import { ScreenHeader } from "../components/ScreenHeader";
+import { ScreenHeader } from "../../components/ScreenHeader";
 
 export default function ProfileScreen() {
   const api = useApi();

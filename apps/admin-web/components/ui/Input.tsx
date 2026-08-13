@@ -1,4 +1,12 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
+import {
+  CNIC_LENGTH,
+  CNIC_PLACEHOLDER,
+  PHONE_LENGTH,
+  PHONE_PLACEHOLDER,
+  formatCnic,
+  formatPhoneInput,
+} from "@pickup/shared";
 
 /** design.md `text-input`: white surface, 8px radius, 12×16 padding, 44px height. */
 
@@ -11,6 +19,64 @@ export function Input({
   ...props
 }: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={`${field} ${className}`} {...props} />;
+}
+
+/**
+ * Phone field — 11 digits, `03xxxxxxxxx`, nothing else typeable.
+ *
+ * Mirrors `PhoneInput` in packages/ui-native. Both exist so the rule lives in
+ * one shared formatter (`formatPhoneInput`) rather than as a `maxLength` prop
+ * that call sites forget, which is exactly how the four admin forms ended up
+ * accepting a 15-digit number the server then rejected.
+ *
+ * `dir="ltr"` is forced: a phone number reads left-to-right even in Urdu.
+ */
+export function PhoneInput({
+  value,
+  onValueChange,
+  className = "",
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> & {
+  value: string;
+  onValueChange: (next: string) => void;
+}) {
+  return (
+    <input
+      className={`${field} ${className}`}
+      value={value}
+      onChange={(e) => onValueChange(formatPhoneInput(e.target.value))}
+      placeholder={PHONE_PLACEHOLDER}
+      inputMode="numeric"
+      autoComplete="tel"
+      maxLength={PHONE_LENGTH}
+      dir="ltr"
+      {...props}
+    />
+  );
+}
+
+/** CNIC field — dashes inserted as you pass each boundary, `38515-1952462-5`. */
+export function CnicInput({
+  value,
+  onValueChange,
+  className = "",
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> & {
+  value: string;
+  onValueChange: (next: string) => void;
+}) {
+  return (
+    <input
+      className={`${field} ${className}`}
+      value={value}
+      onChange={(e) => onValueChange(formatCnic(e.target.value))}
+      placeholder={CNIC_PLACEHOLDER}
+      inputMode="numeric"
+      maxLength={CNIC_LENGTH + 2}
+      dir="ltr"
+      {...props}
+    />
+  );
 }
 
 export function Select({

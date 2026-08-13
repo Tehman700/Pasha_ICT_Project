@@ -20,7 +20,7 @@ import {
   useLocale,
 } from "@pickup/ui-native";
 import type { CollectorLookup } from "@pickup/shared";
-import { ScreenHeader } from "../../components/ScreenHeader";
+import { ScreenHeader } from "../../../components/ScreenHeader";
 
 type Mode = "driver" | "relative";
 
