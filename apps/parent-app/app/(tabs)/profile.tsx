@@ -2,26 +2,23 @@ import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Badge,
   Button,
-  Card,
   ChildChip,
-  Divider,
-  Label,
-  PageTitle,
+  DashboardHeader,
+  ListRow,
   Row,
   Screen,
+  Section,
   Spacer,
   T,
   colors,
-  spacing,
-  useApi,
   resetWalkthrough,
   signOut,
+  spacing,
+  useApi,
   useLocale,
 } from "@pickup/ui-native";
 import { fixtures } from "@pickup/shared";
-import { ScreenHeader } from "../../components/ScreenHeader";
 
 export default function ProfileScreen() {
   const api = useApi();
@@ -33,51 +30,44 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={strings.parent.profile} />
-      <PageTitle title={me.name} subtitle={fixtures.school.name} />
+      <DashboardHeader name={me.name} sub={fixtures.school.name} />
+      <Spacer h={spacing.lg} />
 
-      <Card>
-        <Row>
-          <T variant="bodySm" color={colors.muted}>
-            {strings.auth.phone}
+      <Section title={strings.parent.profile}>
+        <ListRow icon="user" title={strings.auth.phone} subtitle={me.phone} />
+        <ListRow
+          icon="bell"
+          title={strings.parent.language}
+          trailing={
+            <T variant="bodySm" color={colors.primary} onPress={toggle}>
+              {locale === "en" ? "اردو" : "English"}
+            </T>
+          }
+          last
+        />
+      </Section>
+
+      <Spacer h={spacing.lg} />
+
+      <Section title={strings.parent.myChildren}>
+        <View style={{ padding: spacing.base }}>
+          <Row gap={6} style={{ flexWrap: "wrap" }}>
+            {children.data?.map((c) => (
+              <ChildChip key={c.id} name={c.name} sub={c.class_name} />
+            ))}
+          </Row>
+        </View>
+      </Section>
+
+      <Spacer h={spacing.lg} />
+
+      <Section title={strings.parent.privacyTitle}>
+        <View style={{ padding: spacing.base }}>
+          <T variant="caption" color={colors.muted}>
+            {strings.parent.privacyBody}
           </T>
-          <View style={{ flex: 1 }} />
-          <T variant="bodySm" color={colors.ink}>
-            {me.phone}
-          </T>
-        </Row>
-        <Spacer h={spacing.sm} />
-        <Row>
-          <T variant="bodySm" color={colors.muted}>
-            {strings.parent.language}
-          </T>
-          <View style={{ flex: 1 }} />
-          <Button
-            label={locale === "en" ? "اردو" : "English"}
-            onPress={toggle}
-          />
-        </Row>
-      </Card>
-
-      <Divider />
-
-      <Label>{strings.parent.myChildren}</Label>
-      <Spacer h={spacing.sm} />
-      <Row gap={6} style={{ flexWrap: "wrap" }}>
-        {children.data?.map((c) => (
-          <ChildChip key={c.id} name={c.name} sub={c.class_name} />
-        ))}
-      </Row>
-
-      <Divider />
-
-      <Label>Privacy</Label>
-      <Spacer h={6} />
-      <T variant="caption" color={colors.muted}>
-        Your location is shared only while a trip is active and the app is open.
-        It is never tracked in the background. Raw location history is deleted
-        after 24 hours.
-      </T>
+        </View>
+      </Section>
 
       <Spacer h={spacing.lg} />
       <Button
@@ -98,9 +88,10 @@ export default function ProfileScreen() {
           // Clear the credential BEFORE navigating. Navigating alone left the
           // token in the keychain, so the next launch signed straight back in.
           await signOut();
-          router.replace("/login");
+          router.replace("/welcome");
         }}
       />
+      <Spacer h={spacing.xl} />
     </Screen>
   );
 }

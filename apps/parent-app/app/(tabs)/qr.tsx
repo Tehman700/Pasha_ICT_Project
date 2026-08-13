@@ -18,7 +18,6 @@ import {
   useApi,
   useLocale,
 } from "@pickup/ui-native";
-import { ScreenHeader } from "../../components/ScreenHeader";
 
 const ROTATE_SECONDS = 60;
 
@@ -71,8 +70,6 @@ export default function QrScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title={strings.parent.qrTitle} />
-
       <T variant="displaySm" color={colors.ink} align="center">
         {strings.parent.qrTitle}
       </T>
@@ -144,7 +141,7 @@ export default function QrScreen() {
             <>
               <Spacer h={spacing.base} />
               <T variant="caption" color={colors.error} align="center">
-                Token batch exhausted — reconnect to fetch more. (M7.1)
+                {strings.parent.qrExhausted}
               </T>
             </>
           ) : null}

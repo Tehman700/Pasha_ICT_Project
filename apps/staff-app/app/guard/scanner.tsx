@@ -208,7 +208,7 @@ export default function ScannerScreen() {
 
       <Spacer h={spacing.base} />
       <Row gap={spacing.xs}>
-        <Badge tone="success">Offline verify</Badge>
+        <Badge tone="success">{strings.staff.offlineVerify}</Badge>
         <View style={{ flex: 1 }} />
       </Row>
 

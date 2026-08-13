@@ -344,6 +344,10 @@ export const en = {
   parent: {
     todayTitle: "Today's pickup",
     tabToday: "Today",
+    qrExhausted: "You have used every saved code. Reconnect to get more.",
+    privacyTitle: "Privacy",
+    privacyBody:
+      "Your location is shared only while a trip is active and the app is open. It is never tracked in the background, and raw location history is deleted after 24 hours.",
     tabCode: "Code",
     tabPeople: "People",
     tabProfile: "You",
@@ -424,6 +428,7 @@ export const en = {
     markStaged: "Mark at gate",
     staged: "At gate",
     myClass: "My class",
+    offlineVerify: "Offline verify",
     scanQr: "Scan pickup code",
     pointAtCode: "Point the camera at the parent's code",
     verified: "Verified",
@@ -928,6 +933,10 @@ export const ur: DeepMirror<Strings> = {
   parent: {
     todayTitle: "آج کی پک اپ",
     tabToday: "آج",
+    qrExhausted: "محفوظ شدہ تمام کوڈ استعمال ہو چکے ہیں۔ مزید حاصل کرنے کے لیے دوبارہ رابطہ کریں۔",
+    privacyTitle: "رازداری",
+    privacyBody:
+      "آپ کا مقام صرف اُس وقت شیئر ہوتا ہے جب سفر جاری ہو اور ایپ کھلی ہو۔ بیک گراونڈ میں کبھی ٹریک نہیں ہوتا، اور مقام کی تفصیل 24 گھنٹے بعد حذف کر دی جاتی ہے۔",
     tabCode: "کوڈ",
     tabPeople: "لوگ",
     tabProfile: "آپ",
@@ -1008,6 +1017,7 @@ export const ur: DeepMirror<Strings> = {
     markStaged: "گیٹ پر نشان لگائیں",
     staged: "گیٹ پر",
     myClass: "میری کلاس",
+    offlineVerify: "آف لائن تصدیق",
     scanQr: "پک اپ کوڈ اسکین کریں",
     pointAtCode: "کیمرہ والدین کے کوڈ پر رکھیں",
     verified: "تصدیق ہو گئی",
