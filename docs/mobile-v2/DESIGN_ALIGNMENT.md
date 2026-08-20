@@ -103,8 +103,15 @@ highlighted span in the dashboard greeting.
 
 ## Typography
 
-Swap **Plus Jakarta Sans → Inter**, matching admin-web's `--font-sans`.
-Drop the five Jakarta `.ttf` files in Phase 0 and add Inter in the same weights.
+**Keep Plus Jakarta Sans.** Decided with the user on 21 Aug 2026, overriding
+the part of the brand decision that said the type family comes from admin-web.
+Everything else in that decision stands — the colour and the brand mark still
+come from admin-web.
+
+The five Jakarta `.ttf` files in `app/src/main/res/font/` stay. Inter is not
+added. The apps and the dashboard will not share a typeface, which is a
+deliberate, accepted difference: the scaffold's type is part of the screen
+flow the user chose to keep.
 
 `QuestionStyle` — the big "What is your name?" head — keeps its geometry
 (34sp / 40sp line-height / −0.8sp tracking). It is the signature of the flow.

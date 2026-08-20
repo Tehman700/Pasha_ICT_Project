@@ -35,7 +35,7 @@ something that compiles, installs, and looks right.
 | 0.5 | ~~Add product flavors `parent` and `staff`.~~ **DONE.** | Both APKs build and install side by side. `resValue()` for the label does **not** work on AGP 9 (`resValues` feature is off by default) — each flavor uses `src/<flavor>/res/values/strings.xml` instead. |
 | 0.6 | Extract `core-ui` and `core-data` modules. Empty but wired. | `:app` depends on both; build is green. (`core-i18n` is dropped — with one language, strings live in `app/src/main/res/values/`.) |
 | 0.7 | Retheme `Color.kt` to admin-web tokens. Full mapping in [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#colorkt--the-full-mapping). | Every amber/navy value is gone. `grep -rn "E8A33D\|14171F\|5B8BB8"` returns nothing. |
-| 0.8 | Swap Plus Jakarta Sans → Inter. | The ramp compiles; screens unchanged visually except the family. |
+| 0.8 | ~~Swap Plus Jakarta Sans → Inter.~~ **CANCELLED** 21 Aug 2026 — the user kept the scaffold's typeface. | Nothing to do. See [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#typography). |
 | 0.9 | Replace the brand mark with the gate glyph. Regenerate launcher icons. | Launcher icon is the gate, on cream, in both flavors. |
 | 0.10 | Move every hardcoded string out of the composables into `app/src/main/res/values/strings.xml`. | The audit sweep in [I18N.md](I18N.md#audit-before-every-build) passes. Still worth doing with one language: it is what makes the copy reviewable in one place. |
 | 0.11 | Add the dependency groups from [ARCHITECTURE.md](ARCHITECTURE.md#dependencies-to-add), one group at a time. | Build green after each group. |
