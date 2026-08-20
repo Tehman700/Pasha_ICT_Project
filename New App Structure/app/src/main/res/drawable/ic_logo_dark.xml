@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- From App Logos/rukhsat-icon.svg — for light backgrounds. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:pathData="M38,38 A60,60 0 0 0 82,82"
+        android:strokeColor="#14171F"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M28.5,38 a9.5,9.5 0 1,0 19,0 a9.5,9.5 0 1,0 -19,0"
+        android:strokeColor="#2C5F8A"
+        android:strokeWidth="6.5" />
+    <path
+        android:pathData="M71,82 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0"
+        android:fillColor="#E8A33D" />
+</vector>

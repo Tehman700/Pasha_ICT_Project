@@ -1,0 +1,9 @@
+<resources>
+    <!-- Light-only warm theme. The Compose theme owns all in-app colors; this
+         style just controls the window background before the first frame. -->
+    <style name="Base.Theme.MobileApp" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/brand_background</item>
+    </style>
+
+    <style name="Theme.MobileApp" parent="Base.Theme.MobileApp" />
+</resources>
