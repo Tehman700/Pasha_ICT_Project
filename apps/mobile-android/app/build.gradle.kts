@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mobile_app"
+    namespace = "com.rukhsat.app"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.mobile_app"
+        applicationId = "com.rukhsat.app"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

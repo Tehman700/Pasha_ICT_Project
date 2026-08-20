@@ -31,7 +31,7 @@ something that compiles, installs, and looks right.
 | 0.1 | ~~Confirm the toolchain builds as-is.~~ **DONE.** | Built untouched, no pinning needed. 18.1 MB APK, installs and runs. |
 | 0.2 | ~~Fix `local.properties` `sdk.dir`.~~ **DONE — no edit needed;** it was already correct. Confirmed gitignored. | Proven with `clean` + `assembleDebug` and both SDK env vars unset. A bare `assembleDebug` reporting "up-to-date" proves nothing — force a real compile. |
 | 0.3 | ~~Move to `apps/mobile-android/`, `rootProject.name` → `rukhsat-mobile`.~~ **DONE.** | Committed untouched first so the move reads as a rename. Stale `.gradle/`, `build/`, `.idea/`, `.kotlin/` deleted — they cache absolute paths to the old directory. |
-| 0.4 | Rename package `com.example.mobile_app` → `com.rukhsat.app`. Namespace, directories, imports. | Builds; app launches. |
+| 0.4 | ~~Rename `com.example.mobile_app` → `com.rukhsat.app`.~~ **DONE.** | 26 Kotlin files + 2 lines of `app/build.gradle.kts`; the manifest needed nothing (relative `.MainActivity`). `aapt2 dump packagename` confirms `com.rukhsat.app`. Navigation exercised, not just the launch screen. |
 | 0.5 | Add product flavors `parent` and `staff`, application IDs `com.rukhsat.parent` / `com.rukhsat.staff`. See [ARCHITECTURE.md](ARCHITECTURE.md#product-flavors). | `assembleParentDebug` and `assembleStaffDebug` both produce APKs. |
 | 0.6 | Extract `core-ui`, `core-i18n`, `core-data` modules. Empty but wired. | `:app` depends on all three; build is green. |
 | 0.7 | Retheme `Color.kt` to admin-web tokens. Full mapping in [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#colorkt--the-full-mapping). | Every amber/navy value is gone. `grep -rn "E8A33D\|14171F\|5B8BB8"` returns nothing. |

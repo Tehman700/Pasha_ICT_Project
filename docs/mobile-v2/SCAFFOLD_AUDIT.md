@@ -39,7 +39,7 @@ language and screen structure*, which is exactly what we are keeping.
 | Coach marks | Four Mozi value props | Rukhsat's walkthrough |
 | Palette | Amber `#E8A33D` / navy `#14171F` | Orange `#f54e00` / ink `#26251e` / cream `#f7f7f4` |
 | Brand mark | Journey glyph (ring→arc→dot) | Gate glyph, from `apps/admin-web/app/icon.svg` |
-| Package | `com.example.mobile_app` | `com.rukhsat.parent` / `com.rukhsat.staff` |
+| Package | ~~`com.example.mobile_app`~~ → `com.rukhsat.app` in 0.4 | Namespace stays `com.rukhsat.app`; the **application IDs** `com.rukhsat.parent` / `com.rukhsat.staff` come from the flavors in 0.5 |
 | Strings | Hardcoded English in every composable | `stringResource()`, `values/` + `values-ur/` |
 
 ## File-by-file

@@ -65,10 +65,17 @@ Cutover is Phase 7: [BUILD_PLAN.md](BUILD_PLAN.md#phase-7--ship).
 
 ## What to do next
 
-**Phase 0, step 0.4** — rename the package `com.example.mobile_app` →
-`com.rukhsat.app`. Steps 0.1 to 0.3 are done: the toolchain builds untouched
-with no pinning needed, the SDK resolves with no environment variable set, and
-the scaffold is committed and moved to `apps/mobile-android/`.
+**Phase 0, step 0.5** — add the `parent` and `staff` product flavors.
+Steps 0.1 to 0.4 are done: the toolchain builds untouched with no pinning
+needed, the SDK resolves with no environment variable set, the scaffold is
+committed and moved to `apps/mobile-android/`, and the package is
+`com.rukhsat.app`.
+
+**Trap 5 fires in 0.5.** `com.rukhsat.parent` and `com.rukhsat.staff` are
+already installed on the emulator from the React Native builds. The first
+`assembleParentDebug` install will fail with
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` until they are uninstalled.
+
 See [BUILD_PLAN.md](BUILD_PLAN.md#phase-0--foundation).
 
 The plan is deliberately step-by-step with a gate at the end of each phase.
