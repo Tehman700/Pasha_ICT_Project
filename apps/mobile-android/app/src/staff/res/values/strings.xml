@@ -1,0 +1,4 @@
+<resources>
+    <!-- Launcher label for the staff app. -->
+    <string name="app_name">Rukhsat Staff</string>
+</resources>

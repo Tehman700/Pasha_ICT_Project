@@ -49,7 +49,7 @@ Full mapping: [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md).
 
 ### 2. Packaging — product flavors in one Gradle project
 
-Shared `core-ui` / `core-i18n` / `core-data` modules, two flavors producing
+Shared `core-ui` / `core-data` modules, two flavors producing
 `com.rukhsat.parent` and `com.rukhsat.staff`. The application IDs must not
 change — they match existing installs and the live site's links.
 
@@ -192,6 +192,6 @@ violating one, stop and flag it rather than working around it.
 - The schedule is the backstop, because geofences fail on this market's phones.
 - Manual fallback is mandatory in the guard app.
 - No SMS. FCM only, with consent.
-- Urdu ships in the same change as English.
+- English only. The Urdu requirement was dropped on 21 Aug 2026.
 - No shadows anywhere — hairlines only.
 - Neither app is declared as targeting children in Play Console.

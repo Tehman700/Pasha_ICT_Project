@@ -121,8 +121,7 @@ Drop the five Jakarta `.ttf` files in Phase 0 and add Inter in the same weights.
 | `labelLarge` | 16sp | `--text-title-sm` 16px |
 | `labelMedium` | 13sp | `--text-caption` 13px |
 
-Urdu needs its own ramp — zero tracking and a much taller line-height, because
-negative tracking severs Nastaliq. See [I18N.md](I18N.md).
+The apps are English-only, so there is one type ramp. See [I18N.md](I18N.md).
 
 ## Radii — a documented mobile extension
 

@@ -28,7 +28,7 @@ How I want you to work:
 - A step isn't done because it compiles. It's done when you've looked at it
   running. Last time a broken layout shipped because nothing ever took a
   screenshot.
-- Every user-facing string ships in English AND Urdu in the same change.
+- The apps are English-only. Do not add Urdu; it was dropped deliberately.
   Not later.
 - If something in the plan looks wrong once you're in the code, say so and
   stop rather than working around it quietly.
@@ -63,4 +63,4 @@ tend to erode:
 
 > Stop. Screenshot what you just built and show me before moving on.
 
-> Did that string get added to values-ur/strings.xml in the same change?
+> Is that string in strings.xml, or hardcoded in the composable?

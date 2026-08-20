@@ -14,7 +14,6 @@ apps/mobile-android/
   settings.gradle.kts
   gradle/libs.versions.toml
   core-ui/          theme, design tokens, shared composables
-  core-i18n/        string resources, en + ur, locale switching
   core-data/        API client, auth, session, models, offline cache
   app/
     src/main/       shared shell: nav host, splash, settings
@@ -92,9 +91,9 @@ Theme, tokens, and every shared composable. **No feature code, no networking.**
 Depends on nothing but Compose. This is the module that guarantees the two
 apps look identical.
 
-### `core-i18n`
-String resources and the locale controller. Kept separate so the Urdu sweep
-has one place to audit. See [I18N.md](I18N.md).
+### `core-i18n` — dropped
+There is one language, so a module for it earns nothing. String resources live
+in `app/src/main/res/values/strings.xml`. See [I18N.md](I18N.md).
 
 ### `core-data`
 The API client, session storage, domain models, and the offline cache.

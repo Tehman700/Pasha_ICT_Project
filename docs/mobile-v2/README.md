@@ -17,7 +17,7 @@ clients.
 | 3 | [ARCHITECTURE.md](ARCHITECTURE.md) | Gradle modules, product flavors, package names, networking, offline storage. |
 | 4 | [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md) | Exact token values, the scaffold→admin-web colour mapping, component rules. |
 | 5 | [API_INTEGRATION.md](API_INTEGRATION.md) | Every endpoint each app calls, auth, token storage, offline QR verification. |
-| 6 | [I18N.md](I18N.md) | English + Urdu in Compose. Non-negotiable, applies from the first screen. |
+| 6 | [I18N.md](I18N.md) | English-only, and the phone/CNIC input rules that still bind. |
 | 7 | [BUILD_PLAN.md](BUILD_PLAN.md) | **The step-by-step plan.** Phases 0–7, each with a definition of done. |
 | 8 | [VERIFICATION.md](VERIFICATION.md) | The emulator/adb loop. How a change is proven, not assumed. |
 | — | [SESSION_PROMPT.md](SESSION_PROMPT.md) | The prompt to open a fresh Claude Code session with. |
@@ -49,7 +49,7 @@ Made deliberately on 2026-08-20. Do not silently revisit them.
 - `docs/api/openapi.yaml` — the contract. The apps are clients of it.
 - Every constraint in the root [CLAUDE.md](../../CLAUDE.md) still binds:
   no background location, rotating QR codes, no collector student search,
-  mandatory manual fallback, no SMS, Urdu required.
+  mandatory manual fallback, no SMS, English only.
 
 ## Relationship to the older docs
 

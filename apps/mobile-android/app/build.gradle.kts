@@ -10,13 +10,35 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.rukhsat.app"
+        // No applicationId here on purpose - each product flavor sets its own.
         minSdk = 24
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Two apps, one codebase. The application IDs are fixed: they match the
+    // React Native builds already installed on real devices and the download
+    // links on admin.tideover.site. Changing them orphans every install.
+    //
+    // The launcher label is NOT set with resValue() here, though ARCHITECTURE.md
+    // originally specified that. AGP 9 turns the resValues build feature off by
+    // default and fails configuration with "Product Flavor parent contains
+    // custom resource values, but the feature is disabled". Rather than switch
+    // on an extra build feature, each flavor keeps its label in its own
+    // src/<flavor>/res/values/strings.xml, which is where a string belongs.
+    flavorDimensions += "surface"
+    productFlavors {
+        create("parent") {
+            dimension = "surface"
+            applicationId = "com.rukhsat.parent"
+        }
+        create("staff") {
+            dimension = "surface"
+            applicationId = "com.rukhsat.staff"
+        }
     }
 
     buildTypes {

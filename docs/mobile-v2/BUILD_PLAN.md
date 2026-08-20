@@ -33,11 +33,11 @@ something that compiles, installs, and looks right.
 | 0.3 | ~~Move to `apps/mobile-android/`, `rootProject.name` → `rukhsat-mobile`.~~ **DONE.** | Committed untouched first so the move reads as a rename. Stale `.gradle/`, `build/`, `.idea/`, `.kotlin/` deleted — they cache absolute paths to the old directory. |
 | 0.4 | ~~Rename `com.example.mobile_app` → `com.rukhsat.app`.~~ **DONE.** | 26 Kotlin files + 2 lines of `app/build.gradle.kts`; the manifest needed nothing (relative `.MainActivity`). `aapt2 dump packagename` confirms `com.rukhsat.app`. Navigation exercised, not just the launch screen. |
 | 0.5 | Add product flavors `parent` and `staff`, application IDs `com.rukhsat.parent` / `com.rukhsat.staff`. See [ARCHITECTURE.md](ARCHITECTURE.md#product-flavors). | `assembleParentDebug` and `assembleStaffDebug` both produce APKs. |
-| 0.6 | Extract `core-ui`, `core-i18n`, `core-data` modules. Empty but wired. | `:app` depends on all three; build is green. |
+| 0.6 | Extract `core-ui` and `core-data` modules. Empty but wired. | `:app` depends on both; build is green. (`core-i18n` is dropped — with one language, strings live in `app/src/main/res/values/`.) |
 | 0.7 | Retheme `Color.kt` to admin-web tokens. Full mapping in [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#colorkt--the-full-mapping). | Every amber/navy value is gone. `grep -rn "E8A33D\|14171F\|5B8BB8"` returns nothing. |
-| 0.8 | Swap Plus Jakarta Sans → Inter. Add Noto Nastaliq Urdu. Add the Urdu type ramp. | Both ramps compile; Latin screens unchanged visually except the family. |
+| 0.8 | Swap Plus Jakarta Sans → Inter. | The ramp compiles; screens unchanged visually except the family. |
 | 0.9 | Replace the brand mark with the gate glyph. Regenerate launcher icons. | Launcher icon is the gate, on cream, in both flavors. |
-| 0.10 | Set up `core-i18n` with `values/` + `values-ur/`. Move the scaffold's existing strings into both. | The audit sweep in [I18N.md](I18N.md#audit-before-every-build) passes. |
+| 0.10 | Move every hardcoded string out of the composables into `app/src/main/res/values/strings.xml`. | The audit sweep in [I18N.md](I18N.md#audit-before-every-build) passes. Still worth doing with one language: it is what makes the copy reviewable in one place. |
 | 0.11 | Add the dependency groups from [ARCHITECTURE.md](ARCHITECTURE.md#dependencies-to-add), one group at a time. | Build green after each group. |
 | 0.12 | Establish the verification loop: build → install → screenshot → read. | A screenshot of the running app has been produced and viewed. |
 
@@ -45,9 +45,7 @@ something that compiles, installs, and looks right.
 - Both APKs install on the emulator side by side.
 - Both open to the welcome screen in the **admin-web palette**: cream `#f7f7f4`
   canvas, ink `#26251e` text, orange `#f54e00` accent.
-- The language toggle flips the whole screen to Urdu, in Nastaliq, with no
-  severed glyphs.
-- Screenshots of both, in both languages, shown to the user.
+- Screenshots of both apps shown to the user.
 
 ---
 
@@ -63,12 +61,12 @@ something that compiles, installs, and looks right.
 | 1.6 | `EmailScreen` → `PhoneScreen`. **11 digits, starts `0`, hard cap.** Drop the country-code picker. | A 12th character cannot be typed. `0300…` validates; `300…` does not. |
 | 1.7 | `OtpScreen` → `PasswordScreen`. Two-step sign-in preserved. | `POST /auth/login` succeeds against the live backend with a seeded account. |
 | 1.8 | Role gating per [API_INTEGRATION.md](API_INTEGRATION.md#role-gating). | A parent is refused by the staff app with a clear message, and vice versa. |
-| 1.9 | Parent registration: name, `name_ur`, phone, password, **CNIC `38515-1952462-5` auto-dashed**, school picker, photo. | `POST /auth/register/parent` creates a real account. CNIC stored digits-only. |
+| 1.9 | Parent registration: name, phone, password, **CNIC `38515-1952462-5` auto-dashed**, school picker, photo. | `POST /auth/register/parent` creates a real account. CNIC stored digits-only. No `name_ur` field — it is `nullable` in the contract, so it is simply omitted. |
 | 1.10 | Driver registration: adds selfie + ID photo via `POST /uploads`. | `POST /auth/register/driver` succeeds; the driver is visible to nobody. |
 | 1.11 | `PermissionsScreen` retheme. **Copy must say foreground-only.** | No background-location permission is declared or requested. |
 
-**Gate 1:** A real account logs in against the live backend, in both apps, in
-both languages, and the session survives a restart.
+**Gate 1:** A real account logs in against the live backend, in both apps, and
+the session survives a restart.
 
 ---
 
@@ -86,7 +84,7 @@ both languages, and the session survives a restart.
 | 2.8 | Rewrite `CoachMarks` with Rukhsat's walkthrough. | Shows once, matches the new palette. |
 
 **Gate 2:** A parent completes the full journey — sign in, see children, grant
-a collector, set a schedule — on the emulator, in Urdu.
+a collector, set a schedule — on the emulator.
 
 ---
 
@@ -152,15 +150,14 @@ manual handover completes with the camera disabled.
 | # | Step | Done when |
 |---|---|---|
 | 6.1 | FCM: `google-services.json` per flavor, token to `PATCH /users/me`. | A push arrives on both apps. |
-| 6.2 | Full Urdu sweep, both audit commands from [I18N.md](I18N.md#audit-before-every-build). | Both return clean. |
+| 6.2 | Hardcoded-string sweep, the audit command in [I18N.md](I18N.md#audit-before-every-build). | Returns clean. |
 | 6.3 | Empty, loading, and error state for **every** list and screen. | No screen can show a blank white void. |
 | 6.4 | Shadow audit: `grep -rn "shadow\|elevation" --include=*.kt`. | Only zeroed elevations. |
 | 6.5 | Accessibility: content descriptions, 48dp touch targets, contrast. | TalkBack can complete a sign-in. |
 | 6.6 | Rotation, small screens, large font scale. | No clipping at 1.3× font scale. |
 | 6.7 | Low-end device pass — the Xiaomi/Infinix reality of this market. | Usable on the user's real phone, not just the emulator. |
 
-**Gate 6:** Both apps walked end to end on a **real phone**, in both languages,
-by the user.
+**Gate 6:** Both apps walked end to end on a **real phone** by the user.
 
 ---
 
@@ -197,7 +194,7 @@ These bind every phase. From the root [CLAUDE.md](../../CLAUDE.md):
 - **The schedule is the backstop.** Geofences fail on this market's handsets.
 - **Manual fallback is mandatory** in the guard app.
 - **No SMS.** FCM only, with consent.
-- **Urdu in the same change as English.** Always.
+- **English only.** Decided 21 Aug 2026; see [I18N.md](I18N.md).
 - **No shadows.** Hairlines only.
 - Announce contract changes before implementing them. The backend is not
   expected to change at all in this rebuild.

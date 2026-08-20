@@ -1,5 +1,8 @@
 <resources>
-    <string name="app_name">Rukhsat</string>
+    <!-- app_name is NOT here. The two apps are named differently, so each
+         product flavor supplies its own launcher label from
+         src/<flavor>/res/values/strings.xml. A value here would silently lose
+         to the flavor and mislead whoever edited it. -->
     <string name="brand_name">Rukhsat</string>
     <string name="support_email">tehmanhassan@gmail.com</string>
 </resources>

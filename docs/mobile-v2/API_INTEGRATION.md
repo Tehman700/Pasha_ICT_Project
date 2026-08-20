@@ -272,5 +272,5 @@ against `POST /handovers/sync` when signal returns.
 
 FastAPI returns `{"detail": "…"}`. Those strings are user-facing and
 deliberately worded — show them rather than replacing them with a generic
-message. They are English-only, so Urdu builds need a mapped equivalent for
-the common cases; see [I18N.md](I18N.md).
+message. They are English-only, which matches the apps, so they can be shown
+as-is; see [I18N.md](I18N.md).

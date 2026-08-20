@@ -6,12 +6,21 @@ A 1-week competition build by two developers, both using Claude Code.
 
 The competition requires a **live deployed system**, not a recorded demo.
 
-**All 44 modules are built and deployed.** What remains is testing on real
-devices and a store submission — not construction. Don't propose new modules
-or "finish" existing ones without checking `docs/HANDOVER.md` first.
+**All 44 modules are built and deployed.** For the backend and the admin web
+dashboard, what remains is testing and a store submission — not construction.
+Don't propose new modules or "finish" existing ones without checking
+`docs/HANDOVER.md` first.
+
+**The mobile apps are the exception.** Since 20 Aug 2026 both are being rebuilt
+from scratch as **native Android** (Kotlin + Jetpack Compose), replacing the
+React Native apps. That is the only construction work left.
+**For anything mobile, start at `docs/mobile-v2/HANDOVER.md`** — the older
+mobile docs describe the React Native apps and are superseded. The RN apps stay
+in the repo and linked from the live site until native reaches parity.
 
 **Before making non-trivial changes, read:**
-- `docs/HANDOVER.md` — current state, recent fixes, build commands; **start here**
+- `docs/mobile-v2/HANDOVER.md` — **start here for anything mobile**
+- `docs/HANDOVER.md` — current state of backend + admin web, build commands
 - `docs/MODULE_PLAN.md` — the build order and what's done
 - `docs/PROJECT_CONTEXT.md` — what's being built and every decision made so far
 - `docs/api/openapi.yaml` — the contract between backend and all frontends
@@ -39,7 +48,12 @@ If a task seems to require violating one of these, stop and flag it instead of q
   on the days the clever thing fails.
 - **Manual fallback is mandatory** in the guard app. Software must never be the reason a real handover can't happen.
 - **No SMS.** Notifications only, via FCM, with explicit user consent.
-- **Urdu is required**, not optional, alongside English — every new user-facing string needs both from the start.
+- **The apps are English-only.** Decided 21 Aug 2026, reversing the earlier
+  Urdu requirement. This applies to the native Android apps only — the live
+  React Native apps and `apps/admin-web/` keep the Urdu they already ship, and
+  their translations are not to be removed. Do not add Urdu to
+  `apps/mobile-android/` or re-raise this; it was decided deliberately, with
+  the trade-off understood.
 - **Neither app is declared as targeting children** in Play Console — the users are the adults (parents, teachers, guards).
 
 ## Stack
@@ -47,7 +61,8 @@ If a task seems to require violating one of these, stop and flag it instead of q
 | Layer | Tech |
 |---|---|
 | Backend | FastAPI, PostgreSQL, Redis, SQLAlchemy 2.0 + Alembic, APScheduler |
-| Mobile (both apps) | React Native + Expo, shared package for API client / types / i18n |
+| Mobile (both apps) | **Kotlin + Jetpack Compose**, one Gradle project, two product flavors |
+| Mobile (legacy) | React Native + Expo — live until the native rebuild reaches parity |
 | Admin web | Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, TanStack Query, GSAP |
 | Infra | Single EC2 instance, native services, Caddy (TLS), GitHub Actions (deploy), EAS Build (APKs) |
 
@@ -55,10 +70,12 @@ If a task seems to require violating one of these, stop and flag it instead of q
 
 ```
 backend/            FastAPI — Person A
-apps/parent-app/    React Native — Person B
-apps/staff-app/     React Native — Person B (teacher + guard roles)
+apps/mobile-android/  Kotlin + Compose — the rebuild; both apps as product flavors
+apps/parent-app/    React Native — being replaced; live until native parity
+apps/staff-app/     React Native — being replaced; live until native parity
 apps/admin-web/     Next.js — Person A
-packages/shared/    API client, types, i18n — used by Person B's two apps
+packages/shared/    API client, types, i18n — used by the two React Native apps
+docs/mobile-v2/     The native rebuild: plan, architecture, design, verification
 docs/               Context, plan, contract, security, deployment
 scripts/seed.py     Demo data
 ```

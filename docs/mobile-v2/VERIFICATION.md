@@ -122,7 +122,6 @@ Before calling any screen done:
 | Check | How |
 |---|---|
 | **No horizontal overflow** | Text wraps; nothing runs off the right edge. The RN bug. |
-| **Both languages** | Toggle to Urdu. Nastaliq renders, no severed glyphs, no clipped descenders. |
 | **Palette** | Cream `#f7f7f4`, ink `#26251e`, orange `#f54e00`. No amber, no navy. |
 | **No shadows** | Depth is hairlines and fills only. |
 | **Empty state** | What does it look like with zero items? |

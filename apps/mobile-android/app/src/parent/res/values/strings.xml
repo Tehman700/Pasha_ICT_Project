@@ -1,0 +1,4 @@
+<resources>
+    <!-- Launcher label for the parent app. -->
+    <string name="app_name">Rukhsat</string>
+</resources>

@@ -40,7 +40,7 @@ language and screen structure*, which is exactly what we are keeping.
 | Palette | Amber `#E8A33D` / navy `#14171F` | Orange `#f54e00` / ink `#26251e` / cream `#f7f7f4` |
 | Brand mark | Journey glyph (ring→arc→dot) | Gate glyph, from `apps/admin-web/app/icon.svg` |
 | Package | ~~`com.example.mobile_app`~~ → `com.rukhsat.app` in 0.4 | Namespace stays `com.rukhsat.app`; the **application IDs** `com.rukhsat.parent` / `com.rukhsat.staff` come from the flavors in 0.5 |
-| Strings | Hardcoded English in every composable | `stringResource()`, `values/` + `values-ur/` |
+| Strings | Hardcoded English in every composable | `stringResource()` against `values/strings.xml` |
 
 ## File-by-file
 
@@ -54,7 +54,7 @@ apply to Rukhsat.
 |---|---|---|
 | `Color.kt` | **RETHEME** | Same object shape, admin-web values. Full mapping in [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md). |
 | `Theme.kt` | **KEEP** | Light-only by intent is correct and matches admin-web. |
-| `Type.kt` | **RETHEME** | Plus Jakarta Sans → Inter, to match admin-web. Urdu ramp must be added; see [I18N.md](I18N.md). |
+| `Type.kt` | **RETHEME** | Plus Jakarta Sans → Inter, to match admin-web. One ramp only; see [I18N.md](I18N.md). |
 
 ### `ui/components/`
 
@@ -74,7 +74,7 @@ apply to Rukhsat.
 | `TourScreen.kt` | **REWRITE** | Pager + dots + advance button all keep. All three cards' art and copy are Mozi's. |
 | `EmailScreen.kt` | **REWRITE → `PhoneScreen.kt`** | Step-one shape is exactly right. Field becomes phone, validation becomes the 11-digit rule. |
 | `OtpScreen.kt` | **REWRITE → `PasswordScreen.kt`** | **There is no OTP in Rukhsat — no SMS, no email codes.** Step two is a password. Keep the two-step *feel*; `OtpBoxes` itself may still serve a future PIN. |
-| `NameScreen.kt` | **KEEP** | Registration still collects a name. Add `name_ur`. |
+| `NameScreen.kt` | **KEEP** | Registration still collects a name. No `name_ur` — it is `nullable` in the contract. |
 | `PhotoScreen.kt` | **KEEP** | Registration collects a photo. Wire to `POST /uploads`. |
 | `PermissionsScreen.kt` | **RETHEME** | Correct pattern. **Location copy must say foreground-only** and must never request background location. |
 | `FinishingScreen.kt` | **KEEP** | Hand-off animation. |
