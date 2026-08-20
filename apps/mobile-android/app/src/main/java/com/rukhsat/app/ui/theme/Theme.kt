@@ -16,7 +16,7 @@ private val AppColorScheme = lightColorScheme(
     surfaceVariant = Brand.SurfaceSunken,
     onSurfaceVariant = Brand.InkMuted,
     outline = Brand.Outline,
-    error = Brand.Accent,
+    error = Brand.Error,
 )
 
 /**

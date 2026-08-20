@@ -34,7 +34,7 @@ something that compiles, installs, and looks right.
 | 0.4 | ~~Rename `com.example.mobile_app` → `com.rukhsat.app`.~~ **DONE.** | 26 Kotlin files + 2 lines of `app/build.gradle.kts`; the manifest needed nothing (relative `.MainActivity`). `aapt2 dump packagename` confirms `com.rukhsat.app`. Navigation exercised, not just the launch screen. |
 | 0.5 | ~~Add product flavors `parent` and `staff`.~~ **DONE.** | Both APKs build and install side by side. `resValue()` for the label does **not** work on AGP 9 (`resValues` feature is off by default) — each flavor uses `src/<flavor>/res/values/strings.xml` instead. |
 | 0.6 | Extract `core-ui` and `core-data` modules. Empty but wired. | `:app` depends on both; build is green. (`core-i18n` is dropped — with one language, strings live in `app/src/main/res/values/`.) |
-| 0.7 | Retheme `Color.kt` to admin-web tokens. Full mapping in [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#colorkt--the-full-mapping). | Every amber/navy value is gone. `grep -rn "E8A33D\|14171F\|5B8BB8"` returns nothing. |
+| 0.7 | ~~Retheme `Color.kt` to admin-web tokens.~~ **DONE.** | Every amber/navy value is gone **from the Kotlin and `values/` layers**. The grep still hits `res/drawable/ic_logo_*.xml` and `ic_launcher_*.xml` — that is the brand mark, and it is **step 0.9's** job, not this one. Scope the check: `grep -rn "E8A33D\|14171F\|5B8BB8" app/src --include=*.kt --include=colors.xml`. |
 | 0.8 | ~~Swap Plus Jakarta Sans → Inter.~~ **CANCELLED** 21 Aug 2026 — the user kept the scaffold's typeface. | Nothing to do. See [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#typography). |
 | 0.9 | Replace the brand mark with the gate glyph. Regenerate launcher icons. | Launcher icon is the gate, on cream, in both flavors. |
 | 0.10 | Move every hardcoded string out of the composables into `app/src/main/res/values/strings.xml`. | The audit sweep in [I18N.md](I18N.md#audit-before-every-build) passes. Still worth doing with one language: it is what makes the copy reviewable in one place. |
@@ -43,8 +43,11 @@ something that compiles, installs, and looks right.
 
 **Gate 0 — do not proceed until all are true:**
 - Both APKs install on the emulator side by side.
-- Both open to the welcome screen in the **admin-web palette**: cream `#f7f7f4`
-  canvas, ink `#26251e` text, orange `#f54e00` accent.
+- The palette is the admin-web one. Note **the welcome screen is deliberately
+  not cream** — it is a full-bleed inverted screen painted by `BrandPattern`,
+  now on ink `#26251e` instead of navy. The cream `#f7f7f4` canvas, ink
+  `#26251e` text and orange `#f54e00` accent are visible on the **step
+  screens**, where the progress fill and the text cursor are orange.
 - Screenshots of both apps shown to the user.
 
 ---

@@ -14,21 +14,20 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import com.rukhsat.app.ui.theme.Brand
 
 /**
- * Wallpaper for the welcome and hand-off screens: the logo's navy, with the
- * departure arc blown up and scattered across it. Drawn rather than shipped as
+ * Wallpaper for the welcome and hand-off screens: the ink-inverted ground with
+ * an arc blown up and scattered across it. Drawn rather than shipped as
  * artwork so it stays crisp at any screen size.
  *
- * Navy rather than amber because white copy needs a dark ground — amber is far
- * too light to carry white text legibly.
+ * Ink rather than orange because white copy needs a dark ground to sit on.
  */
 @Composable
 fun BrandPattern(
     modifier: Modifier = Modifier,
-    baseTop: Color = Brand.NavyLift,
-    baseBottom: Color = Brand.NavyDeep,
+    baseTop: Color = Brand.InvCanvasSoft,
+    baseBottom: Color = Brand.InvCanvas,
 ) {
     val faint = Color.White.copy(alpha = 0.05f)
-    val amber = Brand.Accent.copy(alpha = 0.09f)
+    val accent = Brand.Accent.copy(alpha = 0.09f)
 
     Canvas(modifier = modifier.fillMaxSize()) {
         drawRect(brush = Brush.verticalGradient(listOf(baseTop, baseBottom)), size = size)
@@ -37,7 +36,7 @@ fun BrandPattern(
         // holds together on any aspect ratio.
         // Kept to the corners so nothing crowds the headline in the middle.
         departureArc(faint, cx = 0.12f, cy = 0.06f, span = 0.85f)
-        departureArc(amber, cx = 0.94f, cy = 0.16f, span = 0.50f)
+        departureArc(accent, cx = 0.94f, cy = 0.16f, span = 0.50f)
         departureArc(faint, cx = 0.04f, cy = 0.88f, span = 0.75f)
         departureArc(faint, cx = 0.92f, cy = 0.97f, span = 0.60f)
     }

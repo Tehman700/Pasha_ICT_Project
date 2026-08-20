@@ -128,7 +128,7 @@ private fun CountdownLine(
         error != null -> Text(
             text = error,
             style = MaterialTheme.typography.bodyMedium,
-            color = Brand.AccentDeep,
+            color = Brand.Error,
             fontWeight = FontWeight.Medium,
         )
 

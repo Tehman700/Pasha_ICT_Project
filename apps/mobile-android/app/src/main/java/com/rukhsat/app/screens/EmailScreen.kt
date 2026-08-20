@@ -99,7 +99,7 @@ fun EmailScreen(
             viewModel.errorMessage != null -> Text(
                 text = viewModel.errorMessage.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Brand.AccentDeep,
+                color = Brand.Error,
             )
 
             else -> Text(
