@@ -1,0 +1,23 @@
+# Line endings.
+#
+# core.autocrlf is true on the Windows machines this repo is developed on, so
+# without these rules Git rewrites the Gradle wrapper script to CRLF on the
+# next checkout. `./gradlew` then dies from Git Bash and from any Linux CI
+# with "bad interpreter: /bin/sh^M" - an error that reads like a broken
+# toolchain rather than a line-ending problem, which is why it costs an hour.
+#
+# Deliberately narrow: no repo-wide `text=auto`, because renormalising every
+# existing file would churn the other developer's working tree for no gain.
+
+gradlew     text eol=lf
+gradlew.bat text eol=crlf
+*.sh        text eol=lf
+
+# Never let Git touch these.
+*.jar  binary
+*.ttf  binary
+*.otf  binary
+*.png  binary
+*.jpg  binary
+*.apk  binary
+*.keystore binary

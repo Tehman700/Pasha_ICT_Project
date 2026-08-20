@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Mobile-App"
+rootProject.name = "rukhsat-mobile"
 include(":app")
  
