@@ -10,8 +10,44 @@ So: **colour, type family, and brand mark come from `apps/admin-web/`.
 Layout, component shapes, and screen flow come from `New App Structure/`.**
 
 The amber `#E8A33D` / navy `#14171F` / blue `#5B8BB8` "journey" identity is
-retired. The SVGs stay in `New App Structure/App Logos/` as the only vector
+retired. The SVGs stay in `apps/mobile-android/App Logos/` as the only vector
 source, in case it is ever revisited.
+
+## What the reference screens actually contain
+
+Measured on 21 Aug 2026 by sampling all 23 Mobbin screens in
+`apps/mobile-android/Mozi iOS Onboarding/`, rather than trusting the scaffold's
+own account of itself. The result changes how the scaffold should be read:
+
+| Value | In the reference? |
+|---|---|
+| Orange `#FF5401` | **Yes** — 25,773 px, the dominant accent |
+| Cream `#F5F1EE` | **Yes** — 379,457 px, the page ground |
+| Surface `#FCFAF8` | **Yes** |
+| Amber `#E8A33D` | **No. Does not appear at all.** |
+| Navy `#14171F` | **No. Does not appear at all.** |
+
+**The amber and the navy were never part of the design the scaffold was copied
+from.** They were invented to match the journey logo, which is itself retired.
+The `#2F2D2B` dark in reference screens 19-20 is not a dark screen either — it
+is the scrim behind a coach-mark overlay. The reference has **no dark
+full-bleed screen anywhere**.
+
+The reference's orange `#FF5401` and admin-web's `#F54E00` are the same colour
+to the eye, ten points of red apart. Retheming to the dashboard's palette
+therefore moved the app *back toward* its reference, not away from it. Use the
+`Brand.Accent` token, not `#FF5401`, so there is one source of truth.
+
+### The full-bleed orange ground
+
+Reference screen 18 is a flat `#FF5401` ground — **no gradient** — with
+oversized arcs tone-on-tone. The arcs read `#FF661B` over `#FF5401`, which is
+exactly white at 10.5% alpha. `BrandPattern` now reproduces this.
+
+This is the **one deliberate exception** to the scarcity rule below: orange
+covers the whole welcome and hand-off screens. Everywhere else it stays rare.
+A wallpaper is not an action, so it does not spend the meaning that makes an
+orange button read as the thing to press.
 
 Source of truth for every value below: `apps/admin-web/app/globals.css`,
 which itself mirrors `packages/shared/src/tokens/`. **If a token changes

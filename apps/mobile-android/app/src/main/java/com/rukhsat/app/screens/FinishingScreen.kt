@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rukhsat.app.ui.components.BrandMark
 import com.rukhsat.app.ui.components.BrandPattern
+import com.rukhsat.app.ui.components.LightSystemBarIcons
 import com.rukhsat.app.ui.components.ScreenPadding
 import kotlinx.coroutines.delay
 
@@ -33,6 +34,7 @@ fun FinishingScreen(onDone: () -> Unit) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        LightSystemBarIcons()
         BrandPattern()
 
         Column(
