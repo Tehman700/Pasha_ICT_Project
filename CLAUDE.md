@@ -11,15 +11,27 @@ dashboard, what remains is testing and a store submission — not construction.
 Don't propose new modules or "finish" existing ones without checking
 `docs/HANDOVER.md` first.
 
-**The mobile apps are the exception.** Since 20 Aug 2026 both are being rebuilt
-from scratch as **native Android** (Kotlin + Jetpack Compose), replacing the
-React Native apps. That is the only construction work left.
-**For anything mobile, start at `docs/mobile-v2/HANDOVER.md`** — the older
-mobile docs describe the React Native apps and are superseded. The RN apps stay
-in the repo and linked from the live site until native reaches parity.
+**The mobile apps are the exception**, and the plan changed on 21 Aug 2026.
+
+The **React Native apps are the product**. They are complete, live, and are
+what ships. The remaining mobile work is a **restyle**: bringing the visual
+language of the Compose scaffold's onboarding flow into the RN apps, screen by
+screen. It is not a rebuild — no module is being built again.
+
+The native Android rebuild in `apps/mobile-android/` is **parked**. Phase 0 was
+finished (toolchain, palette, brand mark, dependencies, Gate 0 passed) and work
+stopped there. It is kept because it cost nothing to keep and is the fallback
+if RN tooling becomes painful again. **Do not resume it without being asked.**
+
+Why the change: the RN apps already carry the same `#f54e00` / `#f7f7f4` /
+`#26251e` tokens and a full component system, and every one of their screens
+already works against the live backend. The native path was 54 steps from that
+starting line. Restyling is JS-only — Metro hot-reloads in a second and
+`eas update` reaches a real phone in a minute — which sidesteps the EAS Build
+and fingerprint problems that motivated the rebuild in the first place.
 
 **Before making non-trivial changes, read:**
-- `docs/mobile-v2/HANDOVER.md` — **start here for anything mobile**
+- `docs/mobile-v2/HANDOVER.md` — the native rebuild, now **parked**; read it before touching `apps/mobile-android/`
 - `docs/HANDOVER.md` — current state of backend + admin web, build commands
 - `docs/MODULE_PLAN.md` — the build order and what's done
 - `docs/PROJECT_CONTEXT.md` — what's being built and every decision made so far
@@ -61,8 +73,8 @@ If a task seems to require violating one of these, stop and flag it instead of q
 | Layer | Tech |
 |---|---|
 | Backend | FastAPI, PostgreSQL, Redis, SQLAlchemy 2.0 + Alembic, APScheduler |
-| Mobile (both apps) | **Kotlin + Jetpack Compose**, one Gradle project, two product flavors |
-| Mobile (legacy) | React Native + Expo — live until the native rebuild reaches parity |
+| Mobile (both apps) | **React Native + Expo** — the shipping apps |
+| Mobile (parked) | Kotlin + Jetpack Compose in `apps/mobile-android/` — Phase 0 only, not in progress |
 | Admin web | Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, TanStack Query, GSAP |
 | Infra | Single EC2 instance, native services, Caddy (TLS), GitHub Actions (deploy), EAS Build (APKs) |
 
@@ -70,9 +82,9 @@ If a task seems to require violating one of these, stop and flag it instead of q
 
 ```
 backend/            FastAPI — Person A
-apps/mobile-android/  Kotlin + Compose — the rebuild; both apps as product flavors
-apps/parent-app/    React Native — being replaced; live until native parity
-apps/staff-app/     React Native — being replaced; live until native parity
+apps/mobile-android/  Kotlin + Compose — PARKED after Phase 0; not being worked on
+apps/parent-app/    React Native — the shipping parent + collector app
+apps/staff-app/     React Native — the shipping teacher + guard app
 apps/admin-web/     Next.js — Person A
 packages/shared/    API client, types, i18n — used by the two React Native apps
 docs/mobile-v2/     The native rebuild: plan, architecture, design, verification

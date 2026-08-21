@@ -1,6 +1,19 @@
-# Handover — mobile v2
+# Handover — mobile v2 (PARKED)
 
-**Start here.** Written 2026-08-20.
+> **This rebuild is parked as of 21 Aug 2026.** Phase 0 finished and Gate 0
+> passed; work stopped there deliberately.
+>
+> **The React Native apps are the product.** The remaining mobile work is a
+> restyle of `apps/parent-app` and `apps/staff-app` into the visual language of
+> the scaffold's onboarding flow — not a rebuild. See the root
+> [CLAUDE.md](../../CLAUDE.md).
+>
+> Everything below still describes the native rebuild accurately and is worth
+> keeping: if RN tooling becomes painful again, this is a working foundation
+> with the toolchain proven, the palette and brand mark done, and every
+> dependency verified. **Do not resume it without being asked.**
+
+**Written 2026-08-20.**
 
 ## Where things stand
 
