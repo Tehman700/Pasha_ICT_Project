@@ -124,6 +124,44 @@ one group at a time, verifying the build after each.
 | Push | **Firebase Cloud Messaging** | Already the system's notification channel. Needs `google-services.json` per flavor. |
 | Images | **Coil** | Already in the catalog. Keep. |
 
+### What adding them actually turned up
+
+Added 21 Aug 2026, one group at a time, exactly as this section says. Two
+things only showed up because of that:
+
+**1. KSP breaks AGP 9's built-in Kotlin.** Room's annotation processor fails
+configuration with *"Using kotlin.sourceSets DSL to add Kotlin sources is not
+allowed with built-in Kotlin"*. KSP registers its generated sources the old
+way. The bridge — which AGP names in the error itself — is
+`android.disallowKotlinSourceSets=false` in `gradle.properties`. It is flagged
+experimental, and can be dropped once KSP registers through
+`android.sourceSets`.
+
+**2. The QR libraries must be flavor-scoped, not shared.** ML Kit's bundled
+barcode model is `libbarhopper_v3.so`, **19.5 MB** across four ABIs. Shipping
+it to both apps put it in the parent APK, which never scans a code — it
+displays one. On the cheap handsets and metered data this market runs on, that
+is a real cost to a parent for a library they never call.
+
+```kotlin
+"staffImplementation"(libs.mlkit.barcode.scanning)   // guard scans
+"parentImplementation"(libs.zxing.core)              // collector displays
+```
+
+CameraX is staff-only for the same reason: `PhotoScreen` captures through the
+system picker, not CameraX. Verified in the built APKs — 19.49 MB of native
+libs in staff, 0.06 MB in parent.
+
+Note the quoted configuration names. The Kotlin DSL does not generate typed
+`staffImplementation(...)` accessors for flavors declared in the same file.
+
+**The model stays bundled**, not the Play-Services-delivered variant. The gate
+has to verify with no signal, so an on-demand download is not acceptable.
+
+**Firebase is a dependency only so far.** The `google-services` plugin and the
+per-flavor `google-services.json` are step 6.1; adding the plugin now, with no
+JSON in the tree, fails the build.
+
 **ES256 verification needs no dependency.** `java.security.Signature` with
 `SHA256withECDSA` and a `KeyFactory`-parsed P-256 public key covers it. Adding
 a JWT library for one verification is not worth the size. See

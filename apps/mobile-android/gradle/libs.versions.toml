@@ -10,6 +10,17 @@ composeBom = "2025.08.00"
 lifecycle = "2.8.7"
 navigationCompose = "2.8.5"
 coil = "2.7.0"
+ktor = "3.0.3"
+kotlinxSerialization = "1.7.3"
+datastore = "1.1.1"
+securityCrypto = "1.1.0-alpha06"
+cameraX = "1.4.1"
+mlkitBarcode = "17.3.0"
+zxing = "3.5.3"
+room = "2.7.1"
+ksp = "2.2.10-2.0.2"
+workManager = "2.10.0"
+firebaseBom = "33.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +41,47 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
+# Networking. Ktor over Retrofit because it is coroutine-native and is the one
+# piece that would survive a move to Kotlin Multiplatform.
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
+# The live queue in the teacher app is a websocket, not polling.
+ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktor" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+# Session storage. Access tokens must not sit in plain SharedPreferences.
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+
+# Guard scanner. The ML Kit model is BUNDLED, not the Play-Services-delivered
+# variant: the gate has to verify with no signal, so an on-demand download is
+# not acceptable.
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraX" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraX" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
+# Generation only, for the collector's rotating code. Rendered to a Compose bitmap.
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+
+# Offline handover queue. A guard's recorded handover must survive a
+# force-close with no signal.
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# Flushes the handover queue when signal comes back.
+androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
+
+# Push. The dependency lands here in 0.11; the google-services plugin and the
+# per-flavor google-services.json are step 6.1. Adding the plugin now, with no
+# JSON in the tree, would fail the build for both flavors.
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -37,3 +89,5 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -38,7 +38,7 @@ something that compiles, installs, and looks right.
 | 0.8 | ~~Swap Plus Jakarta Sans → Inter.~~ **CANCELLED** 21 Aug 2026 — the user kept the scaffold's typeface. | Nothing to do. See [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#typography). |
 | 0.9 | ~~Replace the brand mark with the gate glyph. Regenerate launcher icons.~~ **DONE.** | Both launcher icons verified on the emulator: gate on cream. The mark's barrier was **extended past the posts** — admin-web's version reads as a capital H at app size. See [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#the-mark-one-deliberate-difference-from-the-dashboard). |
 | 0.10 | Move every hardcoded string out of the composables into `app/src/main/res/values/strings.xml`. | The audit sweep in [I18N.md](I18N.md#audit-before-every-build) passes. Still worth doing with one language: it is what makes the copy reviewable in one place. |
-| 0.11 | Add the dependency groups from [ARCHITECTURE.md](ARCHITECTURE.md#dependencies-to-add), one group at a time. | Build green after each group. |
+| 0.11 | ~~Add the dependency groups, one group at a time.~~ **DONE.** | Six groups, green after each. Two things this caught: KSP needs `android.disallowKotlinSourceSets=false` on AGP 9, and ML Kit's 19.5 MB model must be `staff`-only. See [ARCHITECTURE.md](ARCHITECTURE.md#dependencies-to-add). |
 | 0.12 | Establish the verification loop: build → install → screenshot → read. | A screenshot of the running app has been produced and viewed. |
 
 **Gate 0 — do not proceed until all are true:**
