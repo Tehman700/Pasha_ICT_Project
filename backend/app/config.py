@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     #: screen it was rendered on is a link that leaks.
     s3_url_ttl_seconds: int = 3600
 
+    # Server-side only. Used once per trip to turn a straight line into a road
+    # distance; never exposed to a client. Empty disables the call and the ETA
+    # falls back to straight-line, which is what it did before.
+    tomtom_api_key: str = ""
+
     geofence_radius_m: int = 1000
     # The classroom announcement fires on ETA, not on the geofence ring —
     # 1–2 minutes is ~500-650m and varies with traffic.

@@ -2,25 +2,32 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { WebView } from "react-native-webview";
 import { T, colors, radius, spacing } from "@pickup/ui-native";
+import { TOMTOM_ATTRIBUTION, tomtomTileUrl } from "@pickup/shared";
 
 /**
- * OpenStreetMap via Leaflet in a WebView.
+ * Shipped inside the app bundle, which is unavoidable for client-side tiles.
+ * Restrict it by bundle id in my.tomtom.com rather than trying to hide it.
+ */
+const TOMTOM_KEY = process.env.EXPO_PUBLIC_TOMTOM_API_KEY ?? "";
+
+/**
+ * TomTom tiles via Leaflet in a WebView.
  *
- * NOT react-native-maps, and deliberately so. That needs a Google Maps SDK key,
- * which needs a billing account, which needs a valid international card — the
- * riskiest non-technical dependency on the whole Day-0 list, and harder to
- * obtain here than anything technical in this project. It also needs a dev
- * build, which puts the map out of reach in Expo Go.
+ * NOT react-native-maps, still deliberately: that needs a native map SDK and a
+ * dev build, and this renders the same two dots and a line for a fraction of
+ * the weight. The tiles moved from OpenStreetMap to TomTom on 21 Aug 2026 so
+ * the dashboard and the apps draw a pin on the same basemap.
  *
- * This has no key, no quota, no billing, and runs in Expo Go today. OSM
- * coverage in Pakistani cities is more than good enough for "a van moving
- * toward a school".
+ * The map shows WHERE the van is. It never says where the van is in words -
+ * TomTom's reverse geocoding is wrong for Lahore, returning byte-identical
+ * addresses for points kilometres apart. Coordinates on a map, never a
+ * sentence. See packages/shared/src/maps/tomtom.ts.
  *
  * Tiles load over the network. With no signal the WebView shows the fallback
  * rather than a blank grey box, because a parent staring at nothing assumes
  * the app is broken.
  */
-export function OsmMap({
+export function TripMap({
   lat,
   lng,
   schoolLat,
@@ -58,9 +65,9 @@ export function OsmMap({
   var map = L.map('map', { zoomControl: false, attributionControl: true })
     .setView([${centerLat}, ${centerLng}], ${hasCollector ? 13 : 15});
 
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
+  L.tileLayer('${tomtomTileUrl(TOMTOM_KEY)}', {
+    maxZoom: 22,
+    attribution: '${TOMTOM_ATTRIBUTION}'
   }).addTo(map);
 
   var dot = function (cls) {

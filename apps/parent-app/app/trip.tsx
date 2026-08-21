@@ -20,7 +20,7 @@ import {
   useLocale,
 } from "@pickup/ui-native";
 import { ScreenHeader } from "../components/ScreenHeader";
-import { OsmMap } from "../components/OsmMap";
+import { TripMap } from "../components/TripMap";
 import { useLiveTrip } from "../hooks/useLiveTrip";
 
 /**
@@ -160,7 +160,7 @@ export default function TripScreen() {
       {/* The map needs the school's real position to mean anything, so it
           waits for it rather than pinning a placeholder. */}
       {school ? (
-        <OsmMap
+        <TripMap
           lat={live.coords?.lat ?? live.trip?.last_lat ?? null}
           lng={live.coords?.lng ?? live.trip?.last_lng ?? null}
           schoolLat={school.lat}

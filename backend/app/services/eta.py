@@ -107,21 +107,32 @@ def estimate(
     school_lng: float,
     fixes: list[Fix],
     geofence_radius_m: int = 1000,
+    road_ratio: float = 1.0,
 ) -> tuple[float, int, bool]:
     """
     Returns (distance_m, eta_seconds, inside_geofence).
 
-    Straight-line distance underestimates road distance, so this is optimistic
-    by design — a parent told "4 minutes" who arrives in 5 is a better outcome
-    than a child left waiting at a gate because the estimate was pessimistic.
+    `road_ratio` scales the straight line up to a road distance. It is measured
+    once per trip by services/routing.py and cached, so this stays pure
+    arithmetic with no network call — the queue orders on it, and the gate
+    cannot wait on a maps API.
+
+    A ratio of 1.0 is the old behaviour exactly, and is what every failure path
+    in routing.py returns.
+
+    Note the geofence test uses the STRAIGHT line, not the scaled distance.
+    "Inside the ring" is a question about physical proximity to the school, not
+    about how far there is left to drive — a van 200m away on the far side of a
+    one-way system has arrived, whatever the road says.
     """
     if not fixes:
         return (0.0, 0, False)
 
     last = fixes[-1]
-    distance = haversine_m(last.lat, last.lng, school_lat, school_lng)
+    straight = haversine_m(last.lat, last.lng, school_lat, school_lng)
     speed = rolling_speed_kmh(fixes)
-    return (distance, eta_seconds(distance, speed), distance <= geofence_radius_m)
+    travel = straight * max(road_ratio, 1.0)
+    return (travel, eta_seconds(travel, speed), straight <= geofence_radius_m)
 
 
 def should_announce(eta: int | None, threshold_seconds: int = 120) -> bool:

@@ -19,7 +19,7 @@ import uuid
 from datetime import date as Date, timedelta
 
 import redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -39,6 +39,7 @@ from app.models import (
 from app.schemas import LocationPing, TripOut
 from app.services import broadcast, notify
 from app.services.eta import Fix, estimate, should_announce
+from app.services.routing import road_ratio
 
 router = APIRouter()
 
@@ -61,6 +62,31 @@ def _redis() -> redis.Redis | None:
 
 def _fix_key(trip_id: uuid.UUID) -> str:
     return f"rukhsat:trip:{trip_id}:fixes"
+
+
+def _ratio_key(trip_id: uuid.UUID) -> str:
+    return f"rukhsat:trip:{trip_id}:road_ratio"
+
+
+def _read_ratio(trip_id: uuid.UUID) -> float:
+    """
+    The road/straight-line ratio measured once when the trip started.
+
+    Redis rather than a column: this is per-trip, expires with the trip, and is
+    recoverable by simply asking TomTom again. Adding a migration to a live
+    database for a cached float would be the wrong trade.
+
+    Missing, unparseable, or Redis down all mean 1.0 - the straight-line
+    behaviour this system had before, which is correct rather than merely safe.
+    """
+    r = _redis()
+    if r is None:
+        return 1.0
+    try:
+        raw = r.get(_ratio_key(trip_id))
+        return float(raw) if raw else 1.0
+    except Exception:  # noqa: BLE001
+        return 1.0
 
 
 @router.post(
@@ -122,10 +148,33 @@ def start_trip(user: User = Depends(get_current_user), db: Session = Depends(get
     return TripOut.model_validate(trip)
 
 
+def _measure_road_ratio(
+    trip_id: uuid.UUID, lat: float, lng: float, school_lat: float, school_lng: float
+) -> None:
+    """
+    Measure road-vs-straight-line once and cache it for the trip.
+
+    Runs in a BackgroundTask, so nothing is waiting on TomTom - not even the
+    ping that triggered it. Best effort throughout: a failure costs a little
+    accuracy for one trip and nothing else.
+    """
+    ratio = road_ratio(
+        from_lat=lat, from_lng=lng, to_lat=school_lat, to_lng=school_lng
+    )
+    r = _redis()
+    if r is None:
+        return
+    try:
+        r.setex(_ratio_key(trip_id), settings.trip_max_minutes * 60, f"{ratio:.4f}")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 @router.post("/trips/{trip_id}/location", tags=["trips"])
 def push_location(
     trip_id: uuid.UUID,
     ping: LocationPing,
+    background: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -176,11 +225,23 @@ def push_location(
     if not fixes:
         fixes = [Fix(lat=ping.lat, lng=ping.lng, at_epoch=now)]
 
+    ratio = _read_ratio(trip.id)
+
+    # First ping of this trip: nothing has measured the road yet. Queue the
+    # lookup behind the response so this request never waits on TomTom. This
+    # ping uses 1.0 - exactly what the system did before - and every ping after
+    # it uses a real road distance.
+    if ratio == 1.0:
+        background.add_task(
+            _measure_road_ratio, trip.id, ping.lat, ping.lng, school.lat, school.lng
+        )
+
     distance_m, eta, inside = estimate(
         school_lat=school.lat,
         school_lng=school.lng,
         fixes=fixes,
         geofence_radius_m=school.geofence_radius_m,
+        road_ratio=ratio,
     )
 
     trip.last_lat = ping.lat
