@@ -41,7 +41,7 @@ something that compiles, installs, and looks right.
 | 0.11 | ~~Add the dependency groups, one group at a time.~~ **DONE.** | Six groups, green after each. Two things this caught: KSP needs `android.disallowKotlinSourceSets=false` on AGP 9, and ML Kit's 19.5 MB model must be `staff`-only. See [ARCHITECTURE.md](ARCHITECTURE.md#dependencies-to-add). |
 | 0.12 | ~~Establish the verification loop.~~ **DONE — it has been running since 0.1.** | Two traps it turned up are written into [VERIFICATION.md](VERIFICATION.md): a capture taken too early returns the black starting window, and a cold start after a fresh install needs ~15s, not 6. |
 
-**Gate 0 — do not proceed until all are true:**
+**Gate 0 — PASSED 21 Aug 2026.**
 - Both APKs install on the emulator side by side.
 - The palette is the admin-web one. Note **the welcome screen is deliberately
   not cream** — it is a full-bleed inverted screen painted by `BrandPattern`,

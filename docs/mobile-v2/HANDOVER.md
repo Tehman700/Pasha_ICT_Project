@@ -5,10 +5,13 @@
 ## Where things stand
 
 The two mobile apps are being **rebuilt from scratch as native Android**
-(Kotlin + Jetpack Compose). **Phase 0 is in progress** — steps 0.1 to 0.3 are
-done (see [BUILD_PLAN.md](BUILD_PLAN.md#phase-0--foundation)). No feature code
-is written yet; the scaffold is committed and moved, still wearing its
-reference-design skin.
+(Kotlin + Jetpack Compose). **Phase 0 is complete and Gate 0 has passed**
+(see [BUILD_PLAN.md](BUILD_PLAN.md#phase-0--foundation)).
+
+Both apps build, install side by side, and open in the Rukhsat palette with
+the gate mark. **No feature code exists yet** — every screen is still the
+reference design's copy and flow, and auth is still the scaffold's Supabase
+stub. Phase 1 is where it becomes a Rukhsat app.
 
 What exists:
 
@@ -65,18 +68,22 @@ Cutover is Phase 7: [BUILD_PLAN.md](BUILD_PLAN.md#phase-7--ship).
 
 ## What to do next
 
-**Phase 0, step 0.5** — add the `parent` and `staff` product flavors.
-Steps 0.1 to 0.4 are done: the toolchain builds untouched with no pinning
-needed, the SDK resolves with no environment variable set, the scaffold is
-committed and moved to `apps/mobile-android/`, and the package is
-`com.rukhsat.app`.
+**Phase 1, step 1.1** — delete `data/AuthRepository.kt` and every Supabase
+reference, and delete `LocationResolver.kt`. Then 1.2 builds the Ktor client
+against `api.tideover.site`, which is the first point the app talks to
+anything real.
 
-**Trap 5 fires in 0.5.** `com.rukhsat.parent` and `com.rukhsat.staff` are
-already installed on the emulator from the React Native builds. The first
-`assembleParentDebug` install will fail with
-`INSTALL_FAILED_UPDATE_INCOMPATIBLE` until they are uninstalled.
+Phase 0 delivered: the toolchain builds untouched, the project lives at
+`apps/mobile-android/`, the package is `com.rukhsat.app`, two flavors produce
+`com.rukhsat.parent` / `com.rukhsat.staff`, the palette and gate mark are
+Rukhsat's, `core-ui` and `core-data` are wired, and every Phase 1-5 dependency
+is on the classpath and verified to launch.
 
-See [BUILD_PLAN.md](BUILD_PLAN.md#phase-0--foundation).
+Decisions taken during Phase 0 that changed the plan: **English only** (Urdu
+dropped), **Plus Jakarta Sans kept** (0.8 cancelled), **RTL off**, and the
+brand mark's **barrier extended past the posts**.
+
+See [BUILD_PLAN.md](BUILD_PLAN.md#phase-1--auth).
 
 The plan is deliberately step-by-step with a gate at the end of each phase.
 The user asked to work this way specifically so mobile problems get finished
