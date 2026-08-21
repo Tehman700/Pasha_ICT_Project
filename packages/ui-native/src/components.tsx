@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CNIC_LENGTH,
   CNIC_PLACEHOLDER,
-  PHONE_LENGTH,
   PHONE_PLACEHOLDER,
   formatCnic,
   formatPhoneInput,
@@ -400,9 +399,11 @@ export const PhoneInput = forwardRef<TextInput, PhoneInputProps>(function PhoneI
       textContentType="telephoneNumber"
       autoComplete="tel"
       autoCorrect={false}
-      // Belt and braces. formatPhoneInput already caps the value, but a
-      // hardware keyboard repeating a key can outrun a controlled update.
-      maxLength={PHONE_LENGTH}
+      // Deliberately NO maxLength. formatPhoneInput already caps the value at
+      // 11, and maxLength actively breaks paste: pasting "+92 321 5000011"
+      // gets truncated to 11 *characters* by the field before the formatter
+      // ever sees it, leaving "+92 321 500" - which normalises to a different,
+      // wrong number rather than failing loudly.
       style={{ textAlign: "left" }}
       {...rest}
     />

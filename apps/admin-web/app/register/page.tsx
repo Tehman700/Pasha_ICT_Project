@@ -48,7 +48,6 @@ export default function RegisterPage() {
 
   // Step 2
   const [schoolName, setSchoolName] = useState("");
-  const [dismissal, setDismissal] = useState("13:15");
   const [location, setLocation] = useState<PickedLocation | null>(null);
   const [radiusKm, setRadiusKm] = useState(1);
 
@@ -84,7 +83,9 @@ export default function RegisterPage() {
           lat: location.lat,
           lng: location.lng,
           geofence_radius_m: Math.min(Math.max(radiusM, MIN_RADIUS_M), MAX_RADIUS_M),
-          dismissal_time: dismissal,
+          // No dismissal_time. The API defaults it to 13:15 and the
+          // administrator sets the real one in Schools, next to the geofence
+          // and the schedule it actually drives.
         },
       });
       // The API returns a token precisely so this does not bounce the person
@@ -133,7 +134,13 @@ export default function RegisterPage() {
                 </div>
 
                 <Field label={t.yourName}>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                  <Input
+                    name="admin-name"
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
                 </Field>
                 <Field label={t.yourNameUr}>
                   <Input value={nameUr} onChange={(e) => setNameUr(e.target.value)} dir="rtl" />
@@ -179,25 +186,16 @@ export default function RegisterPage() {
                   <p className="type-caption text-muted mt-1">{t.step2Body}</p>
                 </div>
 
-                <div className="grid tablet:grid-cols-2 gap-4">
-                  <Field label={t.schoolName}>
-                    <Input
-                      value={schoolName}
-                      onChange={(e) => setSchoolName(e.target.value)}
-                      placeholder={t.schoolNamePlaceholder}
-                      required
-                    />
-                  </Field>
-                  <Field label={t.dismissalTime} hint={t.dismissalHint}>
-                    <Input
-                      type="time"
-                      dir="ltr"
-                      value={dismissal}
-                      onChange={(e) => setDismissal(e.target.value)}
-                      required
-                    />
-                  </Field>
-                </div>
+                <Field label={t.schoolName}>
+                  <Input
+                    name="school-name"
+                    autoComplete="off"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    placeholder={t.schoolNamePlaceholder}
+                    required
+                  />
+                </Field>
 
                 <LocationPicker value={location} radiusM={radiusM} onChange={setLocation} />
 

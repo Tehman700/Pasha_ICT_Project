@@ -57,7 +57,9 @@ function secureTokenStore(): TokenStore {
 }
 
 /**
- * English-only since 21 Aug 2026. `locale` and `isRTL` are kept as constants
+ * English-only since 21 Aug 2026. The Urdu strings still exist in
+ * @pickup/shared for admin-web, which is bilingual - the apps simply never ask
+ * for them. `locale` and `isRTL` are kept as constants
  * rather than deleted so the ~40 call sites that read them still compile; they
  * simply never change now. `toggle` is gone, because a control that does
  * nothing is worse than no control.
@@ -153,7 +155,7 @@ export function AppProviders({
   );
 
   const value = useMemo<LocaleValue>(
-    () => ({ locale: "en" as Locale, strings: t(), isRTL: false }),
+    () => ({ locale: "en" as Locale, strings: t("en"), isRTL: false }),
     [],
   );
 

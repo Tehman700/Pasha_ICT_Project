@@ -1,5 +1,12 @@
 # Handover — where the project actually is
 
+> **Mobile work: read [`docs/mobile-v2/HANDOVER.md`](mobile-v2/HANDOVER.md) instead.**
+> Since 20 Aug 2026 the parent and staff apps are being rebuilt from scratch as
+> native Android (Kotlin + Jetpack Compose). Everything below about mobile
+> screens describes the **React Native** apps, which stay live and linked from
+> the site until native reaches parity — but they are no longer where new work
+> happens. The backend and admin-web sections below remain current.
+
 Written 8 Aug 2026, after the session that closed the last module. If you are
 picking this repo up in a fresh Claude Code session, read this first, then
 `docs/MODULE_PLAN.md`.

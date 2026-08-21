@@ -227,7 +227,7 @@ export const mockApi: PickupApi = {
       lat: body.school.lat,
       lng: body.school.lng,
       geofence_radius_m: body.school.geofence_radius_m,
-      dismissal_time: body.school.dismissal_time,
+      dismissal_time: body.school.dismissal_time ?? "13:15",
       timezone: body.school.timezone ?? "Asia/Karachi",
     };
     const user: User = {

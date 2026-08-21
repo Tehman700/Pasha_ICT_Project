@@ -6,13 +6,17 @@ import type { Map as LeafletMap, Marker, Circle } from "leaflet";
 import { useLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { searchPlaces, tomtomTileUrl, TOMTOM_ATTRIBUTION, type PlaceHit } from "@pickup/shared";
 
 /**
  * Pick the school's gate on a map, and size the arrival radius around it.
  *
- * OpenStreetMap via Leaflet, and Nominatim for the address search — the same
- * reasoning as the driver map in the parent app: no API key, no billing
- * account, and no international card required to keep it working.
+ * TomTom tiles via Leaflet, and TomTom Search for the place lookup.
+ *
+ * This used to be OpenStreetMap plus Nominatim. The search never worked:
+ * Nominatim rate-limits browser traffic without a contact User-Agent, and it
+ * was called with `limit=1`, so there was no list to choose from even when a
+ * request did get through — it either jumped somewhere or said "no results".
  *
  * Leaflet is imported dynamically inside an effect because it reaches for
  * `window` at module scope, which throws during Next's server render.
@@ -27,13 +31,18 @@ import { Input } from "@/components/ui/Input";
 
 export type PickedLocation = { lat: number; lng: number };
 
-type NominatimResult = { lat: string; lon: string; display_name: string };
-
 const DEFAULT_CENTRE: PickedLocation = { lat: 30.3753, lng: 69.3451 }; // Pakistan
 
 /** Kept in sync with `--color-primary` in globals.css — see the note at the
  *  circle below for why this cannot be the CSS variable itself. */
 const PRIMARY = "#f54e00";
+
+/**
+ * Shipped to the browser, which is unavoidable for client-side tiles and
+ * normal for a maps key. Restrict it by domain in my.tomtom.com rather than
+ * trying to hide it.
+ */
+const TOMTOM_KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY ?? "";
 
 export function LocationPicker({
   value,
@@ -59,6 +68,7 @@ export function LocationPicker({
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [results, setResults] = useState<PlaceHit[]>([]);
   const [ready, setReady] = useState(false);
 
   // Build the map once.
@@ -75,9 +85,9 @@ export function LocationPicker({
         [start.lat, start.lng],
         value ? 16 : 5,
       );
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors",
-        maxZoom: 19,
+      L.tileLayer(tomtomTileUrl(TOMTOM_KEY), {
+        attribution: TOMTOM_ATTRIBUTION,
+        maxZoom: 22,
       }).addTo(map);
 
       map.on("click", (e: { latlng: { lat: number; lng: number } }) => {
@@ -160,28 +170,52 @@ export function LocationPicker({
     };
   }, [ready, value, radiusM]);
 
-  async function search() {
-    if (!query.trim()) return;
-    setSearching(true);
-    setSearchError(null);
-    try {
-      const url =
-        "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
-        encodeURIComponent(query.trim());
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      const hits: NominatimResult[] = await res.json();
-      if (!hits.length) {
-        setSearchError(t.noResults);
-        return;
-      }
-      const loc = { lat: Number(hits[0].lat), lng: Number(hits[0].lon) };
-      onChange(loc);
-      mapRef.current?.setView([loc.lat, loc.lng], 16);
-    } catch {
-      setSearchError(t.noResults);
-    } finally {
-      setSearching(false);
+  // Debounced as the administrator types. `results` drives a real dropdown -
+  // the old implementation asked for a single hit and silently teleported the
+  // pin, so a wrong first guess looked identical to a broken search.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setResults([]);
+      setSearchError(null);
+      return;
     }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      setSearchError(null);
+      try {
+        const hits = await searchPlaces(TOMTOM_KEY, q, {
+          signal: controller.signal,
+          // Bias to what is on screen, so a second search refines rather than
+          // jumping to a same-named place in another city.
+          near: value ?? undefined,
+        });
+        setResults(hits);
+        if (!hits.length) setSearchError(t.noResults);
+      } catch (err) {
+        if ((err as { name?: string }).name !== "AbortError") setSearchError(t.noResults);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+    // `value` is read for the bias only; re-running on every pin nudge would
+    // re-query while the user drags.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  function choose(hit: PlaceHit) {
+    const loc = { lat: hit.lat, lng: hit.lng };
+    onChange(loc);
+    mapRef.current?.setView([loc.lat, loc.lng], 17);
+    setResults([]);
+    setQuery(hit.name);
   }
 
   function useMyLocation() {
@@ -200,28 +234,58 @@ export function LocationPicker({
   return (
     <div>
       {/*
-        A div, NOT a form. This component is rendered inside the registration
-        <form>, and nested forms are invalid HTML — the browser associates the
-        inner submit button with the OUTER form, so pressing "Search" submitted
-        the whole registration instead of geocoding an address. Enter is
-        handled explicitly for the same reason.
+        A div, NOT a form. This component renders inside the registration
+        <form>, and nested forms are invalid HTML — the browser associates an
+        inner submit button with the OUTER form, so a search used to submit the
+        whole registration. Enter is intercepted here for the same reason.
       */}
-      <div className="flex gap-2 mb-3">
+      <div className="relative mb-3">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
+            // Enter picks the top hit rather than submitting the registration.
             if (e.key === "Enter") {
               e.preventDefault();
-              void search();
+              if (results.length) choose(results[0]);
             }
+            if (e.key === "Escape") setResults([]);
           }}
           placeholder={t.findPlaceholder}
           aria-label={t.findLocation}
+          autoComplete="off"
+          name="place-search"
         />
-        <Button type="button" variant="secondary" disabled={searching} onClick={() => void search()}>
-          {searching ? t.searching : t.search}
-        </Button>
+
+        {searching ? (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 type-caption text-muted">
+            {t.searching}
+          </span>
+        ) : null}
+
+        {results.length ? (
+          <ul
+            className="absolute z-[1000] left-0 right-0 mt-1 bg-surface-card border border-hairline-strong rounded-lg overflow-hidden max-h-64 overflow-y-auto"
+            role="listbox"
+          >
+            {results.map((hit) => (
+              <li key={hit.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  onClick={() => choose(hit)}
+                  className="w-full text-start px-3 py-2 hover:bg-canvas-soft border-b border-hairline last:border-b-0 transition-colors"
+                >
+                  <span className="type-body-sm text-ink block">{hit.name}</span>
+                  {hit.address ? (
+                    <span className="type-caption text-muted block truncate">{hit.address}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div

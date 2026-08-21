@@ -341,7 +341,13 @@ export interface SchoolDetails {
    * meaning "nearly here".
    */
   geofence_radius_m: number;
-  dismissal_time: TimeOfDay;
+  /**
+   * Optional at signup. The API defaults it to 13:15 and an administrator sets
+   * the real one in Schools, where they can also see it against the geofence
+   * and the schedule it drives. Asking for it on a signup form put a decision
+   * in front of someone who had not seen the dashboard yet.
+   */
+  dismissal_time?: TimeOfDay;
   timezone?: string;
 }
 

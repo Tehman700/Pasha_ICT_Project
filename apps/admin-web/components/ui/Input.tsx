@@ -2,7 +2,6 @@ import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
 import {
   CNIC_LENGTH,
   CNIC_PLACEHOLDER,
-  PHONE_LENGTH,
   PHONE_PLACEHOLDER,
   formatCnic,
   formatPhoneInput,
@@ -48,7 +47,9 @@ export function PhoneInput({
       placeholder={PHONE_PLACEHOLDER}
       inputMode="numeric"
       autoComplete="tel"
-      maxLength={PHONE_LENGTH}
+      // No maxLength - see the note on the React Native PhoneInput. It caps at
+      // 11 characters *before* formatPhoneInput can normalise a pasted
+      // "+92 321 5000011", turning a correct paste into a wrong number.
       dir="ltr"
       {...props}
     />

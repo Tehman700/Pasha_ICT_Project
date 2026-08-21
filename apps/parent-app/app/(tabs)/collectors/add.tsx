@@ -8,6 +8,7 @@ import {
   Card,
   Field,
   Input,
+  PhoneInput,
   Label,
   Row,
   Screen,
@@ -19,6 +20,7 @@ import {
   useApi,
   useLocale,
 } from "@pickup/ui-native";
+import { isValidPhone } from "@pickup/shared";
 import type { CollectorLookup } from "@pickup/shared";
 import { ScreenHeader } from "../../../components/ScreenHeader";
 
@@ -115,19 +117,13 @@ export default function AddCollectorScreen() {
             label={strings.parent.driverPhone}
             hint={strings.parent.driverPhoneNote}
           >
-            <Input
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+92 321 5000011"
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-            />
+            <PhoneInput value={phone} onChangeText={setPhone} />
           </Field>
           <Button
             label={lookup.isPending ? strings.common.loading : strings.common.search}
             variant="primary"
             full
-            disabled={phone.trim().length < 5 || lookup.isPending}
+            disabled={!isValidPhone(phone) || lookup.isPending}
             onPress={() => lookup.mutate(phone)}
           />
 
@@ -227,12 +223,7 @@ export default function AddCollectorScreen() {
             label={strings.auth.phone}
             hint={strings.parent.relativeNote}
           >
-            <Input
-              value={relativePhone}
-              onChangeText={setRelativePhone}
-              placeholder="+92 333 1000090"
-              keyboardType="phone-pad"
-            />
+            <PhoneInput value={relativePhone} onChangeText={setRelativePhone} />
           </Field>
         </Card>
       )}
