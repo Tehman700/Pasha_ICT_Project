@@ -1,20 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- From App Logos/rukhsat-icon-light.svg — for dark backgrounds. -->
+<!--
+  The Rukhsat gate: two posts and a boom barrier that crosses and overhangs
+  them.
+
+  Derived from apps/admin-web/app/icon.svg, with one deliberate change. In the
+  dashboard mark the barrier sits *between* the posts, which at favicon size
+  beside the word "Rukhsat" is fine but at 104dp on the welcome screen reads
+  as a capital H - and Rukhsat starts with an R, so the letterform is noise.
+  Extending the bar past both posts is the smallest change that makes it read
+  as a barrier across a gate. Verified on device at 104dp, 34dp and 20dp.
+
+  The bars are round-capped strokes rather than rounded rects: a 9-wide stroke
+  with round caps extends 4.5 past each endpoint, which is exactly the SVG's
+  rx=4.5 capsule in fewer numbers.
+
+  Glyph is 52x52 on the master 96 grid, centred. Viewport is cropped to it
+  with 2 units of padding so the mark fills the size BrandMark is given.
+
+  This is the variant for the ORANGE full-bleed screens. The posts go
+  cream and the barrier goes ink: orange on orange would vanish, and a
+  single-colour mark collapses back into a letterform.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="120dp"
-    android:height="120dp"
-    android:viewportWidth="120"
-    android:viewportHeight="120">
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
     <path
-        android:pathData="M38,38 A60,60 0 0 0 82,82"
-        android:strokeColor="#F6F7F4"
-        android:strokeWidth="6.5"
+        android:pathData="M14.5,6.5 L14.5,49.5"
+        android:strokeColor="#F7F7F4"
+        android:strokeWidth="9"
         android:strokeLineCap="round" />
     <path
-        android:pathData="M28.5,38 a9.5,9.5 0 1,0 19,0 a9.5,9.5 0 1,0 -19,0"
-        android:strokeColor="#5B8BB8"
-        android:strokeWidth="6.5" />
+        android:pathData="M41.5,6.5 L41.5,49.5"
+        android:strokeColor="#F7F7F4"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
     <path
-        android:pathData="M71,82 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0"
-        android:fillColor="#E8A33D" />
+        android:pathData="M6.5,28.5 L49.5,28.5"
+        android:strokeColor="#26251E"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
 </vector>

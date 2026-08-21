@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The gate, sized for the adaptive-icon safe zone.
+  The themed-icon layer. Same geometry as the foreground, flattened to a
+  single colour, because that is what a monochrome layer is: the launcher
+  tints it with the user's wallpaper palette and any colour baked in here
+  fights that.
 
-  An adaptive foreground is 108x108 but only the centre 66 is guaranteed
-  visible, and against a round launcher mask that is a 66-diameter CIRCLE, not
-  a square. The glyph is 52x52 on the 96-unit master, so its corners sit
-  26*sqrt(2) = 36.77 from centre. Scaled by 0.8975 they land at exactly 33 - the
-  circle's radius. Scaling to fill the 108 box would clip the corners on any
-  round-masked launcher.
+  The scaffold pointed <monochrome> straight at the coloured foreground, which
+  is a common mistake - it makes the launcher render the icon through the
+  themed path with the brand colours still in it.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -16,17 +16,17 @@
     android:viewportHeight="108">
     <path
         android:pathData="M41.88,34.7 L41.88,73.3"
-        android:strokeColor="#26251E"
+        android:strokeColor="#000000"
         android:strokeWidth="8.08"
         android:strokeLineCap="round" />
     <path
         android:pathData="M66.12,34.7 L66.12,73.3"
-        android:strokeColor="#26251E"
+        android:strokeColor="#000000"
         android:strokeWidth="8.08"
         android:strokeLineCap="round" />
     <path
         android:pathData="M34.7,54.45 L73.3,54.45"
-        android:strokeColor="#F54E00"
+        android:strokeColor="#000000"
         android:strokeWidth="8.08"
         android:strokeLineCap="round" />
 </vector>

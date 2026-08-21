@@ -110,6 +110,41 @@ The blues existed only to serve the journey logo's origin ring.
    error text (`EmailScreen`, `OtpScreen`). That worked when the accent was
    amber. With orange it reads as an action, not a problem. Use `Brand.Error`.
 
+## The mark — one deliberate difference from the dashboard
+
+The Rukhsat mark is a gate: two ink posts and an orange boom barrier, from
+`apps/admin-web/app/icon.svg`.
+
+**The apps extend the barrier past the posts. The dashboard does not.** In
+`icon.svg` the bar runs `x=34..62` — inside both posts — which at favicon size,
+beside the wordmark, is fine. At 104dp on the welcome screen with nothing next
+to it, it reads as a **capital H**, and Rukhsat starts with an R, so the
+letterform is pure noise. Seen on device, not predicted.
+
+Extending the bar to `x=22..74` so it crosses and overhangs is the smallest
+change that makes it read as a barrier across a gate. Decided with the user on
+21 Aug 2026. Everything else about the mark is unchanged: same posts, same
+colours, same proportions.
+
+If the dashboard favicon is ever revisited, this is the change to carry over.
+
+### Implementation notes
+
+- The bars are round-capped strokes, not rounded rects. A 9-wide stroke with
+  round caps extends 4.5 past each endpoint, which is exactly the SVG's
+  `rx=4.5` capsule, in a third of the path data.
+- `ic_logo_dark` is for cream grounds (ink posts, orange bar). `ic_logo_light`
+  is for the orange full-bleed screens: **cream posts, ink bar**. Orange on
+  orange vanishes, and a single-colour mark collapses back into a letterform.
+- The adaptive-icon foreground is scaled `0.8975` from the 96-unit master. The
+  glyph is 52×52, so its corners sit `26·√2 = 36.77` from centre; the
+  guaranteed-visible zone is a 66-diameter **circle**, radius 33. Scaling to
+  fill the 108 box clips the corners on any round-masked launcher.
+- `<monochrome>` points at its own flat silhouette, not at the coloured
+  foreground. The scaffold had it pointing at the foreground, which is a
+  common mistake — it puts brand colour into a layer the launcher means to
+  tint.
+
 ## Buttons — the one real judgment call
 
 The scaffold's primary is an **ink-filled pill** (`PillStyle.Solid`). The

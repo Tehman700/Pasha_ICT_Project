@@ -63,7 +63,7 @@ apply to Rukhsat.
 | `Buttons.kt` | **RETHEME** | `PillButton` + `CircleArrowButton` + `CircleBackButton` are the flow's spine. Keep all three. Retune fills. |
 | `Fields.kt` | **RETHEME + EXTEND** | `FieldCard`, `OtpBoxes`, `PrivacyNote` all keep. `PhoneNumberRow` needs the **11-char `0`-prefixed** rule, not `take(15)`. Add a `CnicField` (`38515-1952462-5`). |
 | `Scaffolding.kt` | **KEEP** | `OnboardingScaffold`, `ProgressTrack`, `PageDots`, `CircleIconSlot`. This is the flow structure the user chose. |
-| `Brand.kt` | **RETHEME** | Same composable, gate-glyph drawables. |
+| `Brand.kt` | **DONE — 0.9** | Same composable, gate-glyph drawables, with the barrier extended past the posts. |
 | `BrandPattern.kt` | **RESOLVED — orange** | Was a navy gradient. Now a flat `#F54E00` ground with white arcs at 10.5% alpha, which is what the reference design itself does. See [DESIGN_ALIGNMENT.md](DESIGN_ALIGNMENT.md#what-the-reference-screens-actually-contain). |
 
 ### `screens/`

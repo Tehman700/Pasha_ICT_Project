@@ -10,10 +10,11 @@ import androidx.compose.ui.unit.dp
 import com.rukhsat.app.R
 
 /**
- * The Rukhsat mark: an origin ring, a departure arc, and a destination dot.
+ * The Rukhsat mark: a gate — two posts and a boom barrier. Traced from
+ * `apps/admin-web/app/icon.svg`, which is the source of truth.
  *
- * Two artwork variants ship because the arc has to invert against dark
- * surfaces — pass [light] on the navy screens.
+ * Two artwork variants ship because the mark has to invert. Pass [light] on
+ * the orange full-bleed screens; the default suits the cream screens.
  */
 @Composable
 fun BrandMark(
