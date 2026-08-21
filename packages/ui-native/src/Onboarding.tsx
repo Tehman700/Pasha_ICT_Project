@@ -40,7 +40,7 @@ export function Onboarding({
   registerLabel?: string;
 }) {
   const insets = useSafeAreaInsets();
-  const { strings, locale, toggle } = useLocale();
+  const { strings } = useLocale();
   const [page, setPage] = useState(0);
   const scroller = useRef<ScrollView | null>(null);
   const [width, setWidth] = useState(Dimensions.get("window").width - spacing.lg * 2);
@@ -67,17 +67,9 @@ export function Onboarding({
           </T>
         </T>
         <View style={{ flex: 1 }} />
-        <Pressable onPress={toggle} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <T variant="bodySm" color={colors.body}>
-            {locale === "en" ? "اردو" : "English"}
-          </T>
-        </Pressable>
       </View>
 
-      <View
-        style={{ flex: 1, paddingHorizontal: spacing.lg }}
-        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      >
+      <View style={{ flex: 1, paddingHorizontal: spacing.lg }}>
         <ScrollView
           ref={scroller}
           horizontal
@@ -86,6 +78,7 @@ export function Onboarding({
           onScroll={onScroll}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
+          onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         >
           {cards.map((card, i) => (
             <View key={i} style={{ width, justifyContent: "center" }}>

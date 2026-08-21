@@ -75,11 +75,11 @@ export default function AnnouncementsScreen() {
               </Row>
               <Spacer h={spacing.sm} />
               <T variant="titleMd" color={colors.ink}>
-                {locale === "ur" ? a.title_ur : a.title_en}
+                {a.title_en}
               </T>
               <Spacer h={6} />
               <T variant="bodySm" color={colors.body}>
-                {locale === "ur" ? a.body_ur : a.body_en}
+                {a.body_en}
               </T>
             </MotiView>
           ))}

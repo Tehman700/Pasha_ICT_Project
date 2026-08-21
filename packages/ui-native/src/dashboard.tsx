@@ -363,7 +363,6 @@ export function DashboardHeader({
   onProfile?: () => void;
   right?: React.ReactNode;
 }) {
-  const { locale, toggle } = useLocale();
   const initial = name.trim().charAt(0).toUpperCase() || "?";
 
   return (
@@ -397,22 +396,6 @@ export function DashboardHeader({
       </View>
 
       {right}
-
-      <Pressable
-        onPress={toggle}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        style={{
-          borderWidth: 1,
-          borderColor: colors.hairlineStrong,
-          borderRadius: radius.md,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 6,
-        }}
-      >
-        <T variant="caption" color={colors.body}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
-      </Pressable>
     </View>
   );
 }

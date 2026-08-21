@@ -29,7 +29,7 @@ export function StaffHeader({
 }) {
   const router = useRouter();
   const api = useApi();
-  const { strings, locale, toggle, isRTL } = useLocale();
+  const { strings, isRTL } = useLocale();
   const me = useQuery({ queryKey: ["me"], queryFn: () => api.me(), retry: false });
 
   async function handleSignOut() {
@@ -54,9 +54,6 @@ export function StaffHeader({
         )}
         <View style={{ flex: 1 }} />
         <Badge tone="neutral">{strings.role[role]}</Badge>
-        <T variant="bodySm" color={colors.body} onPress={toggle}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
       </Row>
       <Spacer h={spacing.xs} />
       <Row>

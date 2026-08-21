@@ -26,7 +26,7 @@ import {
 
 export default function ChooseRoleScreen() {
   const router = useRouter();
-  const { strings, locale, toggle } = useLocale();
+  const { strings } = useLocale();
 
   return (
     <Screen>
@@ -38,9 +38,6 @@ export default function ChooseRoleScreen() {
           </T>
         </T>
         <View style={{ flex: 1 }} />
-        <T variant="bodySm" color={colors.body} onPress={toggle}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
       </Row>
 
       <Spacer h={spacing.xxl} />

@@ -1,10 +1,8 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { I18nManager } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createHttpApi,
-  dir,
   mockApi,
   t,
   type Locale,
@@ -58,11 +56,16 @@ function secureTokenStore(): TokenStore {
   };
 }
 
+/**
+ * English-only since 21 Aug 2026. `locale` and `isRTL` are kept as constants
+ * rather than deleted so the ~40 call sites that read them still compile; they
+ * simply never change now. `toggle` is gone, because a control that does
+ * nothing is worse than no control.
+ */
 type LocaleValue = {
   locale: Locale;
   strings: Strings;
   isRTL: boolean;
-  toggle: () => void;
 };
 
 const LocaleContext = createContext<LocaleValue | null>(null);
@@ -126,7 +129,6 @@ export function AppProviders({
    */
   onUnauthorized?: () => void;
 }) {
-  const [locale, setLocale] = useState<Locale>("en");
 
   // Built once, holding the callback. `api` still wins so tests and the
   // storybook-ish screens can inject a fake.
@@ -151,19 +153,8 @@ export function AppProviders({
   );
 
   const value = useMemo<LocaleValue>(
-    () => ({
-      locale,
-      strings: t(locale),
-      isRTL: dir(locale) === "rtl",
-      toggle: () => {
-        setLocale((prev) => {
-          const next = prev === "en" ? "ur" : "en";
-          I18nManager.allowRTL(next === "ur");
-          return next;
-        });
-      },
-    }),
-    [locale],
+    () => ({ locale: "en" as Locale, strings: t(), isRTL: false }),
+    [],
   );
 
   return (

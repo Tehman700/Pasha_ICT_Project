@@ -4,7 +4,7 @@ import { fixtures } from "@pickup/shared";
 
 /** Wordmark + language toggle. Urdu is one tap away on every screen. */
 export function AppHeader() {
-  const { strings, locale, toggle } = useLocale();
+  const { strings } = useLocale();
 
   return (
     <>
@@ -16,9 +16,6 @@ export function AppHeader() {
           </T>
         </T>
         <View style={{ flex: 1 }} />
-        <T variant="bodySm" color={colors.body} onPress={toggle}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
       </Row>
       <Spacer h={spacing.xs} />
       <T variant="caption" color={colors.mutedSoft}>

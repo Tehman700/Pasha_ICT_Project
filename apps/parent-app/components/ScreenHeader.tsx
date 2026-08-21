@@ -5,7 +5,7 @@ import { Row, Spacer, T, colors, spacing, useLocale } from "@pickup/ui-native";
 /** Back affordance + language toggle for pushed screens. */
 export function ScreenHeader({ title }: { title?: string }) {
   const router = useRouter();
-  const { strings, locale, toggle, isRTL } = useLocale();
+  const { strings, isRTL } = useLocale();
 
   return (
     <>
@@ -20,9 +20,6 @@ export function ScreenHeader({ title }: { title?: string }) {
           </T>
         ) : null}
         <View style={{ flex: 1 }} />
-        <T variant="bodySm" color={colors.body} onPress={toggle}>
-          {locale === "en" ? "اردو" : "English"}
-        </T>
       </Row>
       <Spacer h={spacing.lg} />
     </>

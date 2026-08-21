@@ -40,7 +40,7 @@ export default function ScheduleScreen() {
     queryFn: () => api.getMyCollectors(),
   });
 
-  const days = locale === "ur" ? WEEKDAYS_UR : WEEKDAYS;
+  const days = WEEKDAYS;
 
   function collectorName(id: string): string {
     const auth = collectors.data?.find((a) => a.collector_user_id === id);

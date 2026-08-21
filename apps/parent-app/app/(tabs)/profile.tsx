@@ -23,7 +23,7 @@ import { fixtures } from "@pickup/shared";
 export default function ProfileScreen() {
   const api = useApi();
   const router = useRouter();
-  const { strings, locale, toggle } = useLocale();
+  const { strings } = useLocale();
 
   const children = useQuery({ queryKey: ["myChildren"], queryFn: () => api.getMyChildren() });
   const me = fixtures.currentParent;
@@ -34,17 +34,7 @@ export default function ProfileScreen() {
       <Spacer h={spacing.lg} />
 
       <Section title={strings.parent.profile}>
-        <ListRow icon="user" title={strings.auth.phone} subtitle={me.phone} />
-        <ListRow
-          icon="bell"
-          title={strings.parent.language}
-          trailing={
-            <T variant="bodySm" color={colors.primary} onPress={toggle}>
-              {locale === "en" ? "اردو" : "English"}
-            </T>
-          }
-          last
-        />
+        <ListRow icon="user" title={strings.auth.phone} subtitle={me.phone} last />
       </Section>
 
       <Spacer h={spacing.lg} />
