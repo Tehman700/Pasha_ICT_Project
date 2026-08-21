@@ -3,46 +3,53 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap, Marker, Circle } from "leaflet";
+import { searchPlaces, type PlaceHit } from "@pickup/shared";
 import { useLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { searchPlaces, tomtomTileUrl, TOMTOM_ATTRIBUTION, type PlaceHit } from "@pickup/shared";
 
 /**
  * Pick the school's gate on a map, and size the arrival radius around it.
  *
- * TomTom tiles via Leaflet, and TomTom Search for the place lookup.
+ * OpenStreetMap via Leaflet, for both the basemap and the place search.
  *
- * This used to be OpenStreetMap plus Nominatim. The search never worked:
- * Nominatim rate-limits browser traffic without a contact User-Agent, and it
- * was called with `limit=1`, so there was no list to choose from even when a
- * request did get through — it either jumped somewhere or said "no results".
+ * Google Maps was tried and is one step away from usable. It renders Lahore
+ * correctly, but with "This page can't load Google Maps correctly" and a
+ * "For development purposes only" watermark across a darkened map - the
+ * signature of a project with no billing account attached. Every other Google
+ * Maps API on the key also answers "This API is not activated".
  *
- * Leaflet is imported dynamically inside an effect because it reaches for
- * `window` at module scope, which throws during Next's server render.
+ * Attach billing, enable the Maps JavaScript API, and swapping this back is
+ * small. Until then a watermarked map is worse than a clean one, and OSM's
+ * Pakistan POI data is better regardless.
+ *
+ * TomTom was tried before that and is worse than useless here: searching
+ * "Bahria Town School Lahore" returned a school in Indian-administered
+ * Kashmir, ~400km away, despite the query being scoped to Pakistan.
+ *
+ * OSM is what actually works. It finds "Beaconhouse School System, Maulana
+ * Shaukat Ali Road", with street-level detail, because Pakistani cities are
+ * well covered by community mapping.
  *
  * What this component is actually for: the radius decides when the system says
  * a collector is "nearly here", and the announcement fires off ETA to this
  * exact point. A pin in the middle of a campus rather than on the gate parents
  * use is a quiet, permanent few-hundred-metre error in every arrival estimate
- * the school will ever produce — which is why the copy tells them to pin the
- * gate, and why the circle is drawn rather than left as a number.
+ * the school will ever produce - which is why the copy says to pin the gate,
+ * and why the circle is drawn rather than left as a number.
  */
 
 export type PickedLocation = { lat: number; lng: number };
 
 const DEFAULT_CENTRE: PickedLocation = { lat: 30.3753, lng: 69.3451 }; // Pakistan
 
-/** Kept in sync with `--color-primary` in globals.css — see the note at the
- *  circle below for why this cannot be the CSS variable itself. */
-const PRIMARY = "#f54e00";
-
 /**
- * Shipped to the browser, which is unavoidable for client-side tiles and
- * normal for a maps key. Restrict it by domain in my.tomtom.com rather than
- * trying to hide it.
+ * Kept in sync with `--color-primary` in globals.css. It cannot be the CSS
+ * variable itself: Leaflet writes these onto the SVG stroke/fill ATTRIBUTES,
+ * and SVG attributes do not resolve CSS custom properties - the circle would
+ * render black.
  */
-const TOMTOM_KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY ?? "";
+const PRIMARY = "#f54e00";
 
 export function LocationPicker({
   value,
@@ -70,6 +77,7 @@ export function LocationPicker({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [results, setResults] = useState<PlaceHit[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   // Build the map once.
   useEffect(() => {
@@ -77,6 +85,8 @@ export function LocationPicker({
     let cleanup: (() => void) | undefined;
 
     (async () => {
+      // Imported inside the effect: Leaflet reaches for `window` at module
+      // scope, which throws during Next's server render.
       const L = (await import("leaflet")).default;
       if (cancelled || !hostRef.current || mapRef.current) return;
 
@@ -85,9 +95,9 @@ export function LocationPicker({
         [start.lat, start.lng],
         value ? 16 : 5,
       );
-      L.tileLayer(tomtomTileUrl(TOMTOM_KEY), {
-        attribution: TOMTOM_ATTRIBUTION,
-        maxZoom: 22,
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19,
       }).addTo(map);
 
       map.on("click", (e: { latlng: { lat: number; lng: number } }) => {
@@ -103,14 +113,14 @@ export function LocationPicker({
         markerRef.current = null;
         circleRef.current = null;
       };
-    })();
+    })().catch(() => setLoadError(true));
 
     return () => {
       cancelled = true;
       cleanup?.();
     };
-    // Deliberately once — `value` is applied by the effect below, and
-    // rebuilding the map on every pin move would fight the user's panning.
+    // Once. `value` is applied by the effect below; rebuilding the map on every
+    // pin move would fight the user's panning.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -125,9 +135,9 @@ export function LocationPicker({
       if (cancelled || !map) return;
 
       if (!markerRef.current) {
-        // Leaflet's default marker images resolve to a CDN path that this
-        // app does not serve, so they 404 and the pin renders as a broken
-        // image. A divIcon needs no assets at all and matches the palette.
+        // Leaflet's default marker images resolve to a CDN path this app does
+        // not serve, so they 404 and the pin renders as a broken image. A
+        // divIcon needs no assets at all and matches the palette.
         const icon = L.divIcon({
           className: "",
           html: `<div style="
@@ -149,15 +159,15 @@ export function LocationPicker({
       }
 
       if (!circleRef.current) {
-        // Literal hex, not var(--color-primary): Leaflet writes these onto
-        // the SVG `stroke`/`fill` *attributes*, and SVG attributes do not
-        // resolve CSS custom properties — the circle would render black.
         circleRef.current = L.circle([value.lat, value.lng], {
           radius: radiusM,
           color: PRIMARY,
           weight: 2,
           fillColor: PRIMARY,
           fillOpacity: 0.08,
+          // Must not swallow clicks meant for the map beneath it: the radius is
+          // often larger than the visible map, which would make the picker inert.
+          interactive: false,
         }).addTo(map);
       } else {
         circleRef.current.setLatLng([value.lat, value.lng]);
@@ -170,9 +180,14 @@ export function LocationPicker({
     };
   }, [ready, value, radiusM]);
 
-  // Debounced as the administrator types. `results` drives a real dropdown -
-  // the old implementation asked for a single hit and silently teleported the
-  // pin, so a wrong first guess looked identical to a broken search.
+  /*
+   * Debounced as the administrator types, and `results` drives a real dropdown.
+   *
+   * The previous implementation asked for a single hit and silently moved the
+   * pin to it, so a wrong first guess was indistinguishable from a broken
+   * search - and it was broken, every time, because the free geocoder it used
+   * rate-limits browser traffic.
+   */
   useEffect(() => {
     const q = query.trim();
     if (q.length < 3) {
@@ -185,30 +200,18 @@ export function LocationPicker({
     const timer = setTimeout(async () => {
       setSearching(true);
       setSearchError(null);
-      try {
-        const hits = await searchPlaces(TOMTOM_KEY, q, {
-          signal: controller.signal,
-          // Bias to what is on screen, so a second search refines rather than
-          // jumping to a same-named place in another city.
-          near: value ?? undefined,
-        });
-        setResults(hits);
-        if (!hits.length) setSearchError(t.noResults);
-      } catch (err) {
-        if ((err as { name?: string }).name !== "AbortError") setSearchError(t.noResults);
-      } finally {
-        setSearching(false);
-      }
-    }, 350);
+      const hits = await searchPlaces(q, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      setResults(hits);
+      if (!hits.length) setSearchError(t.noResults);
+      setSearching(false);
+    }, 400);
 
     return () => {
       controller.abort();
       clearTimeout(timer);
     };
-    // `value` is read for the bias only; re-running on every pin nudge would
-    // re-query while the user drags.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [query, t.noResults]);
 
   function choose(hit: PlaceHit) {
     const loc = { lat: hit.lat, lng: hit.lng };
@@ -224,7 +227,7 @@ export function LocationPicker({
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         onChange(loc);
-        mapRef.current?.setView([loc.lat, loc.lng], 16);
+        mapRef.current?.setView([loc.lat, loc.lng], 17);
       },
       () => setSearchError(t.noResults),
       { enableHighAccuracy: true, timeout: 10000 },
@@ -234,17 +237,16 @@ export function LocationPicker({
   return (
     <div>
       {/*
-        A div, NOT a form. This component renders inside the registration
-        <form>, and nested forms are invalid HTML — the browser associates an
-        inner submit button with the OUTER form, so a search used to submit the
-        whole registration. Enter is intercepted here for the same reason.
+        A div, NOT a form. This renders inside the registration <form>, and
+        nested forms are invalid HTML - the browser associates an inner submit
+        button with the OUTER form, so searching used to submit the whole
+        registration. Enter is intercepted below for the same reason.
       */}
       <div className="relative mb-3">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            // Enter picks the top hit rather than submitting the registration.
             if (e.key === "Enter") {
               e.preventDefault();
               if (results.length) choose(results[0]);
@@ -258,14 +260,14 @@ export function LocationPicker({
         />
 
         {searching ? (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 type-caption text-muted">
+          <span className="absolute end-3 top-1/2 -translate-y-1/2 type-caption text-muted">
             {t.searching}
           </span>
         ) : null}
 
         {results.length ? (
           <ul
-            className="absolute z-[1000] left-0 right-0 mt-1 bg-surface-card border border-hairline-strong rounded-lg overflow-hidden max-h-64 overflow-y-auto"
+            className="absolute z-[1000] start-0 end-0 mt-1 bg-surface-card border border-hairline-strong rounded-lg overflow-hidden max-h-64 overflow-y-auto"
             role="listbox"
           >
             {results.map((hit) => (
@@ -293,6 +295,12 @@ export function LocationPicker({
         style={{ height }}
         className="rounded-lg overflow-hidden border border-hairline-strong bg-canvas-soft"
       />
+
+      {loadError ? (
+        <p className="type-caption text-error mt-2" role="alert">
+          {t.orDropPin}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
         <p className="type-caption text-muted">

@@ -41,10 +41,14 @@ class Settings(BaseSettings):
     #: screen it was rendered on is a link that leaks.
     s3_url_ttl_seconds: int = 3600
 
-    # Server-side only. Used once per trip to turn a straight line into a road
-    # distance; never exposed to a client. Empty disables the call and the ETA
-    # falls back to straight-line, which is what it did before.
-    tomtom_api_key: str = ""
+    # An OSRM-compatible routing engine, called ONCE per trip to turn a
+    # straight line into a road distance. Empty disables it entirely and the
+    # ETA falls back to straight-line, which is what it has always been.
+    #
+    # The public demo server below is fine for a demo and explicitly NOT for
+    # production load. Before this carries real traffic, point it at a
+    # self-hosted OSRM or an OpenRouteService endpoint.
+    routing_base_url: str = "https://router.project-osrm.org"
 
     geofence_radius_m: int = 1000
     # The classroom announcement fires on ETA, not on the geofence ring —

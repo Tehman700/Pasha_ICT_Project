@@ -7,4 +7,4 @@ export * from "./i18n/index";
 export * as fixtures from "./mock/fixtures";
 export * from "./phone";
 export * from "./cnic";
-export * from "./maps/tomtom";
+export * from "./maps/osm";

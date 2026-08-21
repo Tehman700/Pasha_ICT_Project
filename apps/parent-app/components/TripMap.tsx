@@ -2,26 +2,26 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import { WebView } from "react-native-webview";
 import { T, colors, radius, spacing } from "@pickup/ui-native";
-import { TOMTOM_ATTRIBUTION, tomtomTileUrl } from "@pickup/shared";
+
 
 /**
- * Shipped inside the app bundle, which is unavoidable for client-side tiles.
- * Restrict it by bundle id in my.tomtom.com rather than trying to hide it.
- */
-const TOMTOM_KEY = process.env.EXPO_PUBLIC_TOMTOM_API_KEY ?? "";
-
-/**
- * TomTom tiles via Leaflet in a WebView.
+ * OpenStreetMap tiles via Leaflet in a WebView.
  *
- * NOT react-native-maps, still deliberately: that needs a native map SDK and a
- * dev build, and this renders the same two dots and a line for a fraction of
- * the weight. The tiles moved from OpenStreetMap to TomTom on 21 Aug 2026 so
- * the dashboard and the apps draw a pin on the same basemap.
+ * NOT react-native-maps, deliberately: that needs a native map SDK and a dev
+ * build, and this renders the same two dots and a line for a fraction of the
+ * weight. It also means no key ships in the app bundle.
  *
- * The map shows WHERE the van is. It never says where the van is in words -
- * TomTom's reverse geocoding is wrong for Lahore, returning byte-identical
- * addresses for points kilometres apart. Coordinates on a map, never a
- * sentence. See packages/shared/src/maps/tomtom.ts.
+ * The dashboard uses Google Maps and this uses OSM, which is a real
+ * difference. It is accepted rather than accidental: the dashboard map is a
+ * precision tool - an administrator pinning a gate to within a few metres,
+ * where the better basemap earns its keep. This one answers "roughly where is
+ * the van", and OSM answers that perfectly while a referrer-restricted Google
+ * key cannot authenticate from a WebView anyway.
+ *
+ * The map shows WHERE the van is. It never says where the van is in words. No
+ * reverse geocoding, from any provider - the one that was tested returned
+ * byte-identical addresses for Lahore points kilometres apart. Coordinates on
+ * a map, never a sentence.
  *
  * Tiles load over the network. With no signal the WebView shows the fallback
  * rather than a blank grey box, because a parent staring at nothing assumes
@@ -65,9 +65,9 @@ export function TripMap({
   var map = L.map('map', { zoomControl: false, attributionControl: true })
     .setView([${centerLat}, ${centerLng}], ${hasCollector ? 13 : 15});
 
-  L.tileLayer('${tomtomTileUrl(TOMTOM_KEY)}', {
-    maxZoom: 22,
-    attribution: '${TOMTOM_ATTRIBUTION}'
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
   var dot = function (cls) {
