@@ -24,4 +24,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "rukhsat-mobile"
 include(":app")
+
+// Shared modules. Empty at the end of Phase 0 by design - they exist so the
+// code written in Phase 1 onward has an obvious home, rather than piling into
+// :app and being untangled later.
+//
+// There is no :core-i18n. It was dropped with Urdu on 21 Aug 2026: with one
+// language a module for strings earns nothing. See docs/mobile-v2/I18N.md.
+include(":core-ui")
+include(":core-data")
  
