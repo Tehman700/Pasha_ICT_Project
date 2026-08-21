@@ -8,4 +8,6 @@ export * from "./illustrations";
 export * from "./Walkthrough";
 export * from "./dashboard";
 export * from "./StepFlow";
-export * from "./Onboarding";
+export * from "./Tour";
+export * from "./Welcome";
+export * from "./GateMark";

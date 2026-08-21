@@ -6,48 +6,53 @@ import { colors, radius, spacing } from "./theme";
 import { useLocale } from "./providers";
 
 /**
- * The first screen of an install: a swipeable set of cards explaining what the
- * app is for, with sign-in pinned to the bottom.
+ * The optional pitch, reached from the welcome screen's "Take a quick tour".
+ *
+ * This was the entry screen itself until 21 Aug 2026, with sign-in pinned
+ * underneath it. Splitting the two matches the flow the user picked: the
+ * welcome hero asks for a decision, and this explains the product only to
+ * someone who asked to be told.
  *
  * Illustrations rather than photography. A photo of a Pakistani school gate
  * would be stronger, but we do not have one we own the rights to, and stock
  * imagery of the wrong country reads instantly as filler. The illustration set
  * in `illustrations.tsx` is already the visual language of the empty states,
- * so the onboarding introduces nothing the app will not show again.
+ * so the tour introduces nothing the app will not show again.
  *
- * The sign-in button never scrolls. A carousel where the only way forward is
- * to swipe past every card is a carousel people get stuck in — a returning
- * user reinstalling the app should reach the phone field in one tap.
+ * Skip is always available. A carousel whose only exit is swiping past every
+ * card is a carousel people get stuck in.
  */
 
-export type OnboardingCard = {
+export type TourCard = {
   title: string;
   body: string;
   art: React.ReactNode;
 };
 
-export function Onboarding({
-  cards,
-  onSignIn,
-  onRegister,
-  onTour,
-  registerLabel,
-}: {
-  cards: OnboardingCard[];
-  onSignIn: () => void;
-  onRegister?: () => void;
-  onTour?: () => void;
-  registerLabel?: string;
-}) {
+export function Tour({ cards, onDone }: { cards: TourCard[]; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const { strings } = useLocale();
   const [page, setPage] = useState(0);
   const scroller = useRef<ScrollView | null>(null);
+
+  // Measured off the ScrollView itself, never its padded parent. Measuring the
+  // parent is what made the React Native carousel overflow its viewport: the
+  // page width came out wider than the scroller by exactly the padding, so
+  // every card sat a little further right than the last.
   const [width, setWidth] = useState(Dimensions.get("window").width - spacing.lg * 2);
+
+  const last = page >= cards.length - 1;
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const next = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
     if (next !== page) setPage(next);
+  }
+
+  function advance() {
+    if (last) return onDone();
+    const next = page + 1;
+    scroller.current?.scrollTo({ x: next * width, animated: true });
+    setPage(next);
   }
 
   return (
@@ -67,6 +72,11 @@ export function Onboarding({
           </T>
         </T>
         <View style={{ flex: 1 }} />
+        <Pressable onPress={onDone} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <T variant="bodySm" color={colors.body}>
+            {strings.walkthrough.skip}
+          </T>
+        </Pressable>
       </View>
 
       <View style={{ flex: 1, paddingHorizontal: spacing.lg }}>
@@ -96,14 +106,15 @@ export function Onboarding({
               </View>
 
               <Spacer h={spacing.xl} />
-              <T variant="displaySm" color={colors.ink} style={{ textAlign: "center" }}>
+              <T variant="displaySm" color={colors.ink} align="center">
                 {card.title}
               </T>
               <Spacer h={spacing.sm} />
               <T
                 variant="bodyMd"
                 color={colors.muted}
-                style={{ textAlign: "center", paddingHorizontal: spacing.base }}
+                align="center"
+                style={{ paddingHorizontal: spacing.base }}
               >
                 {card.body}
               </T>
@@ -133,30 +144,14 @@ export function Onboarding({
         </View>
       </View>
 
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingBottom: insets.bottom + spacing.base,
-          gap: spacing.sm,
-        }}
-      >
-        {onTour ? (
-          <Button label={strings.walkthrough.takeTour} variant="secondary" large full onPress={onTour} />
-        ) : null}
-
-        <Button label={strings.auth.signIn} variant="ink" large full onPress={onSignIn} />
-
-        {onRegister ? (
-          <Pressable
-            onPress={onRegister}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={{ alignItems: "center", paddingVertical: spacing.xs }}
-          >
-            <T variant="bodySm" color={colors.body}>
-              {registerLabel ?? strings.register.createAccount}
-            </T>
-          </Pressable>
-        ) : null}
+      <View style={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + spacing.base }}>
+        <Button
+          label={last ? strings.walkthrough.start : strings.walkthrough.next}
+          variant="ink"
+          large
+          full
+          onPress={advance}
+        />
       </View>
     </View>
   );
