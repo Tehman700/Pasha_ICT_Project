@@ -20,8 +20,9 @@ import {
   spacing,
   useApi,
   useLocale,
+  useMe,
+  useMySchoolName,
 } from "@pickup/ui-native";
-import { fixtures } from "@pickup/shared";
 import { ParentWalkthrough } from "../../components/ParentWalkthrough";
 
 /**
@@ -36,6 +37,8 @@ import { ParentWalkthrough } from "../../components/ParentWalkthrough";
  * this screen that colour is spent.
  */
 export default function TodayScreen() {
+  const me = useMe();
+  const schoolName = useMySchoolName();
   const api = useApi();
   const router = useRouter();
   const { strings } = useLocale();
@@ -70,8 +73,8 @@ export default function TodayScreen() {
       <ParentWalkthrough />
 
       <DashboardHeader
-        name={fixtures.currentParent.name}
-        sub={fixtures.school.name}
+        name={me.data?.name ?? ""}
+        sub={schoolName}
         onProfile={() => router.push("/profile")}
       />
       <Spacer h={spacing.lg} />

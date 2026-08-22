@@ -17,8 +17,9 @@ import {
   spacing,
   useApi,
   useLocale,
+  useMe,
+  useMySchoolName,
 } from "@pickup/ui-native";
-import { fixtures } from "@pickup/shared";
 
 export default function ProfileScreen() {
   const api = useApi();
@@ -26,15 +27,16 @@ export default function ProfileScreen() {
   const { strings } = useLocale();
 
   const children = useQuery({ queryKey: ["myChildren"], queryFn: () => api.getMyChildren() });
-  const me = fixtures.currentParent;
+  const me = useMe();
+  const schoolName = useMySchoolName();
 
   return (
     <Screen>
-      <DashboardHeader name={me.name} sub={fixtures.school.name} />
+      <DashboardHeader name={me.data?.name ?? ""} sub={schoolName} />
       <Spacer h={spacing.lg} />
 
       <Section title={strings.parent.profile}>
-        <ListRow icon="user" title={strings.auth.phone} subtitle={me.phone} last />
+        <ListRow icon="user" title={strings.auth.phone} subtitle={me.data?.phone ?? ""} last />
       </Section>
 
       <Spacer h={spacing.lg} />

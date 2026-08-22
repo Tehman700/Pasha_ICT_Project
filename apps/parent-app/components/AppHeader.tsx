@@ -1,10 +1,11 @@
 import { View } from "react-native";
-import { Row, Spacer, T, colors, spacing, useLocale } from "@pickup/ui-native";
-import { fixtures } from "@pickup/shared";
+import { Row, Spacer, T, colors, spacing, useLocale, useMe, useMySchoolName } from "@pickup/ui-native";
 
-/** Wordmark + language toggle. Urdu is one tap away on every screen. */
+/** Wordmark, and who is signed in. */
 export function AppHeader() {
   const { strings } = useLocale();
+  const me = useMe();
+  const schoolName = useMySchoolName();
 
   return (
     <>
@@ -19,7 +20,7 @@ export function AppHeader() {
       </Row>
       <Spacer h={spacing.xs} />
       <T variant="caption" color={colors.mutedSoft}>
-        {fixtures.currentParent.name} · {fixtures.school.name}
+        {[me.data?.name, schoolName].filter(Boolean).join(" · ")}
       </T>
       <Spacer h={spacing.lg} />
     </>
