@@ -54,6 +54,23 @@ export default function TodayScreen() {
     queryFn: () => api.getMyCollectors(),
   });
 
+  // PickupRequest carries IDs and nothing else - that is what the contract
+  // says and what the API sends. This screen used to read r.student_name and
+  // r.collector_name, which have never existed on the wire, so every row
+  // rendered an em dash and the hero card read "Collected by: undefined".
+  //
+  // The names are resolved here from two lists the screen already loads, so
+  // this costs no extra request.
+  const children = useQuery({ queryKey: ["myChildren"], queryFn: () => api.getMyChildren() });
+
+  const childName = (id: string) =>
+    children.data?.find((c) => c.id === id)?.name ?? "";
+  const collectorName = (id: string) =>
+    collectors.data?.find((a) => a.collector_user_id === id)?.collector_name ??
+    // Not in the authorization list means the parent is collecting their own
+    // child, which is the common case and needs no grant.
+    (id === me.data?.id ? strings.queue.you : "");
+
   const today = requests.data ?? [];
   const activeTrip = trip.data && !trip.data.arrived_at ? trip.data : null;
   const first = today[0];
@@ -88,14 +105,14 @@ export default function TodayScreen() {
               tone="primary"
               eyebrow={p.tripActive}
               value={etaLabel(activeTrip.eta_seconds)}
-              caption={`${first?.collector_name ?? ""} · ${strings.queue.eta}`}
+              caption={[collectorName(first?.collector_id ?? ""), strings.queue.eta].filter(Boolean).join(" · ")}
               action={{ label: p.queuePosition, onPress: () => router.push("/queue") }}
             />
           ) : first ? (
             <HeroCard
               eyebrow={p.todayTitle}
               value={first.scheduled_time}
-              caption={`${p.heroCollector}: ${first.collector_name}`}
+              caption={`${p.heroCollector}: ${collectorName(first.collector_id)}`}
               action={{ label: p.quickException, onPress: () => router.push("/exception") }}
             />
           ) : (
@@ -154,12 +171,10 @@ export default function TodayScreen() {
               {today.map((r, i) => (
                 <ListRow
                   key={r.id}
-                  // Both names are optional on the wire — the list endpoint
-                  // omits them when the caller is not entitled to the join.
-                  // Falling back to an em dash keeps the row readable rather
-                  // than rendering the string "undefined".
-                  title={r.student_name ?? "—"}
-                  subtitle={[r.scheduled_time, r.collector_name].filter(Boolean).join(" · ")}
+                  title={childName(r.student_id) || "—"}
+                  subtitle={[r.scheduled_time, collectorName(r.collector_id)]
+                    .filter(Boolean)
+                    .join(" · ")}
                   trailing={<StatusPill status={r.status} />}
                   last={i === today.length - 1}
                 />
