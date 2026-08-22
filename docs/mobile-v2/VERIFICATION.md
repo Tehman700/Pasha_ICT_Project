@@ -32,6 +32,33 @@ adb -s emulator-5554 <command>
 **Do not drive the user's real phone without asking.** The emulator is the
 throwaway; the phone is not.
 
+### Two emulators
+
+Added 22 Aug 2026, for the flows that need two devices at once - a collector
+arriving on one while the queue updates on the other, and the guard scanning a
+code the parent app is displaying.
+
+```
+emulator-5554   Pixel_6         parent app
+emulator-5556   Pixel_6_Staff   staff app
+```
+
+`avdmanager` could not create the second one: it runs out of
+`C:\Android\Sdk`, which has no system images, while the image lives in the
+D: SDK. Cloning worked instead - a new `.ini` plus a copy of `config.ini` with
+`AvdId` and `avd.ini.displayname` changed. Do NOT copy the whole `.avd`
+directory; it is 7.9 GB and the emulator rebuilds userdata on first boot
+anyway.
+
+Start the second one on its own port:
+
+```bash
+ANDROID_SDK_ROOT='D:\Android_Studio_SDK_Location'   emulator -avd Pixel_6_Staff -port 5556
+```
+
+**With two attached, every adb command needs `-s`.** There is no useful error
+when it picks the wrong one - the command simply happens on the other phone.
+
 ### Emulator now, real phones at the end
 
 Decided with the user on 2026-08-21: **all development and verification happen
