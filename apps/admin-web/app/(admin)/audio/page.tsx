@@ -27,7 +27,8 @@ export default function AudioPage() {
   const { strings } = useLocale();
 
   const students = useQuery({ queryKey: ["students"], queryFn: () => api.listStudents() });
-  const users = useQuery({ queryKey: ["users"], queryFn: () => api.listUsers() });
+  // "all" rather than bare ["users"] - see the note in guardians/page.tsx.
+  const users = useQuery({ queryKey: ["users", "all"], queryFn: () => api.listUsers() });
   const audio = useQuery({ queryKey: ["nameAudio"], queryFn: () => api.listNameAudio() });
 
   const recordedIds = new Set(audio.data?.map((a) => a.subject_id));

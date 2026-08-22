@@ -19,7 +19,14 @@ export default function GuardiansPage() {
   const api = useApi();
   const { strings } = useLocale();
 
-  const users = useQuery({ queryKey: ["users"], queryFn: () => api.listUsers("parent") });
+  // The role MUST be in the key. Three pages call listUsers with different
+  // filters, and when they shared the key ["users"] whichever loaded first won
+  // - so this page rendered drivers and admins as if they were guardians. On a
+  // screen about who may collect a child, that is not a cosmetic bug.
+  const users = useQuery({
+    queryKey: ["users", "parent"],
+    queryFn: () => api.listUsers("parent"),
+  });
   const auths = useQuery({
     queryKey: ["authorizations"],
     queryFn: () => api.listAuthorizations(),

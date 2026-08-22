@@ -228,35 +228,48 @@ export default function AddCollectorScreen() {
         </Card>
       )}
 
-      <Spacer h={spacing.lg} />
-      <Label>{strings.parent.whichChildren}</Label>
-      <Spacer h={spacing.sm} />
+      {/*
+        In driver mode none of this exists until a driver has actually been
+        found. It used to render regardless, so the screen looked complete
+        before the search had run: you could tick a child, press Save, and
+        nothing happened, with no clue that the missing piece was above you.
 
-      <Row gap={spacing.xs} style={{ flexWrap: "wrap" }}>
-        {children.data?.map((c) => (
+        A relative needs no lookup - the parent is vouching for someone they
+        can already name - so that path shows it immediately.
+      */}
+      {mode === "relative" || found ? (
+        <>
+          <Spacer h={spacing.lg} />
+          <Label>{strings.parent.whichChildren}</Label>
+          <Spacer h={spacing.sm} />
+
+          <Row gap={spacing.xs} style={{ flexWrap: "wrap" }}>
+            {children.data?.map((c) => (
+              <Button
+                key={c.id}
+                label={`${selectedChildren.includes(c.id) ? "✓ " : ""}${c.name}`}
+                variant={selectedChildren.includes(c.id) ? "ink" : "secondary"}
+                onPress={() => toggleChild(c.id)}
+              />
+            ))}
+          </Row>
+
+          <Spacer h={spacing.sm} />
+          <T variant="caption" color={colors.mutedSoft}>
+            {strings.parent.accessPerChild}
+          </T>
+
+          <Spacer h={spacing.lg} />
           <Button
-            key={c.id}
-            label={`${selectedChildren.includes(c.id) ? "✓ " : ""}${c.name}`}
-            variant={selectedChildren.includes(c.id) ? "ink" : "secondary"}
-            onPress={() => toggleChild(c.id)}
+            label={grant.isPending ? strings.common.loading : strings.common.save}
+            variant="primary"
+            full
+            disabled={!canSave || grant.isPending}
+            onPress={() => found && grant.mutate(found.id)}
           />
-        ))}
-      </Row>
+        </>
+      ) : null}
 
-      <Spacer h={spacing.sm} />
-      <T variant="caption" color={colors.mutedSoft}>
-        Access is per child, and only ever your own. You can remove it at any
-        time, and it never affects another family.
-      </T>
-
-      <Spacer h={spacing.lg} />
-      <Button
-        label={grant.isPending ? strings.common.loading : strings.common.save}
-        variant="primary"
-        full
-        disabled={!canSave || grant.isPending}
-        onPress={() => found && grant.mutate(found.id)}
-      />
     </Screen>
   );
 }

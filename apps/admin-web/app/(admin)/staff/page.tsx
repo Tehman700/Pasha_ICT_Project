@@ -41,7 +41,8 @@ export default function StaffPage() {
     addUser.mutate();
   }
 
-  const users = useQuery({ queryKey: ["users"], queryFn: () => api.listUsers() });
+  // "all" rather than bare ["users"] - see the note in guardians/page.tsx.
+  const users = useQuery({ queryKey: ["users", "all"], queryFn: () => api.listUsers() });
   const classes = useQuery({ queryKey: ["classes"], queryFn: () => api.listClasses() });
 
   const staff =
