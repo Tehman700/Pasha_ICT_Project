@@ -49,7 +49,33 @@ module.exports = {
     "../../node_modules/xml2js/**",
     "../../node_modules/xmlbuilder/**",
 
+    // A native module neither mobile app uses, reaching the fingerprint by
+    // hoisting accident.
+    //
+    // @react-native-masked-view/masked-view is not declared by apps/parent-app
+    // or apps/staff-app. It arrives as a transitive dependency of
+    // apps/admin-web - a Next.js app that cannot autolink anything - gets
+    // hoisted to the workspace root, and React Native autolinking then finds
+    // it there and hashes the whole directory under rncoreAutolinkingAndroid.
+    //
+    // It was the entire fingerprint diff on two failed builds:
+    //   local 8cdd4a863dcde0be3d195b04b3d90937b7543482
+    //   EAS   b7bc27de23ba01de8e9c8a4e566902fd2ba7716e
+    // for byte-identical published contents at 0.3.2 - 32 files, verified.
+    // pnpm simply does not lay the directory out identically on a Windows
+    // install and a fresh Linux one, which is the same root cause the
+    // @expo/config-plugins cluster above was excluded for.
+    //
+    // A genuine version change still moves the fingerprint through the
+    // lockfile hash, so the OTA safety property is unaffected.
+    "../../node_modules/@react-native-masked-view/**",
+
     // Android build OUTPUT inside node_modules, not source.
+    //
+    // These turned out to be a no-op - eas-cli already excludes them - but
+    // they are kept as defence in depth, because `expo run:android` does leave
+    // android/build, .cxx and .gradle inside 29 packages here and a future
+    // fingerprint version could start counting them.
     //
     // Running `expo run:android` locally compiles every autolinked native
     // module in place, leaving android/build, android/.cxx and android/.gradle
