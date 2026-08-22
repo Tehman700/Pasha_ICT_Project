@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Badge,
   ChildChip,
+  Empty,
   Loading,
   Row,
   Screen,
@@ -75,8 +76,18 @@ export default function QrScreen() {
       </T>
       <Spacer h={spacing.lg} />
 
-      {tokens.isLoading || !token ? (
+      {/* A spinner is only honest while something is actually loading. This
+          used to render `tokens.isLoading || !token`, so a collector with no
+          trip today watched it spin forever - the app knew perfectly well
+          there was nothing to show and said nothing. */}
+      {tokens.isLoading || trip.isLoading ? (
         <Loading />
+      ) : !trip.data ? (
+        <Empty message={strings.parent.noTripForCode} />
+      ) : tokens.isError ? (
+        <Empty message={strings.errors.network} />
+      ) : !token ? (
+        <Empty message={strings.parent.noTripForCode} />
       ) : (
         <>
           <View style={{ alignItems: "center" }}>

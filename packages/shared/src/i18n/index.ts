@@ -408,6 +408,8 @@ export const en = {
     addRelative: "A relative or helper",
     addRelativeNote: "You add them directly. They get their own pickup code.",
     whichChildren: "Which children?",
+    noTripForCode:
+      "No pickup code yet. Start a trip from Today when you set off, and the code appears here.",
     accessPerChild:
       "Access is per child, and only ever your own. You can remove it at any time, and it never affects another family.",
     whoIsCollecting: "Who is collecting?",
@@ -1012,6 +1014,8 @@ export const ur: DeepMirror<Strings> = {
     addRelative: "رشتہ دار یا مددگار",
     addRelativeNote: "آپ خود شامل کریں۔ انہیں اپنا پک اپ کوڈ ملے گا۔",
     whichChildren: "کون سے بچے؟",
+    noTripForCode:
+      "ابھی کوئی کوڈ نہیں۔ روانہ ہوتے وقت Today سے ٹرپ شروع کریں، کوڈ یہاں آ جائے گا۔",
     accessPerChild:
       "رسائی ہر بچے کے لئے الگ ہے، اور صرف آپ کے اپنے بچوں کے لئے۔ آپ کسی بھی وقت یہ واپس لے سکتے ہیں۔",
     whoIsCollecting: "کون لے جا رہا ہے؟",

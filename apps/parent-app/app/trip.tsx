@@ -150,7 +150,9 @@ export default function TripScreen() {
         <>
           <Spacer h={spacing.base} />
           <T variant="bodySm" color={colors.error}>
-            {strings.parent.tripFailed}
+            {/* "failed" is the only case we cannot explain. Anything else is
+                the server's own sentence, which is more useful than ours. */}
+            {live.error === "failed" ? strings.parent.tripFailed : live.error}
           </T>
         </>
       ) : null}

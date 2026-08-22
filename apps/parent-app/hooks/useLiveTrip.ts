@@ -120,8 +120,13 @@ export function useLiveTrip(enabled: boolean) {
       setTrip(active);
       qc.invalidateQueries({ queryKey: ["myTrip"] });
       await beginTracking(active.id);
-    } catch {
-      setError("failed");
+    } catch (err) {
+      // The server has a real reason and it is usually actionable. Collapsing
+      // it to "check your connection" sent people to look at their signal when
+      // the actual answer was "nobody is scheduled for you today" - which no
+      // amount of reconnecting fixes.
+      const e = err as { status?: number; message?: string };
+      setError(e?.status === 409 && e.message ? e.message : "failed");
     } finally {
       setStarting(false);
     }
