@@ -48,5 +48,29 @@ module.exports = {
     "../../node_modules/xcode/**",
     "../../node_modules/xml2js/**",
     "../../node_modules/xmlbuilder/**",
+
+    // Android build OUTPUT inside node_modules, not source.
+    //
+    // Running `expo run:android` locally compiles every autolinked native
+    // module in place, leaving android/build, android/.cxx and android/.gradle
+    // inside the package directory. EAS's builder has none of that, so
+    // @expo/fingerprint - which hashes a whole directory for autolinked
+    // modules - produced a different hash for the same package and failed the
+    // build with the same "Runtime version calculated on local machine not
+    // equal to runtime version calculated during build" as before.
+    //
+    // The real diff from the build log was exactly one entry:
+    //   @react-native-masked-view/masked-view, reason rncoreAutolinkingAndroid,
+    //   local 8cdd4a86..., EAS b7bc27de...
+    // and 28 packages on this machine had such directories waiting to do the
+    // same thing.
+    //
+    // Excluding compiler output weakens nothing. A genuine change to a native
+    // module still moves the fingerprint through its source files, its
+    // package.json and the lockfile hash. Build output is derived from those,
+    // never the other way round.
+    "../../node_modules/**/android/build/**",
+    "../../node_modules/**/android/.cxx/**",
+    "../../node_modules/**/android/.gradle/**",
   ],
 };
