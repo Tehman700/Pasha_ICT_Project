@@ -246,6 +246,7 @@ export const myTrip: Trip = {
   last_lng: 73.0512,
   eta_seconds: 95,
   entered_geofence_at: at("13:06"),
+  ended_at: null,
   arrived_at: null,
 };
 

@@ -261,6 +261,7 @@ components:
         collector_user_id: { type: string, format: uuid }
         date: { type: string, format: date }
         started_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time, nullable: true }
         last_lat: { type: number, nullable: true }
         last_lng: { type: number, nullable: true }
         eta_seconds: { type: integer, nullable: true }

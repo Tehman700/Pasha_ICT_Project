@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { MotiView } from "moti";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -43,6 +43,7 @@ export default function TripScreen() {
   const api = useApi();
   const router = useRouter();
   const { strings } = useLocale();
+  const qc = useQueryClient();
   const [elapsed, setElapsed] = useState(0);
 
   const live = useLiveTrip(true);
@@ -64,16 +65,26 @@ export default function TripScreen() {
   const eta = live.status?.eta_seconds ?? live.trip?.eta_seconds ?? null;
   const nearby = eta !== null && eta <= 120;
 
+  const [ending, setEnding] = useState(false);
+
   async function endTrip() {
+    setEnding(true);
     live.stop();
     if (live.trip) {
       try {
         await api.endTrip(live.trip.id);
       } catch {
-        // Ending is best-effort — the server also auto-ends after 90 minutes,
-        // and a failed call must not trap the parent on this screen.
+        // Ending stays best-effort - the server auto-ends after 90 minutes and
+        // a failed call must not trap the parent on this screen.
       }
     }
+    // Without this the home screen keeps rendering the cached trip and still
+    // says TRIP IN PROGRESS, which reads as "the button did nothing".
+    await qc.invalidateQueries({ queryKey: ["myTrip"] });
+    qc.invalidateQueries({ queryKey: ["myPickupRequests"] });
+    qc.invalidateQueries({ queryKey: ["myQueueEntry"] });
+    qc.invalidateQueries({ queryKey: ["queue"] });
+    setEnding(false);
     router.replace("/");
   }
 
@@ -208,7 +219,12 @@ export default function TripScreen() {
         onPress={() => router.push("/qr")}
       />
       <Spacer h={spacing.xs} />
-      <Button label={strings.parent.endTrip} full onPress={endTrip} />
+      <Button
+        label={ending ? strings.common.loading : strings.parent.endTrip}
+        full
+        disabled={ending}
+        onPress={endTrip}
+      />
     </Screen>
   );
 }

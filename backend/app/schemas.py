@@ -171,6 +171,11 @@ class TripOut(ORMModel):
     collector_user_id: uuid.UUID
     date: date
     started_at: datetime
+    # /me/trip returns today's trip whether or not it has ended, and arrived_at
+    # is only set on handover - so without this a client cannot tell a finished
+    # trip from a running one. The parent app showed TRIP IN PROGRESS forever
+    # after "End trip", which read as the button doing nothing.
+    ended_at: datetime | None = None
     last_lat: float | None = None
     last_lng: float | None = None
     eta_seconds: int | None = None

@@ -111,6 +111,8 @@ export interface Trip {
   collector_user_id: Uuid;
   date: IsoDate;
   started_at: IsoDateTime;
+  /** Set by POST /trips/{id}/end. Null while the trip is still running. */
+  ended_at: IsoDateTime | null;
   last_lat: number | null;
   last_lng: number | null;
   eta_seconds: number | null;

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Button,
   DashboardHeader,
   EmptyQueueScene,
   HeroCard,
@@ -40,6 +42,7 @@ export default function TodayScreen() {
   const me = useMe();
   const schoolName = useMySchoolName();
   const api = useApi();
+  const qc = useQueryClient();
   const router = useRouter();
   const { strings } = useLocale();
   const p = strings.parent;
@@ -63,6 +66,17 @@ export default function TodayScreen() {
   // this costs no extra request.
   const children = useQuery({ queryKey: ["myChildren"], queryFn: () => api.getMyChildren() });
 
+  // The hero used to offer a button labelled "Your place in the queue" and no
+  // number, so the one fact a waiting parent wants was always one tap away.
+  // Fetched here and shown inline; the button still opens the full queue.
+  const queueEntry = useQuery({
+    queryKey: ["myQueueEntry"],
+    queryFn: () => api.getMyQueueEntry(),
+    // A queue position is only meaningful while a trip is running.
+    enabled: !!trip.data && !trip.data.ended_at && !trip.data.arrived_at,
+    refetchInterval: 20_000,
+  });
+
   const childName = (id: string) =>
     children.data?.find((c) => c.id === id)?.name ?? "";
   const collectorName = (id: string) =>
@@ -71,8 +85,33 @@ export default function TodayScreen() {
     // child, which is the common case and needs no grant.
     (id === me.data?.id ? strings.queue.you : "");
 
+  const [ending, setEnding] = useState(false);
+
+  /**
+   * Same call the trip screen makes. Best effort, then invalidate: without the
+   * invalidation the hero keeps rendering the cached trip and the button looks
+   * like it did nothing.
+   */
+  async function endTripNow() {
+    if (!trip.data) return;
+    setEnding(true);
+    try {
+      await api.endTrip(trip.data.id);
+    } catch {
+      // The server auto-ends after 90 minutes; a failed call must not strand
+      // the parent with a button that never resolves.
+    }
+    await qc.invalidateQueries({ queryKey: ["myTrip"] });
+    qc.invalidateQueries({ queryKey: ["myPickupRequests"] });
+    qc.invalidateQueries({ queryKey: ["myQueueEntry"] });
+    setEnding(false);
+  }
+
   const today = requests.data ?? [];
-  const activeTrip = trip.data && !trip.data.arrived_at ? trip.data : null;
+  // ended_at, not just arrived_at: arrived_at is set on handover, so a trip
+  // the parent deliberately ended still looked active without this.
+  const activeTrip =
+    trip.data && !trip.data.ended_at && !trip.data.arrived_at ? trip.data : null;
   const first = today[0];
   const activeCollectors = collectors.data?.filter((c) => !c.revoked_at).length ?? 0;
 
@@ -105,8 +144,20 @@ export default function TodayScreen() {
               tone="primary"
               eyebrow={p.tripActive}
               value={etaLabel(activeTrip.eta_seconds)}
-              caption={[collectorName(first?.collector_id ?? ""), strings.queue.eta].filter(Boolean).join(" · ")}
-              action={{ label: p.queuePosition, onPress: () => router.push("/queue") }}
+              caption={[
+                collectorName(first?.collector_id ?? ""),
+                queueEntry.data?.position
+                  ? `${strings.queue.position} #${queueEntry.data.position}`
+                  : strings.queue.eta,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              action={{
+                label: queueEntry.data?.position
+                  ? `#${queueEntry.data.position}`
+                  : p.queuePosition,
+                onPress: () => router.push("/queue"),
+              }}
             />
           ) : first ? (
             <HeroCard
@@ -183,6 +234,24 @@ export default function TodayScreen() {
           )}
 
           <Spacer h={spacing.lg} />
+
+          {/*
+            Ending a trip used to live only inside the trip screen, so a parent
+            who had navigated away had to find their way back in to stop
+            sharing location. Stopping should never be the harder path.
+          */}
+          {activeTrip ? (
+            <>
+              <Button
+                label={ending ? strings.common.loading : p.endTrip}
+                variant="secondary"
+                full
+                disabled={ending}
+                onPress={endTripNow}
+              />
+              <Spacer h={spacing.lg} />
+            </>
+          ) : null}
 
           <Section title={p.quickActions}>
             <ListRow
