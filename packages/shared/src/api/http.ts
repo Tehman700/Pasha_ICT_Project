@@ -33,6 +33,7 @@ import type {
   QueueEntry,
   ScanResult,
   Schedule,
+  TimeOfDay,
   School,
   Student,
   Trip,
@@ -351,6 +352,31 @@ export function createHttpApi(options: HttpApiOptions): PickupApi & {
     // ── Mobile surfaces ────────────────────────────────────────────────
     getMyChildren: () => get<Student[]>("/me/children"),
     getMySchedules: () => get<Schedule[]>("/me/schedules"),
+
+    /**
+     * Set the recurring default for one weekday. Upserts server-side, so
+     * editing Tuesday twice leaves one Tuesday rather than a 500 on the
+     * (student, weekday) unique constraint.
+     *
+     * `id` is sent as a nil UUID on create. The endpoint validates against
+     * ScheduleOut, which requires the field, but the handler never reads it -
+     * it generates its own. Sending a real-looking id would imply we are
+     * choosing the primary key, which we are not.
+     */
+    setSchedule: (body: {
+      student_id: Uuid;
+      collector_id: Uuid;
+      weekday: number;
+      pickup_time: TimeOfDay;
+      id?: Uuid;
+    }) =>
+      post<Schedule>("/schedules", {
+        id: body.id ?? "00000000-0000-0000-0000-000000000000",
+        student_id: body.student_id,
+        collector_id: body.collector_id,
+        weekday: body.weekday,
+        pickup_time: body.pickup_time,
+      }),
     getMyPickupRequests: (date?: IsoDate) =>
       get<PickupRequest[]>("/me/manifest", { date }),
     getMyCollectors: () => get<PickupAuthorization[]>("/me/collectors"),

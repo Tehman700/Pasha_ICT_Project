@@ -32,6 +32,7 @@ import type {
   QueueEntry,
   ScanResult,
   Schedule,
+  TimeOfDay,
   School,
   Student,
   Trip,
@@ -131,6 +132,13 @@ export interface PickupApi {
   /** The signed-in collector's own children (parent) — empty for a driver. */
   getMyChildren(): Promise<Student[]>;
   getMySchedules(): Promise<Schedule[]>;
+  setSchedule(body: {
+    student_id: Uuid;
+    collector_id: Uuid;
+    weekday: number;
+    pickup_time: TimeOfDay;
+    id?: Uuid;
+  }): Promise<Schedule>;
   getMyPickupRequests(date?: IsoDate): Promise<PickupRequest[]>;
   /** Collectors this parent has authorized for their own children. */
   getMyCollectors(): Promise<PickupAuthorization[]>;
@@ -399,6 +407,16 @@ export const mockApi: PickupApi = {
 
   async getMyChildren() {
     return delay(fx.myChildren);
+  },
+
+  async setSchedule(body: {
+    student_id: Uuid;
+    collector_id: Uuid;
+    weekday: number;
+    pickup_time: TimeOfDay;
+    id?: Uuid;
+  }) {
+    return delay({ id: body.id ?? "sch-mock", ...body } as Schedule);
   },
 
   async getMySchedules() {

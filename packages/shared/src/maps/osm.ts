@@ -75,7 +75,11 @@ export async function searchPlaces(
       // display_name is "Name, Road, Area, City, Province, Country". The first
       // part is what someone recognises; the rest is how they tell two
       // campuses of the same school apart.
-      const [first, ...rest] = r.display_name.split(",");
+      // display_name always has at least one segment, but noUncheckedIndexedAccess
+      // does not know that.
+      const parts = r.display_name.split(",");
+      const first = parts[0] ?? r.display_name;
+      const rest = parts.slice(1);
       return {
         id: String(r.place_id ?? `${r.lat},${r.lon},${i}`),
         name: first.trim(),

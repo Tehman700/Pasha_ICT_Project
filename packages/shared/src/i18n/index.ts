@@ -408,6 +408,15 @@ export const en = {
     addRelative: "A relative or helper",
     addRelativeNote: "You add them directly. They get their own pickup code.",
     whichChildren: "Which children?",
+    setSchedule: "Set schedule",
+    scheduleWho: "Who collects",
+    scheduleWhen: "Pickup time",
+    scheduleDays: "Which days",
+    scheduleSaved: "Schedule saved.",
+    scheduleNeedsDay: "Choose at least one day.",
+    scheduleNeedsCollector: "Choose who collects.",
+    scheduleTomorrow:
+      "Pickups for a new schedule are prepared overnight, so today may still show nothing.",
     noTripForCode:
       "No pickup code yet. Start a trip from Today when you set off, and the code appears here.",
     accessPerChild:
@@ -1014,6 +1023,15 @@ export const ur: DeepMirror<Strings> = {
     addRelative: "رشتہ دار یا مددگار",
     addRelativeNote: "آپ خود شامل کریں۔ انہیں اپنا پک اپ کوڈ ملے گا۔",
     whichChildren: "کون سے بچے؟",
+    setSchedule: "شیڈول مقرر کریں",
+    scheduleWho: "کون لے گا",
+    scheduleWhen: "وقت",
+    scheduleDays: "کن دنوں",
+    scheduleSaved: "شیڈول محفوظ ہو گیا۔",
+    scheduleNeedsDay: "کم از کم ایک دن منتخب کریں۔",
+    scheduleNeedsCollector: "منتخب کریں کہ کون لے گا۔",
+    scheduleTomorrow:
+      "نئے شیڈول کے پک اپ رات کو تیار ہوتے ہیں، اس لیے آج شاید کچھ نہ دکھائے۔",
     noTripForCode:
       "ابھی کوئی کوڈ نہیں۔ روانہ ہوتے وقت Today سے ٹرپ شروع کریں، کوڈ یہاں آ جائے گا۔",
     accessPerChild:
