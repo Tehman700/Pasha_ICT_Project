@@ -20,7 +20,7 @@
 
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { MotiView } from "moti";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { cnicDigits, isValidCnic, isValidPhone, type ParentRegistrationResult } from "@pickup/shared";
@@ -28,7 +28,9 @@ import {
   Button,
   Card,
   CnicInput,
+  Empty,
   Input,
+  Loading,
   PhoneInput,
   Screen,
   Spacer,
@@ -36,6 +38,7 @@ import {
   T,
   colors,
   motion,
+  radius,
   spacing,
   useApi,
   useLocale,
@@ -47,6 +50,7 @@ export default function ParentRegisterScreen() {
   const router = useRouter();
   const { strings, locale } = useLocale();
 
+  const [schoolId, setSchoolId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [cnic, setCnic] = useState("");
@@ -55,17 +59,26 @@ export default function ParentRegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ParentRegistrationResult | null>(null);
 
-  const { index, dir, next, back, isFirst, setIndex } = useStepFlow(4);
+  const { index, dir, next, back, isFirst, setIndex } = useStepFlow(5);
 
-  // One school in this deployment, so it is chosen rather than asked about.
-  // A multi-school build turns this into a picker; nothing else changes.
   // The PUBLIC list: this screen runs before any token exists, and the
   // authenticated `/schools` would 401 in a way that reads as a network fault.
+  //
+  // This used to take schools[0] on the assumption of a single-school
+  // deployment. With more than one school that silently registered every
+  // parent against whichever happened to be first, and since the CNIC match is
+  // scoped by school, they matched zero children with nothing on screen to
+  // explain why.
+  //
+  // Showing the list leaks nothing: /schools/public needs no token, so anyone
+  // can already read it. What protects a child is the CNIC match in
+  // backend/app/routers/registration.py - picking the wrong school here
+  // matches nobody and is flagged in the audit log for a human to look at.
   const schools = useQuery({
     queryKey: ["schools", "public"],
     queryFn: () => api.listSchoolsPublic(),
   });
-  const school = schools.data?.[0];
+  const school = schools.data?.find((s) => s.id === schoolId) ?? null;
 
   const submit = useMutation({
     mutationFn: () =>
@@ -74,7 +87,7 @@ export default function ParentRegisterScreen() {
         phone,
         password,
         cnic: cnicDigits(cnic),
-        school_id: school!.id,
+        school_id: schoolId!,
         locale,
       }),
     onSuccess: setResult,
@@ -143,6 +156,59 @@ export default function ParentRegisterScreen() {
 
   // ── Steps ───────────────────────────────────────────────────────────
   const steps = [
+    {
+      question: strings.register.schoolQuestion,
+      hint: strings.register.schoolHint,
+      valid: () => (schoolId ? null : strings.register.schoolRequired),
+      canAdvance: schoolId !== null,
+      field: (
+        <>
+          {schools.isPending ? <Loading /> : null}
+          {schools.isError ? <Empty message={strings.register.schoolsUnavailable} /> : null}
+          {schools.data?.length === 0 ? (
+            <Empty message={strings.register.schoolsUnavailable} />
+          ) : null}
+
+          {schools.data?.map((s) => {
+            const selected = s.id === schoolId;
+            return (
+              <Pressable
+                key={s.id}
+                onPress={() => {
+                  setSchoolId(s.id);
+                  setError(null);
+                }}
+                style={{
+                  borderWidth: 1,
+                  // Selection is carried by the border and the tick, not by a
+                  // fill: a filled row on a cream canvas reads as disabled.
+                  borderColor: selected ? colors.primary : colors.hairlineStrong,
+                  backgroundColor: colors.surfaceCard,
+                  borderRadius: radius.lg,
+                  paddingVertical: spacing.base,
+                  paddingHorizontal: spacing.base,
+                  marginBottom: spacing.sm,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <T variant="bodyMd" color={colors.ink}>
+                    {s.name}
+                  </T>
+                </View>
+                {selected ? (
+                  <T variant="bodyMd" color={colors.primary}>
+                    ✓
+                  </T>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </>
+      ),
+    },
     {
       question: strings.register.nameQuestion,
       hint: undefined,

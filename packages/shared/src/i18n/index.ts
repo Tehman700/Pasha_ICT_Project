@@ -82,6 +82,10 @@ export const en = {
     confirmPassword: "Confirm password",
     school: "School",
     selectSchool: "Select your school",
+    schoolQuestion: "Which school is your child at?",
+    schoolHint:
+      "We match you to your children using your CNIC and this school, so pick the one they are enrolled at.",
+    schoolsUnavailable: "Could not load the list of schools.",
     submit: "Create account",
     submitting: "Creating your account…",
     nameQuestion: "What's your name?",
@@ -693,6 +697,10 @@ export const ur: DeepMirror<Strings> = {
     confirmPassword: "پاس ورڈ دوبارہ لکھیں",
     school: "اسکول",
     selectSchool: "اپنا اسکول منتخب کریں",
+    schoolQuestion: "آپ کا بچہ کس اسکول میں ہے؟",
+    schoolHint:
+      "ہم آپ کے شناختی کارڈ اور اس اسکول کے ذریعے آپ کے بچوں سے ملاتے ہیں۔",
+    schoolsUnavailable: "اسکولوں کی فہرست لوڈ نہیں ہو سکی۔",
     submit: "اکاؤنٹ بنائیں",
     submitting: "آپ کا اکاؤنٹ بن رہا ہے…",
     nameQuestion: "آپ کا نام کیا ہے؟",
