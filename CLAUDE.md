@@ -2,7 +2,7 @@
 
 **Rukhsat (رخصت)** — a school pickup queue and verification system: two Android
 apps (parent, staff) and one admin web dashboard, on a shared FastAPI backend.
-A 1-week competition build by two developers, both using Claude Code.
+A 1-week competition build by two developers, both using Claude Code..
 
 The competition requires a **live deployed system**, not a recorded demo.
 
