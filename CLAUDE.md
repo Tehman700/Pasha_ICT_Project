@@ -1,4 +1,4 @@
-# CLAUDE.md — Repo Root
+# CLAUDE.md — Repo Roots
 
 **Rukhsat (رخصت)** — a school pickup queue and verification system: two Android
 apps (parent, staff) and one admin web dashboard, on a shared FastAPI backend.
