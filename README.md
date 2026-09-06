@@ -2,7 +2,7 @@
 
 MVP for a competition build: a queue and verification system for Montessori/primary school dismissal, built as two Android apps and one admin web dashboard on a shared FastAPI backend.
 
-**Team:** 2 developers · **Timeline:** 1 week · **Product name:** TBD
+**Team:** 2 developers · **Timeline:** 1 week · **Product name:** TBDD
 
 ## Start here
 
